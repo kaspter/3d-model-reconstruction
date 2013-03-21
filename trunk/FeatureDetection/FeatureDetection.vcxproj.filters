@@ -13,7 +13,10 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Файлы исходного кода\ImageProcessing">
+    <Filter Include="Заголовочные файлы\ImageProcessor">
+      <UniqueIdentifier>{c03a743b-f6e1-49bb-94e4-b784c6f9027e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы исходного кода\ImageProcessor">
       <UniqueIdentifier>{7da33f97-364c-42ff-941f-1e9a29b43ea2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -30,11 +33,11 @@
     <ClInclude Include="targetver.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="IReconstruction.h">
-      <Filter>Заголовочные файлы</Filter>
+    <ClInclude Include="imp_base.h">
+      <Filter>Заголовочные файлы\ImageProcessor</Filter>
     </ClInclude>
-    <ClInclude Include="ImageProcessing.h">
-      <Filter>Заголовочные файлы</Filter>
+    <ClInclude Include="imp_algorithm.h">
+      <Filter>Заголовочные файлы\ImageProcessor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -44,8 +47,8 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-    <ClCompile Include="SUSAN.cpp">
-      <Filter>Файлы исходного кода\ImageProcessing</Filter>
+    <ClCompile Include="imp_susan.cpp">
+      <Filter>Файлы исходного кода\ImageProcessor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

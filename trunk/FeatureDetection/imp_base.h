@@ -1,4 +1,4 @@
-namespace ReconstructionInterface
+namespace imp
 {
 	class IImageFilter
 	{
