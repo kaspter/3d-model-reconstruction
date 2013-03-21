@@ -79,8 +79,6 @@ TSTRING FileBrowserInit(HWND hwndOwner)
 
 BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 {
-	if (imageFileName.empty()) return FALSE;
-
 	LPTSTRING errMsg = NULL;
 
 #ifdef _UNICODE
@@ -116,6 +114,7 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		_stprintf_s(const_cast<LPTSTR>(windowText.c_str()), windowText.length(), _T("%s - %s"), szTitle, imageFileName.c_str());
 		SetWindowText(hwnd, windowText.c_str());
 
+		EnableMenuItem(GetMenu(hwnd), 1, MF_BYPOSITION | MF_ENABLED);
 		PostMessage(hwnd, WM_COMMAND, MAKEWPARAM(ID_VIEW_ORIGINAL, 0), 0);
 	}
 	else
@@ -187,9 +186,10 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case ID_FILE_OPEN:
-		LoadImageSpecified(hwnd, FileBrowserInit(hwnd));
-		EnableMenuItem(GetMenu(hwnd), 1, MF_BYPOSITION | MF_ENABLED);
-		break;
+		{
+			TSTRING imagePath = FileBrowserInit(hwnd);
+			if (!imagePath.empty())	LoadImageSpecified(hwnd, imagePath);
+		} break;
 	case IDM_EXIT:
 		DropResources();
 		DestroyWindow(hwnd);
@@ -298,8 +298,8 @@ ATOM WindowClassRegister(HINSTANCE hInstance)
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= hInstance;
 	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_FEATUREDETECTION));
-	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+	wcex.hCursor		= LoadCursor(NULL, IDC_CROSS);
+	wcex.hbrBackground	= (HBRUSH)(COLOR_3DLIGHT);
 	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_FEATUREDETECTION);
 	wcex.lpszClassName	= szWindowClass;
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
