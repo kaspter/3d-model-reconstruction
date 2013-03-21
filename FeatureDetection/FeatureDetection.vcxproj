@@ -80,13 +80,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="FeatureDetection.h" />
+    <ClInclude Include="IReconstruction.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="ImageProcessing.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FeatureDetection.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="SUSAN.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FeatureDetection.rc" />
