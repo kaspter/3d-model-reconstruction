@@ -11,6 +11,7 @@
 // Windows Header Files:
 #include <windows.h>
 #include <CommDlg.h>
+#include <ShellApi.h>
 
 // C RunTime Header Files
 #include <stdlib.h>
@@ -21,3 +22,6 @@
 
 // TODO: reference additional headers your program requires here
 #include <string>
+#include "opencv2\core\core.hpp"
+#include "opencv2\imgproc\imgproc.hpp"
+#include "opencv2\highgui\highgui.hpp"
