@@ -4,12 +4,12 @@
 #include "stdafx.h"
 #include "FeatureDetection.h"
 
-#define MAX_LOADSTRING 100
-
 // Global Variables:
 HINSTANCE hInst;								// current instance
-TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
-TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
+LPTSTR szTitle = _T("Feature Detection");		// The title bar text
+
+HWND hcanvas, hstatus, htip;
+TOOLINFO ti = { 0 };
 
 // Different images (original and filtered grayscale)
 cv::Mat source, filtered;
@@ -92,23 +92,28 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	cv::Mat loaded = cv::imread(mbFileName);
 	if (loaded.data != NULL) 
 	{
+		// TODO: Process loaded so it's width became aligned to sizeof(LONG)
+
 		source = loaded;
 		cv::cvtColor(loaded, filtered, CV_BGR2GRAY);
 	
 		bmi.bmiHeader.biWidth = loaded.cols;
 		bmi.bmiHeader.biHeight = -loaded.rows;
 
-		RECT client, window;
+		RECT client, window, status;
 		GetClientRect(hwnd, &client);
 		GetWindowRect(hwnd, &window);
+		GetWindowRect(GetDlgItem(hwnd, ID_DETECTION_STATUS), &status);
 
 		cv::Size imageSize = loaded.size();
 		cv::Size frameSize = cv::Size(window.right - window.left - client.right + client.left, window.bottom - window.top - client.bottom + client.top) + imageSize;
-		SetWindowPos(hwnd, NULL, 0, 0, frameSize.width, frameSize.height, SWP_NOMOVE | SWP_NOZORDER);
-
+		SetWindowPos(hwnd, NULL, 0, 0, frameSize.width, frameSize.height + status.bottom - status.top, SWP_NOMOVE | SWP_NOZORDER);
+			
 		GetClientRect(hwnd, &client);
 		imageCenter.x = (client.right - client.left - imageSize.width) >> 1;
-		imageCenter.y = (client.bottom + client.top - imageSize.height) >> 1;
+		imageCenter.y = (client.bottom + client.top - imageSize.height - status.bottom + status.top) >> 1;
+		SetWindowPos(hcanvas, NULL, imageCenter.x, imageCenter.y, imageSize.width, imageSize.height, SWP_NOZORDER);
+		ShowWindow(hcanvas, SW_SHOW);
 
 		TSTRING windowText = TSTRING(_tcslen(szTitle) + imageFileName.length() + 4, _T('\0'));
 		_stprintf_s(const_cast<LPTSTR>(windowText.c_str()), windowText.length(), _T("%s - %s"), szTitle, imageFileName.c_str());
@@ -164,8 +169,24 @@ VOID SetMenuGroupBoxChecked(HWND hwnd, int (&indexGroup)[_size], int checkedId)
 }
 
 
-BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
+BOOL OnCreateMain(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 {
+	// Status bar creation
+	RECT client;
+	GetClientRect(hwnd, &client);
+	hcanvas = CreateWindow(CANVAS_WINDOW_CLASS, NULL, WS_CHILDWINDOW, 0, 0, client.right, client.top, hwnd, NULL, hInst, NULL);
+	hstatus = CreateWindow(STATUSCLASSNAME, _T("No image loaded"), WS_CHILD | WS_VISIBLE | CCS_BOTTOM, 0, 0, 0, 0, hwnd, (HMENU)ID_DETECTION_STATUS, hInst, NULL); SendMessage(hstatus, SB_SIMPLE, 0, 0);
+	htip	= CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hcanvas, NULL, hInst, NULL);
+
+	ti.cbSize = TTTOOLINFO_V2_SIZE;
+	ti.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE;
+	ti.uId = (UINT_PTR)hcanvas;
+	ti.hwnd = hcanvas;
+	ti.lpszText = LPSTR_TEXTCALLBACK;
+
+	BOOL test = SendMessage(htip, TTM_ADDTOOL, 0, (LPARAM)&ti);
+
+	// Internal business-logic structures initialization
 	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmi.bmiHeader.biPlanes = 1;
 	bmi.bmiHeader.biCompression = BI_RGB;
@@ -179,7 +200,7 @@ BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 	return TRUE;
 }
 
-void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
+void OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 {
 	BOOL switchMenuViewGroup = FALSE;
 	// Parse the menu selections:
@@ -222,13 +243,13 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		// TODO: place image output function here or post redraw message
 		bmi.bmiHeader.biBitCount = imageShown->elemSize() * 8;
 
-		RedrawWindow(hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE);
+		RedrawWindow(hcanvas, NULL, NULL, RDW_ERASE | RDW_INVALIDATE);
 
 		if (id != ID_VIEW_FILTERED) { /* TODO: Filter settings toolbox hiding operations code must be placed here */ }
 	}
 }
 
-void OnDropFiles(HWND hwnd, HDROP hdrop)
+void OnDropFilesMain(HWND hwnd, HDROP hdrop)
 {
 	UINT fmax = DragQueryFile(hdrop, UINT(-1), NULL, 0);
 	for (UINT f = 0; f < fmax; ++f)
@@ -253,14 +274,95 @@ void OnDropFiles(HWND hwnd, HDROP hdrop)
 	MessageBox(hwnd, _T("No files of dropped ones are images that can be loaded!"), _T("Warning!"), MB_OK | MB_ICONASTERISK);
 }
 
-void OnPaint(HWND hwnd)
+void OnSizeMain(HWND hwnd, UINT state, int cx, int cy)
+{
+	SendMessage(GetDlgItem(hwnd, ID_DETECTION_STATUS), WM_SIZE, 0, 0);
+	FORWARD_WM_SIZE(hwnd, state, cx, cy, DefWindowProc);
+}
+
+void OnDestroyMain(HWND hwnd)
+{
+	DestroyWindow(hcanvas);
+	DestroyWindow(hstatus);
+	DestroyWindow(htip);
+
+	PostQuitMessage(0);
+	FORWARD_WM_DESTROY(hwnd, DefWindowProc);
+}
+
+LRESULT CALLBACK MainWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+		HANDLE_MSG(hWnd, WM_CREATE, OnCreateMain);
+		HANDLE_MSG(hWnd, WM_COMMAND, OnCommandMain);
+		//HANDLE_MSG(hWnd, WM_NOTIFY, OnNotify);
+		HANDLE_MSG(hWnd, WM_DROPFILES, OnDropFilesMain);
+		HANDLE_MSG(hWnd, WM_SIZE, OnSizeMain);
+		//HANDLE_MSG(hWnd, WM_MOUSEMOVE, OnMouseMove);
+		//HANDLE_MSG(hWnd, WM_PAINT, OnPaint);
+
+		//case WM_MOUSELEAVE:
+		//	SendMessage(GetDlgItem(hWnd, ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)NULL);
+		//	break;
+
+		HANDLE_MSG(hWnd, WM_DESTROY, OnDestroyMain);
+	}
+
+	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+LRESULT OnNotifyCanvas(HWND hwnd, int nId, LPNMHDR lpNmhdr)
+{
+	switch (lpNmhdr->code)
+	{
+	case TTN_GETDISPINFO:
+		{
+			POINT cursorPos;
+			GetCursorPos(&cursorPos);
+			ScreenToClient(hwnd, &cursorPos);
+
+			_stprintf_s(((LPNMTTDISPINFO)lpNmhdr)->lpszText, 0x50, _T("%u;%u"), cursorPos.x, cursorPos.y);
+		} break;
+	}
+
+	return FORWARD_WM_NOTIFY(hwnd, nId, lpNmhdr, DefWindowProc);
+}
+
+void OnMouseMoveCanvas(HWND hwnd, int x, int y, UINT keyFlags)
+{
+	TCHAR coordText[0x10] = { 0 };
+	_stprintf_s(coordText, _T("%u;%u px"), x, y);
+	SendMessage(GetDlgItem(GetParent(hwnd), ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)coordText);
+
+	if (ti.lParam != TRUE) 
+	{
+		SendMessage(htip, TTM_TRACKACTIVATE, FALSE, (LPARAM)&ti);
+	}
+	else
+	{
+		ti.lParam = FALSE;
+	}
+
+	TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE | TME_HOVER, hwnd, HOVER_DEFAULT };
+	TrackMouseEvent(&tme);
+}
+
+void OnMouseHoverCanvas(HWND hwnd, int x, int y, UINT keyFlags)
+{	
+	POINT absolute = { x + 10, y + 10 };
+	ClientToScreen(hwnd, &absolute);
+	SendMessage(htip, TTM_TRACKPOSITION, 0, MAKELPARAM(absolute.x, absolute.y));
+	SendMessage(htip, TTM_TRACKACTIVATE, ti.lParam = TRUE, (LPARAM)&ti);
+}
+
+void OnPaintCanvas(HWND hwnd)
 {
 	if (imageShown != NULL)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);	
-		SIZE paintSize = { ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top };
-		SetDIBitsToDevice(hdc, MAX(imageCenter.x, ps.rcPaint.left), MAX(imageCenter.y, ps.rcPaint.top), paintSize.cx, paintSize.cy, 
+		SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, 
 			ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.top, ps.rcPaint.bottom, imageShown->data, &bmi, DIB_RGB_COLORS);
 		EndPaint(hwnd, &ps);
 		return;
@@ -269,42 +371,48 @@ void OnPaint(HWND hwnd)
 	FORWARD_WM_PAINT(hwnd, DefWindowProc);
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+
+LRESULT CALLBACK CanvasWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
-		HANDLE_MSG(hWnd, WM_CREATE, OnCreate);
-		HANDLE_MSG(hWnd, WM_COMMAND, OnCommand);
-		HANDLE_MSG(hWnd, WM_DROPFILES, OnDropFiles);
-		HANDLE_MSG(hWnd, WM_PAINT, OnPaint);
+		HANDLE_MSG(hWnd, WM_NOTIFY, OnNotifyCanvas);
+		HANDLE_MSG(hWnd, WM_MOUSEMOVE, OnMouseMoveCanvas);
+		HANDLE_MSG(hWnd, WM_MOUSEHOVER, OnMouseHoverCanvas);
+		HANDLE_MSG(hWnd, WM_PAINT, OnPaintCanvas);
 
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			break;		
+		case WM_MOUSELEAVE:
+			SendMessage(GetDlgItem(GetParent(hWnd), ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)NULL);
+			break;	
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-ATOM WindowClassRegister(HINSTANCE hInstance)
+VOID WindowClassRegister(HINSTANCE hInstance)
 {
-	WNDCLASSEX wcex;
+	WNDCLASSEX wcex = { 0 };
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
 	wcex.style			= CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc	= WndProc;
-	wcex.cbClsExtra		= 0;
-	wcex.cbWndExtra		= 0;
+	wcex.lpfnWndProc	= MainWindowProc;
 	wcex.hInstance		= hInstance;
 	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_FEATUREDETECTION));
-	wcex.hCursor		= LoadCursor(NULL, IDC_CROSS);
+	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground	= (HBRUSH)(COLOR_3DLIGHT);
 	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_FEATUREDETECTION);
-	wcex.lpszClassName	= szWindowClass;
+	wcex.lpszClassName	= MAIN_WINDOW_CLASS;
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+	RegisterClassEx(&wcex);
 
-	return RegisterClassEx(&wcex);
+	wcex.lpfnWndProc	= CanvasWindowProc;
+	wcex.hIcon			= NULL;
+	wcex.hCursor		= LoadCursor(NULL, IDC_CROSS);
+	wcex.lpszMenuName	= NULL;
+	wcex.lpszClassName	= CANVAS_WINDOW_CLASS;
+	wcex.hIconSm		= NULL;
+	RegisterClassEx(&wcex);
 }
 
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
@@ -313,7 +421,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    hInst = hInstance; // Store instance handle in our global variable
 
-   hWnd = CreateWindowEx(WS_EX_ACCEPTFILES | WS_EX_STATICEDGE, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
+   hWnd = CreateWindowEx(WS_EX_ACCEPTFILES | WS_EX_STATICEDGE, MAIN_WINDOW_CLASS, szTitle, (WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN) & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX,
       CW_USEDEFAULT, 0, 640, 480, NULL, NULL, hInstance, NULL);
 
    if (!hWnd)
@@ -335,23 +443,13 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	_tsetlocale(LC_ALL, _T("Russian_rus.1251"));
+	InitCommonControls();
 
- 	// TODO: Place code here.
-	MSG msg;
-	HACCEL hAccelTable;
-
-	// Initialize global strings
-	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	LoadString(hInstance, IDC_FEATUREDETECTION, szWindowClass, MAX_LOADSTRING);
 	WindowClassRegister(hInstance);
-
-	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow)) return FALSE;
 
-	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_FEATUREDETECTION));
-
-	// Main message loop:
+	MSG msg;
+	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_FEATUREDETECTION));
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
 		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))

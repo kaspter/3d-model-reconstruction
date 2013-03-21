@@ -1,6 +1,6 @@
-#include "IReconstruction.h"
+#include "imp_base.h"
 
-namespace ReconstructionInterface
+namespace imp
 {
 	class SUSANImageFilter : public IImageFilter
 	{};
