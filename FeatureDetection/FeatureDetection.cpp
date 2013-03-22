@@ -12,7 +12,7 @@ HWND hcanvas, hstatus, htip;
 TOOLINFO ti = { 0 };
 
 // Different images (original and filteredImage grayscale)
-cv::Mat originalImage, filteredImage;
+cv::Mat originalImage, grayscaleImage, filteredImage;
 cv::Mat *displayedImage = NULL;
 
 #define GRAYSCALE_PAL_LEVELS ((USHORT)256)
@@ -100,10 +100,15 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 
 		/* Grayscale image preparation */
 		cv::cvtColor(rawImage, rawImage, CV_BGR2GRAY); //rawImage = filteredImage;
-		if (!filteredImage.empty()) { delete[] filteredImage.data; filteredImage.release(); }
+		if (!grayscaleImage.empty()) { delete[] grayscaleImage.data; grayscaleImage.release(); }
 		alignedRowSize = ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
-		filteredImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
-		rawImage.copyTo(filteredImage);
+		grayscaleImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		rawImage.copyTo(grayscaleImage);
+
+		filteredImage.release();
+
+		// Temporary.
+		filteredImage = grayscaleImage;
 
 		bmi.bmiHeader.biWidth = rawImage.cols;
 		bmi.bmiHeader.biHeight = -rawImage.rows;
@@ -318,7 +323,8 @@ LRESULT OnNotifyCanvas(HWND hwnd, int nId, LPNMHDR lpNmhdr)
 			GetCursorPos(&cursorPos);
 			ScreenToClient(hwnd, &cursorPos);
 
-			_stprintf_s(((LPNMTTDISPINFO)lpNmhdr)->lpszText, 0x50, _T("%u;%u"), cursorPos.x, cursorPos.y);
+			// 80 symbols MAX including '\0'
+			_stprintf_s(((LPNMTTDISPINFO)lpNmhdr)->lpszText, 0x50, _T("%u @ %u;%u"), grayscaleImage.at<uchar>(cv::Point(cursorPos.x, cursorPos.y)), cursorPos.x, cursorPos.y);
 		} break;
 	}
 
@@ -326,8 +332,8 @@ LRESULT OnNotifyCanvas(HWND hwnd, int nId, LPNMHDR lpNmhdr)
 }
 VOID OnMouseMoveCanvas(HWND hwnd, int x, int y, UINT keyFlags)
 {
-	TCHAR coordText[0x10] = { 0 };
-	_stprintf_s(coordText, _T("%u;%u px"), x, y);
+	TCHAR coordText[0x20] = { 0 };
+	_stprintf_s(coordText, _T("%u @ %u;%u i/px"), grayscaleImage.at<uchar>(cv::Point(x, y)), x, y);
 	SendMessage(GetDlgItem(GetParent(hwnd), ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)coordText);
 
 	if (ti.lParam != TRUE) 
