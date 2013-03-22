@@ -11,9 +11,9 @@ LPTSTR szTitle = _T("Feature Detection");		// The title bar text
 HWND hcanvas, hstatus, htip;
 TOOLINFO ti = { 0 };
 
-// Different images (original and filtered grayscale)
-cv::Mat source, filtered;
-cv::Mat *imageShown = NULL;
+// Different images (original and filteredImage grayscale)
+cv::Mat originalImage, filteredImage;
+cv::Mat *displayedImage = NULL;
 
 #define GRAYSCALE_PAL_LEVELS ((USHORT)256)
 BYTE bitmapInfoData[sizeof(BITMAPINFO) + sizeof(RGBQUAD) * GRAYSCALE_PAL_LEVELS] = { 0 };
@@ -89,23 +89,31 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	std::string mbFileName = imageFileName;
 #endif
 
-	cv::Mat loaded = cv::imread(mbFileName);
-	if (loaded.data != NULL) 
+	cv::Mat rawImage = cv::imread(mbFileName);
+	if (rawImage.data != NULL) 
 	{
-		// TODO: Process loaded so it's width became aligned to sizeof(LONG)
+		// TODO: Process rawImage so it's width became aligned to sizeof(LONG)
+		if (!originalImage.empty()) { delete[] originalImage.data; originalImage.release(); }
+		ULONG alignedRowSize = ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		originalImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		rawImage.copyTo(originalImage);
 
-		source = loaded;
-		cv::cvtColor(loaded, filtered, CV_BGR2GRAY);
-	
-		bmi.bmiHeader.biWidth = loaded.cols;
-		bmi.bmiHeader.biHeight = -loaded.rows;
+		/* Grayscale image preparation */
+		cv::cvtColor(rawImage, rawImage, CV_BGR2GRAY); //rawImage = filteredImage;
+		if (!filteredImage.empty()) { delete[] filteredImage.data; filteredImage.release(); }
+		alignedRowSize = ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		filteredImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		rawImage.copyTo(filteredImage);
+
+		bmi.bmiHeader.biWidth = rawImage.cols;
+		bmi.bmiHeader.biHeight = -rawImage.rows;
 
 		RECT client, window, status;
 		GetClientRect(hwnd, &client);
 		GetWindowRect(hwnd, &window);
 		GetWindowRect(GetDlgItem(hwnd, ID_DETECTION_STATUS), &status);
 
-		cv::Size imageSize = loaded.size();
+		cv::Size imageSize = rawImage.size();
 		cv::Size frameSize = cv::Size(window.right - window.left - client.right + client.left, window.bottom - window.top - client.bottom + client.top) + imageSize;
 		SetWindowPos(hwnd, NULL, 0, 0, frameSize.width, frameSize.height + status.bottom - status.top, SWP_NOMOVE | SWP_NOZORDER);
 			
@@ -133,12 +141,18 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	return success;
 }
 
-VOID DropResources() 
-{ 
+template <int _size>
+VOID SetMenuGroupBoxChecked(HWND hwnd, int (&indexGroup)[_size], int checkedId)
+{
+	HMENU hMenu = GetMenu(hwnd);
+	for (int i = 0; i < _size; ++i) 
+	{
+		if (checkedId != indexGroup[i]) CheckMenuItem(hMenu, indexGroup[i], MF_BYCOMMAND | MF_UNCHECKED);
+	}
+	CheckMenuItem(hMenu, checkedId, MF_BYCOMMAND | MF_CHECKED);
 }
 
-// Message handler for about box.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK AboutBoxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
@@ -156,18 +170,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return (INT_PTR)FALSE;
 }
-
-template <int _size>
-VOID SetMenuGroupBoxChecked(HWND hwnd, int (&indexGroup)[_size], int checkedId)
-{
-	HMENU hMenu = GetMenu(hwnd);
-	for (int i = 0; i < _size; ++i) 
-	{
-		if (checkedId != indexGroup[i]) CheckMenuItem(hMenu, indexGroup[i], MF_BYCOMMAND | MF_UNCHECKED);
-	}
-	CheckMenuItem(hMenu, checkedId, MF_BYCOMMAND | MF_CHECKED);
-}
-
 
 BOOL OnCreateMain(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 {
@@ -199,8 +201,7 @@ BOOL OnCreateMain(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 
 	return TRUE;
 }
-
-void OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
+VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 {
 	BOOL switchMenuViewGroup = FALSE;
 	// Parse the menu selections:
@@ -212,23 +213,22 @@ void OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 			if (!imagePath.empty())	LoadImageSpecified(hwnd, imagePath);
 		} break;
 	case IDM_EXIT:
-		DropResources();
 		DestroyWindow(hwnd);
 		break;
 
 	case ID_VIEW_ORIGINAL: 
 		switchMenuViewGroup = TRUE; 
 		EnableMenuItem(GetMenu(hwnd), ID_VIEW_FILTERPARAMETERS, MF_BYCOMMAND | MF_DISABLED);
-		imageShown = &source;
+		displayedImage = &originalImage;
 		break;
 	case ID_VIEW_FILTERED: 
 		switchMenuViewGroup = TRUE; 
 		EnableMenuItem(GetMenu(hwnd), ID_VIEW_FILTERPARAMETERS, MF_BYCOMMAND | MF_ENABLED);
-		imageShown = &filtered;
+		displayedImage = &filteredImage;
 		break;
 
 	case IDM_ABOUT:
-		DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, About);
+		DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, AboutBoxDlgProc);
 		break;
 
 	default:
@@ -241,15 +241,14 @@ void OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		SetMenuGroupBoxChecked(hwnd, menuViewGroupSwitchboxes, id);
 
 		// TODO: place image output function here or post redraw message
-		bmi.bmiHeader.biBitCount = imageShown->elemSize() * 8;
+		bmi.bmiHeader.biBitCount = displayedImage->elemSize() * 8;
 
 		RedrawWindow(hcanvas, NULL, NULL, RDW_ERASE | RDW_INVALIDATE);
 
 		if (id != ID_VIEW_FILTERED) { /* TODO: Filter settings toolbox hiding operations code must be placed here */ }
 	}
 }
-
-void OnDropFilesMain(HWND hwnd, HDROP hdrop)
+VOID OnDropFilesMain(HWND hwnd, HDROP hdrop)
 {
 	UINT fmax = DragQueryFile(hdrop, UINT(-1), NULL, 0);
 	for (UINT f = 0; f < fmax; ++f)
@@ -273,14 +272,12 @@ void OnDropFilesMain(HWND hwnd, HDROP hdrop)
 
 	MessageBox(hwnd, _T("No files of dropped ones are images that can be loaded!"), _T("Warning!"), MB_OK | MB_ICONASTERISK);
 }
-
-void OnSizeMain(HWND hwnd, UINT state, int cx, int cy)
+VOID OnSizeMain(HWND hwnd, UINT state, int cx, int cy)
 {
 	SendMessage(GetDlgItem(hwnd, ID_DETECTION_STATUS), WM_SIZE, 0, 0);
 	FORWARD_WM_SIZE(hwnd, state, cx, cy, DefWindowProc);
 }
-
-void OnDestroyMain(HWND hwnd)
+VOID OnDestroyMain(HWND hwnd)
 {
 	DestroyWindow(hcanvas);
 	DestroyWindow(hstatus);
@@ -289,7 +286,6 @@ void OnDestroyMain(HWND hwnd)
 	PostQuitMessage(0);
 	FORWARD_WM_DESTROY(hwnd, DefWindowProc);
 }
-
 LRESULT CALLBACK MainWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -328,8 +324,7 @@ LRESULT OnNotifyCanvas(HWND hwnd, int nId, LPNMHDR lpNmhdr)
 
 	return FORWARD_WM_NOTIFY(hwnd, nId, lpNmhdr, DefWindowProc);
 }
-
-void OnMouseMoveCanvas(HWND hwnd, int x, int y, UINT keyFlags)
+VOID OnMouseMoveCanvas(HWND hwnd, int x, int y, UINT keyFlags)
 {
 	TCHAR coordText[0x10] = { 0 };
 	_stprintf_s(coordText, _T("%u;%u px"), x, y);
@@ -347,31 +342,31 @@ void OnMouseMoveCanvas(HWND hwnd, int x, int y, UINT keyFlags)
 	TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE | TME_HOVER, hwnd, HOVER_DEFAULT };
 	TrackMouseEvent(&tme);
 }
-
-void OnMouseHoverCanvas(HWND hwnd, int x, int y, UINT keyFlags)
+VOID OnMouseHoverCanvas(HWND hwnd, int x, int y, UINT keyFlags)
 {	
 	POINT absolute = { x + 10, y + 10 };
 	ClientToScreen(hwnd, &absolute);
 	SendMessage(htip, TTM_TRACKPOSITION, 0, MAKELPARAM(absolute.x, absolute.y));
 	SendMessage(htip, TTM_TRACKACTIVATE, ti.lParam = TRUE, (LPARAM)&ti);
 }
-
-void OnPaintCanvas(HWND hwnd)
+VOID OnMouseLeaveCanvas(HWND hwnd)
 {
-	if (imageShown != NULL)
+	SendMessage(GetDlgItem(GetParent(hwnd), ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)NULL);
+}
+VOID OnPaintCanvas(HWND hwnd)
+{
+	if (displayedImage != NULL)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);	
 		SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, 
-			ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.top, ps.rcPaint.bottom, imageShown->data, &bmi, DIB_RGB_COLORS);
+			ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi, DIB_RGB_COLORS);
 		EndPaint(hwnd, &ps);
 		return;
 	}
 
 	FORWARD_WM_PAINT(hwnd, DefWindowProc);
 }
-
-
 LRESULT CALLBACK CanvasWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -379,11 +374,8 @@ LRESULT CALLBACK CanvasWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		HANDLE_MSG(hWnd, WM_NOTIFY, OnNotifyCanvas);
 		HANDLE_MSG(hWnd, WM_MOUSEMOVE, OnMouseMoveCanvas);
 		HANDLE_MSG(hWnd, WM_MOUSEHOVER, OnMouseHoverCanvas);
+		HANDLE_MSG(hWnd, WM_MOUSELEAVE, OnMouseLeaveCanvas);
 		HANDLE_MSG(hWnd, WM_PAINT, OnPaintCanvas);
-
-		case WM_MOUSELEAVE:
-			SendMessage(GetDlgItem(GetParent(hWnd), ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)NULL);
-			break;	
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
@@ -414,7 +406,6 @@ VOID WindowClassRegister(HINSTANCE hInstance)
 	wcex.hIconSm		= NULL;
 	RegisterClassEx(&wcex);
 }
-
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    HWND hWnd;
