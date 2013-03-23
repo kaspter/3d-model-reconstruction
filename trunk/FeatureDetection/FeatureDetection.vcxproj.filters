@@ -33,9 +33,6 @@
     <ClInclude Include="targetver.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="imp_base.h">
-      <Filter>Заголовочные файлы\ImageProcessor</Filter>
-    </ClInclude>
     <ClInclude Include="imp_algorithm.h">
       <Filter>Заголовочные файлы\ImageProcessor</Filter>
     </ClInclude>

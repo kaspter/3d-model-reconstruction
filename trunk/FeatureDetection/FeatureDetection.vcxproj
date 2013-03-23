@@ -80,7 +80,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="FeatureDetection.h" />
-    <ClInclude Include="imp_base.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="imp_algorithm.h" />
