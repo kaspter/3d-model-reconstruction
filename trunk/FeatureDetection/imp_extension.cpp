@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "imp_algorithm.h"
 
 namespace imp
 {
@@ -22,9 +21,5 @@ namespace imp
 		for (int i=0; i<ker.rows*ker.cols; i++)
 			result += list.data[i] * ker.data[i]; 
 	    return result;
-	}
-
-	void SUSANImageFilter::Filtering (cv::Mat image)
-	{	
 	}
 }
