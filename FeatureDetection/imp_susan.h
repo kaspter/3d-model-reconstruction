@@ -9,9 +9,18 @@ namespace imp
 		typedef typename CastOp::type1 KT;
 		typedef typename CastOp::rtype DT;
 
+		CastOp _castOp;
+		VecOp  _vecOp;
+
+		KT paramSigma;
+		KT paramT;
+
 	public:		
-		SUSANImageFilter (KT sigma, KT t, const CastOp& _castOp=CastOp(), const VecOp& _vecOp=VecOp())
+		SUSANImageFilter (double sigma, double t, const CastOp& castOp=CastOp(), const VecOp& vecOp=VecOp())
+			: _castOp(castOp), _vecOp(vecOp)
 		{
+			paramSigma	= cv::saturate_cast<KT>(sigma);
+			paramT		= cv::saturate_cast<KT>(t);
 		}
 
 		void operator()(const uchar** src, uchar* dst, int dststep, int dstcount, int width, int cn)

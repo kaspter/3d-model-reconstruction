@@ -3,6 +3,6 @@
 
 namespace imp
 {
-	cv::Mat DiskMatrix (unsigned int radius, int type);
+	cv::Mat DiskMatrix (unsigned radius, int type);
 	float SquareCorrelation (const cv::Mat& ker, const cv::Mat& list);	
 }
