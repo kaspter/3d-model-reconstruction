@@ -2,25 +2,20 @@
 
 namespace imp
 {
-	cv::Mat DiskMatrix_8uc1 (unsigned radius)
+	cv::Mat DiskMatrix_8uc1 (double radius)
 	{
-		unsigned diam = 2 * radius + 1;
-		cv::Mat res = cv::Mat(diam, diam, CV_8UC1);
-		for(unsigned iMax = diam*diam, i=0; i < iMax ; ++i)
+		assert(radius > 0);
+
+		unsigned r  = static_cast<unsigned>(ROUND_VAL(radius)), d = 2 * r + 1;
+		double rpow = radius + 0.5; rpow *= rpow;
+		
+		cv::Mat res = cv::Mat(d, d, CV_8UC1);
+		for(unsigned imax = d*d, i=0; i < imax ; ++i)
 		{
-			int x = i % diam - radius;
-			int y = i / diam - radius;
-			res.at<uchar>(x,y) = static_cast<unsigned>(x*x + y*y) <= radius*radius;			
+			int x = i % d - r, y = i / d - r;
+			res.at<uchar>(x + r,y + r) = static_cast<unsigned>(x*x + y*y) <= rpow;			
 		}
 		return res;
-	}
-
-	float SquareCorrelation (const cv::Mat& ker, const cv::Mat& list)
-	{
-		float result = 0;
-		for (int i=0; i<ker.rows*ker.cols; i++)
-			result += list.data[i] * ker.data[i]; 
-	    return result;
 	}
 
 	void preprocess2DKernel( const cv::Mat& kernel, std::vector<cv::Point>& coords, std::vector<uchar>& coeffs )

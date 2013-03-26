@@ -1,83 +1,85 @@
 #pragma once
-#include "imp_extension.h"
-#include <cmath>
 
 namespace imp
 {
-//-----------------------------SUSAN-----------------------------
-	template<typename ST, class CastOp> class SUSANImageFilter : public cv::BaseFilter
+	// =================================== SUSAN =====================================
+	template<typename SourceValueType, class CastOpType> class SUSANImageFilter : public cv::BaseFilter
 	{
-		typedef typename CastOp::type1 KT;
-		typedef typename CastOp::rtype DT;
+		typedef typename CastOpType::type1 KernelValueType;
+		typedef typename CastOpType::rtype ResultValueType;
 
-		CastOp _castOp;
+		// Evaluation result cast operator
+		CastOpType _castOp;
 
-		KT paramSigma;
-		KT paramT;
+		// Filter direct parameters
+		KernelValueType paramSigma;
+		KernelValueType paramT;
 
-		std::vector<uchar>	diskMask;
-		std::vector<cv::Point>	coords;
-		std::vector<KT>		coeffs;
-		std::vector<uchar*> ptrs;
+		// Internal intermediate data structures
+		std::vector<cv::Point>		 _pt;	// Kernel top-left based relative coordinates.
+		std::vector<uchar*>			 _psrc; // Source image pixel data element pointer set.
+		std::vector<KernelValueType> _kval; // Kernel values. Dynamic (as much elements as _pt.size() * channel_count).
+		//std::vector<KernelValueType> _ksum;	// Kernel values _ksum. Dynamic (as much elements as channels).
+				
+	public:
+		SUSANImageFilter (unsigned radius, double sigma, double t, const CastOpType& castOp=CastOpType())
+			: _castOp(castOp)
+		{		
+			ksize  = cv::Size(2*radius + 1, 2*radius + 1);
+			anchor = cv::Point(radius, radius); 
 
-		cv::Point anchorCoords;
-		void generateKernel (const ST** kp, const ST* anchor, int cn)
-		{			
-			KT sigma2pow = 2*paramSigma*paramSigma;
-			for( int i=0, imax = coeffs.size() - cn; i<imax;)
+			paramSigma = cv::saturate_cast<KernelValueType>(sigma);
+			paramT	   = cv::saturate_cast<KernelValueType>(t);				
+
+			cv::Mat matrix	= DiskMatrix_8uc1(radius); matrix.at<uchar>(anchor) = 0;
+			for (int i = 0; i < matrix.rows; ++i)
 			{
-				for (int k = i+cn; i<k; ++i )
-				{					
-					coeffs[i] = exp (
-						-((coords[i].x*coords[i].x + coords[i].y*coords[i].y) / sigma2pow)
-						-(kp[i] - anchor[k-i-1])/paramT)^2;
+				int offset = i * matrix.step; // step equals width in this case
+				for (int j = 0; j < matrix.cols; ++j)
+				{
+					if (matrix.data[j + offset] != 0) _pt.push_back(cv::Point(j,i));
 				}
 			}
+			_psrc.resize(_pt.size());
 		}
-		
-	public:
-		SUSANImageFilter (unsigned radius, double sigma, double t, const CastOp& castOp=CastOp())
-			: _castOp(castOp), anchorCoords(radius+1, radius+1)
-		{			
-			paramSigma		= cv::saturate_cast<KT>(sigma);
-			paramT			= cv::saturate_cast<KT>(t);				
-
-			cv::Mat matrix	= DiskMatrix_8uc1(radius);
-			matrix.at<uchar>( anchorCoords ) = 0;
-			imp::preprocess2DKernel(matrix, coords, diskMask);
-
-			ptrs.resize	( coords.size() );
-		}
-
-		void reset() { coeffs.clear(); }
 
 		void operator()(const uchar** src, uchar* dst, int dststep, int dstcount, int width, int cn)
 		{
-			const Point* pt = &coords[0];
-			const KT*  kf	= (const KT*)&coeffs[0];
-			const ST** kp	= (const ST**)&ptrs[0];
+			if(_kval.empty()) { _kval.resize(_pt.size()); }
+
+			const SourceValueType** values		= (const SourceValueType**)&_psrc[0];
+			const SourceValueType*  anchorValue = src[anchor.y] + anchor.x*cn;
+			const cv::Point*		coords		= &_pt[0];
+
+			KernelValueType*  coeffs = &_kval[0];
 			
-			if(coeffs.empty()) coeffs.resize ( coords.size()*cn );
-
-			width *= cn;
-	        for(; dstcount > 0; dstcount--, dst += dststep, src++ )
+			KernelValueType totalKernelValue, convolutionValue, intensDiffRelation, sigmaSquareTwice = 2*paramSigma*paramSigma;
+			for (int i, j, k, nElem = _pt.size(), nWidth = width * cn; dstcount > 0; --dstcount, ++src, dst += dststep)
 		    {
-				DT* dstp = (DT*)dst;
+				ResultValueType* output = (ResultValueType*)dst;
 
-			    for( k = 0; k < nonZero; k++ )  
-					kp[k] = (const ST*)src[pt[k].y] + pt[k].x*cn;
-				
-				generateKernel (kp,(const ST*)src[anchorCoords.y] + anchorCoords.x*cn, cn);
-				for( int i=0; i<width; i++ )
+				for (k = 0; k < nElem; ++k)  
+					values[k] = (const SourceValueType*)src[coords[k].y] + coords[k].x*cn;
+
+				for (i = 0; i < nWidth; ++i)
 				{
-					KT s0 = 0;
-					for( k = 0; k < nonZero; k++ )
-						s0 += kf[k]*kp[k][i];
-					D[i] = _castOp(s0);
+					totalKernelValue = 0;
+					for (j = 0; j < nElem; ++j)
+					{
+						int dx = coords[j].x - anchor.x, dy = coords[j].y - anchor.y;
+						intensDiffRelation = (values[j][i] - anchorValue[i]) / paramT;
+						totalKernelValue += (coeffs[j] = std::exp(-((dx*dx + dy*dy) / sigmaSquareTwice) - (intensDiffRelation*intensDiffRelation)));
+					}
+
+					convolutionValue = 0;
+					for (k = 0; k < nElem; ++k)
+						convolutionValue += coeffs[k]*values[k][i];
+					output[i] = _castOp(convolutionValue/totalKernelValue);
 				}
 			}
-
 		}
+
+		void reset() { _kval.clear(); }
 	};
 
 	class SUSANFeatureDetector
