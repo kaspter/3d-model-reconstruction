@@ -105,10 +105,45 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		grayscaleImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(grayscaleImage);
 
+		cv::Ptr<cv::FilterEngine> susanFilterEngine = cv::Ptr<cv::FilterEngine>(new cv::FilterEngine(
+			cv::Ptr<cv::BaseFilter>(new imp::SUSANImageFilter<uchar, imp::Cast<float, uchar>>(3, 2.4F, 8.2F)), 
+			cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
+			grayscaleImage.type(), grayscaleImage.type(),  grayscaleImage.type(), cv::BORDER_REFLECT_101));
+
+		
 		filteredImage.release();
 
 		// Temporary.
+		susanFilterEngine->apply(grayscaleImage, grayscaleImage);
 		filteredImage = grayscaleImage;
+
+		// TODO: Remove this!
+		HANDLE hFile = CreateFile(_T("C:\\CPP_Output.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile == INVALID_HANDLE_VALUE) return 0;
+
+		LPTSTR format = _T("%u%c");
+		SIZE_T fieldWidth = 4, strLen = grayscaleImage.cols * fieldWidth + 1;
+		LPTSTR outString = new TCHAR[strLen];
+
+		DWORD dwNumOfBytesWritten;
+		for (int i = 0, imax = grayscaleImage.rows; i < imax; ++i)
+		{
+			uchar* irow = &grayscaleImage.data[i * grayscaleImage.step];
+
+			LPTSTR curString = outString;
+			for (int j = 0, jmax = grayscaleImage.cols; j < jmax; ++j)
+			{
+				int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
+				if (offset < 0) return 0;
+				curString += offset;
+			}
+			*(curString++) = _T('\n');
+			WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
+		}
+		delete[] outString;
+
+		CloseHandle(hFile);
+		// TODO: End of 'Remove this!'
 
 		bmi.bmiHeader.biWidth = rawImage.cols;
 		bmi.bmiHeader.biHeight = -rawImage.rows;

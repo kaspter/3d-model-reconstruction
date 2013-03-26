@@ -3,6 +3,8 @@
 #include "resource.h"
 #include "windowsx.h"
 
+#include "imp_susan.h"
+
 #define MAIN_WINDOW_CLASS	_T("MainWindowClass")
 #define CANVAS_WINDOW_CLASS _T("CanvasWIndowClass")
 
