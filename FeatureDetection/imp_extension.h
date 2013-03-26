@@ -3,6 +3,7 @@
 
 namespace imp
 {
-	cv::Mat DiskMatrix (unsigned radius, int type);
+	cv::Mat DiskMatrix_8uc1 (unsigned radius);
 	float SquareCorrelation (const cv::Mat& ker, const cv::Mat& list);	
+	void preprocess2DKernel( const cv::Mat& kernel, std::vector<cv::Point>& coords, std::vector<uchar>& coeffs );
 }
