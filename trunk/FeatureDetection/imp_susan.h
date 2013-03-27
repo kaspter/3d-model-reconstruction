@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+
 namespace imp
 {
 	// =================================== SUSAN =====================================
@@ -48,15 +50,19 @@ namespace imp
 			if(_kval.empty()) { _kval.resize(_pt.size()); }
 
 			const SourceValueType** values		= (const SourceValueType**)&_psrc[0];
-			const SourceValueType*  anchorValue = src[anchor.y] + anchor.x*cn;
 			const cv::Point*		coords		= &_pt[0];
 
-			KernelValueType*  coeffs = &_kval[0];
+			KernelValueType* coeffs = &_kval[0];
+
+			ResultValueType*		output;
+			const SourceValueType*	anchorValue;
 			
+								// std::ofstream fout("E:\\In-OUT\\CPP_Convolution.txt", std::ios::app); 
 			KernelValueType totalKernelValue, convolutionValue, intensDiffRelation, sigmaSquareTwice = 2*paramSigma*paramSigma;
-			for (int i, j, k, nElem = _pt.size(), nWidth = width * cn; dstcount > 0; --dstcount, ++src, dst += dststep)
+			for (int i, j, k, nWidth = width * cn, nElem = _pt.size(); dstcount > 0; --dstcount, ++src, dst += dststep)
 		    {
-				ResultValueType* output = (ResultValueType*)dst;
+				output		= (ResultValueType*)dst;
+				anchorValue = (const SourceValueType*)src[anchor.y] + anchor.x*cn;
 
 				for (k = 0; k < nElem; ++k)  
 					values[k] = (const SourceValueType*)src[coords[k].y] + coords[k].x*cn;
@@ -70,13 +76,19 @@ namespace imp
 						intensDiffRelation = (values[j][i] - anchorValue[i]) / paramT;
 						totalKernelValue += (coeffs[j] = std::exp(-((dx*dx + dy*dy) / sigmaSquareTwice) - (intensDiffRelation*intensDiffRelation)));
 					}
+					
+					//FILE fout = _topen(_T("E:\\In-OUT\\CPP_output2.txt"), _O_CREAT | _O_WRONLY | _O_TRUNC);
 
 					convolutionValue = 0;
 					for (k = 0; k < nElem; ++k)
 						convolutionValue += coeffs[k]*values[k][i];
 					output[i] = _castOp(convolutionValue/totalKernelValue);
+
+								// if (convolutionValue > 0) fout << convolutionValue << "/" << totalKernelValue << "\n";
 				}
 			}
+
+								// fout.close();
 		}
 
 		void reset() { _kval.clear(); }

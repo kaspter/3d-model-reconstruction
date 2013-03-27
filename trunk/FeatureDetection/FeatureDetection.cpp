@@ -100,8 +100,9 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 
 		/* Grayscale image preparation */
 		cv::cvtColor(rawImage, rawImage, CV_BGR2GRAY); //rawImage = filteredImage;
+
 		if (!grayscaleImage.empty()) { delete[] grayscaleImage.data; grayscaleImage.release(); }
-		alignedRowSize = ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
 		grayscaleImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(grayscaleImage);
 
@@ -109,41 +110,41 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 			cv::Ptr<cv::BaseFilter>(new imp::SUSANImageFilter<uchar, imp::Cast<float, uchar>>(3, 2.4F, 8.2F)), 
 			cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
 			grayscaleImage.type(), grayscaleImage.type(),  grayscaleImage.type(), cv::BORDER_REFLECT_101));
-
+		susanFilterEngine->apply(grayscaleImage, grayscaleImage);
 		
 		filteredImage.release();
-
+		
+		// TODO: Remove this!
+		//HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Output_fixed.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		//if (hFile == INVALID_HANDLE_VALUE) return 0;
+		//
+		//LPTSTR format = _T("%u%c");
+		//SIZE_T fieldWidth = 4, strLen = grayscaleImage.cols * fieldWidth + 1;
+		//LPTSTR outString = new TCHAR[strLen];
+		//
+		//DWORD dwNumOfBytesWritten;
+		//for (int i = 0, imax = grayscaleImage.rows; i < imax; ++i)
+		//{
+		//	uchar* irow = &grayscaleImage.data[i * grayscaleImage.step];
+		//
+		//	LPTSTR curString = outString;
+		//	for (int j = 0, jmax = grayscaleImage.cols; j < jmax; ++j)
+		//	{
+		//		int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
+		//		if (offset < 0) return 0;
+		//		curString += offset;
+		//	}
+		//	*(curString++) = _T('\n');
+		//	WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
+		//}
+		//delete[] outString;
+		//
+		//CloseHandle(hFile);
+		// TODO: End of 'Remove this!'
+		
 		// Temporary.
 		susanFilterEngine->apply(grayscaleImage, grayscaleImage);
 		filteredImage = grayscaleImage;
-
-		// TODO: Remove this!
-		HANDLE hFile = CreateFile(_T("C:\\CPP_Output.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile == INVALID_HANDLE_VALUE) return 0;
-
-		LPTSTR format = _T("%u%c");
-		SIZE_T fieldWidth = 4, strLen = grayscaleImage.cols * fieldWidth + 1;
-		LPTSTR outString = new TCHAR[strLen];
-
-		DWORD dwNumOfBytesWritten;
-		for (int i = 0, imax = grayscaleImage.rows; i < imax; ++i)
-		{
-			uchar* irow = &grayscaleImage.data[i * grayscaleImage.step];
-
-			LPTSTR curString = outString;
-			for (int j = 0, jmax = grayscaleImage.cols; j < jmax; ++j)
-			{
-				int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
-				if (offset < 0) return 0;
-				curString += offset;
-			}
-			*(curString++) = _T('\n');
-			WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
-		}
-		delete[] outString;
-
-		CloseHandle(hFile);
-		// TODO: End of 'Remove this!'
 
 		bmi.bmiHeader.biWidth = rawImage.cols;
 		bmi.bmiHeader.biHeight = -rawImage.rows;
