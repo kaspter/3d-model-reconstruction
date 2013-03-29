@@ -107,37 +107,39 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		rawImage.copyTo(grayscaleImage);
 
 		cv::Ptr<cv::FilterEngine> susanFilterEngine = cv::Ptr<cv::FilterEngine>(new cv::FilterEngine(
-			cv::Ptr<cv::BaseFilter>(new imp::SUSANImageFilter<uchar, imp::Cast<float, uchar>>(3, 12.4F, 24.8F)), 
+			cv::Ptr<cv::BaseFilter>(new imp::SUSANResponseFilter<uchar, imp::Cast<float, float>>(3, 18.5, 12.0)), 
 			cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
-			grayscaleImage.type(), grayscaleImage.type(),  grayscaleImage.type(), cv::BORDER_REFLECT_101));
-		susanFilterEngine->apply(grayscaleImage, grayscaleImage);
+			grayscaleImage.type(), CV_32FC1,  grayscaleImage.type(), cv::BORDER_REFLECT_101));
+
+		cv::Mat test; test.create(grayscaleImage.size(), CV_32FC1);
+		susanFilterEngine->apply(grayscaleImage, test);
 		
 		// TODO: Remove this!
-		//HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Output_fixed.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		//if (hFile == INVALID_HANDLE_VALUE) return 0;
-		//
-		//LPTSTR format = _T("%u%c");
-		//SIZE_T fieldWidth = 4, strLen = grayscaleImage.cols * fieldWidth + 1;
-		//LPTSTR outString = new TCHAR[strLen];
-		//
-		//DWORD dwNumOfBytesWritten;
-		//for (int i = 0, imax = grayscaleImage.rows; i < imax; ++i)
-		//{
-		//	uchar* irow = &grayscaleImage.data[i * grayscaleImage.step];
-		//
-		//	LPTSTR curString = outString;
-		//	for (int j = 0, jmax = grayscaleImage.cols; j < jmax; ++j)
-		//	{
-		//		int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
-		//		if (offset < 0) return 0;
-		//		curString += offset;
-		//	}
-		//	*(curString++) = _T('\n');
-		//	WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
-		//}
-		//delete[] outString;
-		//
-		//CloseHandle(hFile);
+		HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Response.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile == INVALID_HANDLE_VALUE) return 0;
+		
+		LPTSTR format = _T("%1.5f%c");
+		SIZE_T fieldWidth = 9, strLen = test.cols * fieldWidth + 1;
+		LPTSTR outString = new TCHAR[strLen];
+		
+		DWORD dwNumOfBytesWritten;
+		for (int i = 0, imax = test.rows; i < imax; ++i)
+		{
+			float* irow = reinterpret_cast<float*>(&test.data[i * test.step]);
+		
+			LPTSTR curString = outString;
+			for (int j = 0, jmax = test.cols; j < jmax; ++j)
+			{
+				int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
+				if (offset < 0) return 0;
+				curString += offset;
+			}
+			*(curString++) = _T('\n');
+			WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
+		}
+		delete[] outString;
+		
+		CloseHandle(hFile);
 		// TODO: End of 'Remove this!'
 		
 		// Temporary.
