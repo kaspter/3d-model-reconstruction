@@ -29,8 +29,8 @@ namespace imp
 
 		double _fexp_u8(const cv::Point &at, SourceValueType nucleus, SourceValueType value)
 		{
-			cv::Point pt = at - anchor;
-			return _ctable.ptr<double>(abs(pt.x), abs(pt.y))[cv::saturate_cast<int>(value) - cv::saturate_cast<int>(nucleus) + (int)UCHAR_MAX];
+			int dx = at.x - anchor.x, dy = at.y - anchor.y;
+			return _ctable.ptr<double>(abs(dx), abs(dy))[cv::saturate_cast<int>(value) - cv::saturate_cast<int>(nucleus) + (int)UCHAR_MAX];
 		}
 
 		double _fexp_xx(const cv::Point &at, SourceValueType nucleus, SourceValueType value)
