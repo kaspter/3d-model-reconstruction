@@ -145,12 +145,12 @@ namespace imp
 		void reset() { _kval.clear(); }
 	};
 
-	template<typename SourceValueType, class CastOpType> class SUSANCornerFilter : public cv::BaseFilter
+	template<typename SourceValueType, class CastOpType> class SUSANResponseFilter : public cv::BaseFilter
 	{
 		typedef typename CastOpType::type1 KernelValueType;
 		typedef typename CastOpType::rtype ResultValueType;
 		
-		typedef double (__thiscall imp::SUSANCornerFilter<SourceValueType, CastOpType>::*_fexp_ptr)(SourceValueType, SourceValueType);
+		typedef double (__thiscall imp::SUSANResponseFilter<SourceValueType, CastOpType>::*_fexp_ptr)(SourceValueType, SourceValueType);
 
 		// Evaluation result cast operator
 		CastOpType _castOp;
@@ -168,19 +168,11 @@ namespace imp
 		_fexp_ptr					 _fexp;		// Internal exponent-based equation computation function pointer, which depends on type size of image data
 
 
-		double _fexp_u8(SourceValueType nucleus, SourceValueType value)
-		{
-			return _ctable[cv::saturate_cast<int>(value) - cv::saturate_cast<int>(nucleus) + (int)UCHAR_MAX];
-		}
-
-		double _fexp_xx(SourceValueType nucleus, SourceValueType value)
-		{
-			double tDiv = (value - nucleus) / paramT;
-			return std::exp(-pow(tDiv,6));
-		}
+		double _fexp_u8(SourceValueType nucleus, SourceValueType value)	{ return _ctable[cv::saturate_cast<int>(value) - cv::saturate_cast<int>(nucleus) + (int)UCHAR_MAX];	}
+		double _fexp_xx(SourceValueType nucleus, SourceValueType value) { return std::exp(-pow((value - nucleus) / paramT,6)); }
 				
 	public:
-		SUSANCornerFilter (unsigned radius, double g, double t, const CastOpType& castOp=CastOpType())
+		SUSANResponseFilter (unsigned radius, double g, double t, const CastOpType& castOp=CastOpType())
 			: _castOp(castOp), paramRadius(0), paramG(1.0), paramT(1.0)
 		{		
 			init(radius, g, t);
@@ -218,7 +210,7 @@ namespace imp
 				paramG = g;
 				paramT = t;	
 
-				_fexp = &imp::SUSANCornerFilter<SourceValueType,CastOpType>::_fexp_xx;
+				_fexp = &imp::SUSANResponseFilter<SourceValueType,CastOpType>::_fexp_xx;
 				if (sizeof(SourceValueType) == 1)	//SourceValueType is UCHAR (u8 image)
 				{
 					_ctable.clear();
@@ -228,7 +220,7 @@ namespace imp
 					for (int i = 0, iMax = _ctable.size(); i < iMax; ++i)
 						values[i] = (this->*_fexp)(~(i - UCHAR_MAX) + (i <= UCHAR_MAX), i <= UCHAR_MAX ? 0 : UCHAR_MAX);
 					
-					_fexp = &imp::SUSANImageFilter<SourceValueType,CastOpType>::_fexp_u8;
+					_fexp = &imp::SUSANResponseFilter<SourceValueType,CastOpType>::_fexp_u8;
 				}
 			}
 
@@ -242,12 +234,10 @@ namespace imp
 			const SourceValueType** values = (const SourceValueType**)&_psrc[0];
 			const cv::Point*		coords = &_pt[0];
 
-			KernelValueType*		coeffs = &_kval[0];
-
 			ResultValueType*		output;
 			const SourceValueType*	anchorValue;
 			
-			KernelValueType totalKernelValue, convolutionValue;
+			KernelValueType n, g = cv::saturate_cast<KernelValueType>(paramG);
 			for (int i, j, k, nWidth = width * cn, nElem = _pt.size(); dstcount > 0; --dstcount, ++src, dst += dststep)
 		    {
 				output		= (ResultValueType*)dst;
@@ -258,12 +248,10 @@ namespace imp
 
 				for (i = 0; i < nWidth; ++i)
 				{
-					totalKernelValue = 0;
-					for (j = 0; j < nElem; ++j)
-						totalKernelValue += (coeffs[j] = cv::saturate_cast<KernelValueType>((this->*_fexp)(anchorValue[i], values[j][i])));
+					for (j = 0, n = 0; j < nElem; ++j)
+						n += cv::saturate_cast<KernelValueType>((this->*_fexp)(anchorValue[i], values[j][i]));
 					
-					if ( totalKernelValue < g )
-						output[i] = _castOp(totalKernelValue);
+					output[i] = _castOp(n < g ? g - n : KernelValueType(0));
 				}
 			}
 		}
