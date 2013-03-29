@@ -106,13 +106,11 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		grayscaleImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(grayscaleImage);
 
-		cv::Ptr<cv::FilterEngine> susanFilterEngine = cv::Ptr<cv::FilterEngine>(new cv::FilterEngine(
-			cv::Ptr<cv::BaseFilter>(new imp::SUSANImageFilter<uchar, imp::Cast<float, uchar>>(3, 2.4F, 8.2F)), 
-			cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
-			grayscaleImage.type(), grayscaleImage.type(),  grayscaleImage.type(), cv::BORDER_REFLECT_101));
-		susanFilterEngine->apply(grayscaleImage, grayscaleImage);
-		
-		filteredImage.release();
+		//cv::Ptr<cv::FilterEngine> susanFilterEngine = cv::Ptr<cv::FilterEngine>(new cv::FilterEngine(
+		//	cv::Ptr<cv::BaseFilter>(new imp::SUSANImageFilter<uchar, imp::Cast<float, uchar>>(3, 2.4F, 8.2F)), 
+		//	cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
+		//	grayscaleImage.type(), grayscaleImage.type(),  grayscaleImage.type(), cv::BORDER_REFLECT_101));
+		//susanFilterEngine->apply(grayscaleImage, grayscaleImage);
 		
 		// TODO: Remove this!
 		//HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Output_fixed.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -143,8 +141,8 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		// TODO: End of 'Remove this!'
 		
 		// Temporary.
-		susanFilterEngine->apply(grayscaleImage, grayscaleImage);
-		filteredImage = grayscaleImage;
+		filteredImage.release();
+		filteredImage = imp::NonMaxSupp3x3_8uc1(grayscaleImage);
 
 		bmi.bmiHeader.biWidth = rawImage.cols;
 		bmi.bmiHeader.biHeight = -rawImage.rows;
