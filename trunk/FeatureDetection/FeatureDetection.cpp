@@ -12,12 +12,11 @@ HWND hcanvas, hstatus, htip;
 TOOLINFO ti = { 0 };
 
 // Different images (original and filteredImage grayscale)
-cv::Mat originalImage, grayscaleImage, filteredImage;
-cv::Mat *displayedImage = NULL;
+cv::Mat originalImage, grayscaleImage, filteredImage, cornerMaskImage;
+cv::Mat* displayedImage = NULL;
 
-#define GRAYSCALE_PAL_LEVELS ((USHORT)256)
 BYTE bitmapInfoData[sizeof(BITMAPINFO) + sizeof(RGBQUAD) * GRAYSCALE_PAL_LEVELS] = { 0 };
-BITMAPINFO &bmi = *reinterpret_cast<LPBITMAPINFO>(bitmapInfoData);
+BITMAPINFO &bmi_disp = *reinterpret_cast<LPBITMAPINFO>(bitmapInfoData), bmi_mask = { 0 };
 
 MINMAXINFO mmWnd = { 0 };
 POINT imageCenter = { 0 };
@@ -92,62 +91,81 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	cv::Mat rawImage = cv::imread(mbFileName);
 	if (rawImage.data != NULL) 
 	{
-		// TODO: Process rawImage so it's width became aligned to sizeof(LONG)
+		//if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
+		cornerMaskImage = cv::Mat(rawImage.size(), rawImage.type()/*, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize*/);
+		FillMemory(cornerMaskImage.data, cornerMaskImage.size().area() * cornerMaskImage.elemSize(), 0xFF);
+
 		if (!originalImage.empty()) { delete[] originalImage.data; originalImage.release(); }
-		ULONG alignedRowSize = ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		ULONG alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
 		originalImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(originalImage);
 
 		/* Grayscale image preparation */
 		cv::cvtColor(rawImage, rawImage, CV_BGR2GRAY); //rawImage = filteredImage;
-
 		if (!grayscaleImage.empty()) { delete[] grayscaleImage.data; grayscaleImage.release(); }
 		alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
 		grayscaleImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(grayscaleImage);
 
+		// Move this part hell out of here
 		cv::Ptr<cv::FilterEngine> susanFilterEngine = cv::Ptr<cv::FilterEngine>(new cv::FilterEngine(
-			cv::Ptr<cv::BaseFilter>(new imp::SUSANResponseFilter<uchar, imp::Cast<float, float>>(3, 18.5, 12.0)), 
+			cv::Ptr<cv::BaseFilter>(new imp::SUSANFeatureResponse<uchar, float>(3, 94.8, 24.5)), 
 			cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
-			grayscaleImage.type(), CV_32FC1,  grayscaleImage.type(), cv::BORDER_REFLECT_101));
+			grayscaleImage.type(), grayscaleImage.type(), grayscaleImage.type(), cv::BORDER_REFLECT_101));
 
-		cv::Mat test; test.create(grayscaleImage.size(), CV_32FC1);
-		susanFilterEngine->apply(grayscaleImage, test);
+		filteredImage.create(grayscaleImage.size(), grayscaleImage.type());
+		susanFilterEngine->apply(grayscaleImage, filteredImage);
 		
 		// TODO: Remove this!
-		HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Response.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile == INVALID_HANDLE_VALUE) return 0;
-		
-		LPTSTR format = _T("%1.5f%c");
-		SIZE_T fieldWidth = 9, strLen = test.cols * fieldWidth + 1;
-		LPTSTR outString = new TCHAR[strLen];
-		
-		DWORD dwNumOfBytesWritten;
-		for (int i = 0, imax = test.rows; i < imax; ++i)
-		{
-			float* irow = reinterpret_cast<float*>(&test.data[i * test.step]);
-		
-			LPTSTR curString = outString;
-			for (int j = 0, jmax = test.cols; j < jmax; ++j)
-			{
-				int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
-				if (offset < 0) return 0;
-				curString += offset;
-			}
-			*(curString++) = _T('\n');
-			WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
-		}
-		delete[] outString;
-		
-		CloseHandle(hFile);
+		//HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Response.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		//if (hFile == INVALID_HANDLE_VALUE) return 0;
+		//
+		//LPTSTR format = _T("%1.f%c");
+		//SIZE_T fieldWidth = 9, strLen = test.cols * fieldWidth + 1;
+		//LPTSTR outString = new TCHAR[strLen];
+		//
+		//DWORD dwNumOfBytesWritten;
+		//for (int i = 0, imax = test.rows; i < imax; ++i)
+		//{
+		//	float* irow = reinterpret_cast<float*>(&test.data[i * test.step]);
+		//
+		//	LPTSTR curString = outString;
+		//	for (int j = 0, jmax = test.cols; j < jmax; ++j)
+		//	{
+		//		int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
+		//		if (offset < 0) return 0;
+		//		curString += offset;
+		//	}
+		//	*(curString++) = _T('\n');
+		//	WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
+		//}
+		//delete[] outString;
+		//
+		//CloseHandle(hFile);
 		// TODO: End of 'Remove this!'
-		
-		// Temporary.
-		filteredImage.release();
-		filteredImage = grayscaleImage;
 
-		bmi.bmiHeader.biWidth = rawImage.cols;
-		bmi.bmiHeader.biHeight = -rawImage.rows;
+		for (int i = 0, imax = filteredImage.size().area(); i < imax; ++i)
+		{
+			if (filteredImage.data[i] != 0x00)
+			{
+				int x = i % filteredImage.size().width, y = i / filteredImage.size().width;
+				if (0 < x && x < filteredImage.size().width 
+					&& 0 < y && y < filteredImage.size().height)
+				{
+					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y    , x    ))[0] = 0x00;
+					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y - 1, x    ))[0] = 0x00;
+					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y + 1, x    ))[0] = 0x00;
+					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y    , x - 1))[0] = 0x00;
+					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y    , x + 1))[0] = 0x00;
+				}
+			}
+		}
+		
+		bmi_disp.bmiHeader.biWidth = rawImage.cols;
+		bmi_disp.bmiHeader.biHeight = -rawImage.rows;
+
+		CopyMemory(&bmi_mask.bmiHeader, &bmi_disp.bmiHeader, sizeof(BITMAPINFOHEADER));
+		bmi_mask.bmiHeader.biBitCount = cornerMaskImage.elemSize() << 3;
 
 		RECT client, window, status;
 		GetClientRect(hwnd, &client);
@@ -230,12 +248,12 @@ BOOL OnCreateMain(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 	BOOL test = SendMessage(htip, TTM_ADDTOOL, 0, (LPARAM)&ti);
 
 	// Internal business-logic structures initialization
-	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biCompression = BI_RGB;
+	bmi_disp.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi_disp.bmiHeader.biPlanes = 1;
+	bmi_disp.bmiHeader.biCompression = BI_RGB;
 	for (USHORT i = 0; i < GRAYSCALE_PAL_LEVELS; ++i) 
 	{
-		FillMemory(&bmi.bmiColors[i], sizeof(RGBQUAD) - 1, (BYTE)i);
+		FillMemory(&bmi_disp.bmiColors[i], sizeof(RGBQUAD) - 1, (BYTE)i);
 	}
 
 	SendMessage(hwnd, WM_GETMINMAXINFO, 0, (LPARAM)&mmWnd);
@@ -282,7 +300,7 @@ VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		SetMenuGroupBoxChecked(hwnd, menuViewGroupSwitchboxes, id);
 
 		// TODO: place image output function here or post redraw message
-		bmi.bmiHeader.biBitCount = displayedImage->elemSize() * 8;
+		bmi_disp.bmiHeader.biBitCount = displayedImage->elemSize() << 3;
 
 		RedrawWindow(hcanvas, NULL, NULL, RDW_ERASE | RDW_INVALIDATE);
 
@@ -402,7 +420,19 @@ VOID OnPaintCanvas(HWND hwnd)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);	
 		SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, 
-			ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi, DIB_RGB_COLORS);
+			ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi_disp, DIB_RGB_COLORS);
+
+		HDC		hdcMem  = CreateCompatibleDC(hdc);
+		HBITMAP hbmpMem = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top),
+				hbmpOld = (HBITMAP)SelectObject(hdcMem, hbmpMem);
+
+		SetDIBits(hdcMem, hbmpMem, ps.rcPaint.top, ps.rcPaint.bottom, cornerMaskImage.data, &bmi_mask, DIB_RGB_COLORS);
+		BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, hdcMem, 0, 0, SRCAND);
+
+		SelectObject(hdcMem, hbmpOld);
+		DeleteObject(hbmpMem);
+		DeleteDC(hdcMem);
+
 		EndPaint(hwnd, &ps);
 		return;
 	}

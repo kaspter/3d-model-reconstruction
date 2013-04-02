@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+#include "imp_extension.h"
+
 namespace imp
 {
 	// Produces a square matrix (2*radius + 1)x(2*radius + 1) filled by 1's in a disk form
@@ -19,16 +21,13 @@ namespace imp
 		return res;
 	}
 
-	template<typename SwapType> 
-	inline void Swap(SwapType &a, SwapType &b) { SwapType temp = a; a = b; b = temp; }
-
-	// Gives a local maxima mask for a given image
+	// Gives a local maxima mask (map) for an 8-bit image given
 	cv::Mat NonMaxSupp3x3_8uc1(const cv::Mat &hcr)
 	{
-		CV_Assert(hcr.dims == 2 && hcr.channels() == 1);
+		CV_Assert(hcr.type() ==  CV_8UC1 && hcr.dims == 2);
 
-		cv::Mat mask(hcr.size(), CV_8UC1, cv::Scalar_<uchar>(0));
-		cv::Mat skip(cv::Size(hcr.cols, 2), CV_8UC1, cv::Scalar_<uchar>(0));
+		cv::Mat mask(hcr.size(), CV_8UC1, cv::Scalar(0));
+		cv::Mat skip(cv::Size(hcr.cols, 2), CV_8UC1, cv::Scalar(0));
 		 
 		uchar *skip_cur = skip.data, *skip_nxt = skip_cur + skip.step; 
 		uchar *hcr_row  = NULL;
@@ -61,10 +60,10 @@ namespace imp
 				if (hcr_row[c] <= hcr_row_temp[c    ]) continue;
 				if (hcr_row[c] <= hcr_row_temp[c + 1]) continue;
 
-				mask.at<uchar>(r, c) = hcr_row[c];
+				mask.at<uchar>(r, c) = 0xFF;
 			}
 
-			Swap(skip_cur, skip_nxt);
+			swap(skip_cur, skip_nxt);
 			memset(skip_nxt, 0, hcr.step);
 		}
 

@@ -39,6 +39,9 @@
     <ClInclude Include="imp_extension.h">
       <Filter>Заголовочные файлы\ImageProcessor</Filter>
     </ClInclude>
+    <ClInclude Include="imp_susan.cpp">
+      <Filter>Файлы исходного кода\ImageProcessor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
