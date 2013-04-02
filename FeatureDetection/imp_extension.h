@@ -8,11 +8,14 @@ namespace imp
 	cv::Mat NonMaxSupp3x3_8uc1(const cv::Mat &hcr);
 	//void preprocess2DKernel( const cv::Mat& kernel, std::vector<cv::Point>& coords, std::vector<uchar>& coeffs );
 
-	template<typename ST, typename DT> struct Cast
-	{
-		typedef ST type1;
-		typedef DT rtype;
+	template<typename SwapType> 
+	inline void swap(SwapType &a, SwapType &b) { SwapType temp = a; a = b; b = temp; }
 
-		DT operator()(ST val) const { return cv::saturate_cast<DT>(val); }
-	};
-}
+	template<typename _vt> 
+	inline int sign(_vt val)				{ return val != 0 ? (val > 0 ? 1 : -1) : 0; }
+	inline int sign(unsigned val)			{ return static_cast<int>(val > 0); }
+	inline int sign(uchar val)				{ return static_cast<int>(val > 0); }
+	inline int sign(ushort val)				{ return static_cast<int>(val > 0); }
+	inline int sign(unsigned long val)		{ return static_cast<int>(val > 0); }
+	inline int sign(unsigned long long val) { return static_cast<int>(val > 0); }
+} 

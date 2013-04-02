@@ -6,7 +6,9 @@
 #include "imp_susan.h"
 
 #define MAIN_WINDOW_CLASS	_T("MainWindowClass")
-#define CANVAS_WINDOW_CLASS _T("CanvasWIndowClass")
+#define CANVAS_WINDOW_CLASS _T("CanvasWindowClass")
+
+#define GRAYSCALE_PAL_LEVELS ((USHORT)256)
 
 /* VOID Cls_OnMouseLeave(HWND hwnd) */
 #define HANDLE_WM_MOUSELEAVE(hwnd, wParam, lParam, fn) \

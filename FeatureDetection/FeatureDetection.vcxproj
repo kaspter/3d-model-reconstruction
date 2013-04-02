@@ -53,6 +53,8 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(OPENCV_DIR)\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -90,6 +92,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FeatureDetection.cpp" />
+    <ClInclude Include="imp_susan.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="imp_extension.cpp" />
   </ItemGroup>
