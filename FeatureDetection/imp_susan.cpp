@@ -223,29 +223,28 @@ namespace imp
 						cv::Mat usan(ksize, CV_8UC1, cv::Scalar_<uchar>(0xFF));
 						for (j = 0; j < nElem; ++j) 
 						{
-							if (std::ceil(coeffs[j] - 0.5) < 1.0) usan.at<uchar>(coords[j]) = 0x00;
+							if (std::ceil(coeffs[j] - 0.5) <= 0.0) usan.at<uchar>(coords[j]) = 0x00;
 						}
 
 						isFeature = true;
 						if (std::abs(centroid.x) >= std::abs(centroid.y)) 
 						{	// by x
-							int inc = sign(centroid.x), x = inc, xmax = inc * paramRadius; if (inc < 0) swap(x, xmax);
-							for (; x <= xmax; ++x) 	
+							int inc = sign(centroid.x), x = inc, xmax = inc * paramRadius;
+							for (; inc > 0 ? x <= xmax : (inc < 0 ? x >= xmax : false); x += inc) 	
 							{
-								if (usan.at<uchar>(x + anchor.x, static_cast<int>(ROUND_VAL(centroid.y * x / centroid.x)) + anchor.y) == 0x00) { isFeature = false; break; }
+								if (usan.at<uchar>(static_cast<int>(ROUND_VAL(centroid.y * x / centroid.x)) + anchor.y, x + anchor.x) == 0x00) { isFeature = false; break; }
 							}
 						}
 						else
 						{	// by y
-							int inc = sign(centroid.y), y = inc, ymax = inc * paramRadius; if (inc < 0) swap(y, ymax);
-							for (; y <= ymax; ++y) 	
+							int inc = sign(centroid.y), y = inc, ymax = inc * paramRadius;
+							for (; inc > 0 ? y <= ymax : (inc < 0 ? y >= ymax : false); y += inc) 	
 							{
-								if (usan.at<uchar>(static_cast<int>(ROUND_VAL(centroid.x * y / centroid.y)) + anchor.x, y + anchor.y) == 0x00) { isFeature = false; break; }
+								if (usan.at<uchar>(y + anchor.y, static_cast<int>(ROUND_VAL(centroid.x * y / centroid.y)) + anchor.x) == 0x00) { isFeature = false; break; }
 							}
 						}
 					}
 				}
-
 				output[i] = cv::saturate_cast<ResultValueType>(isFeature ? g - area : KernelValueType(0));
 			}
 		}

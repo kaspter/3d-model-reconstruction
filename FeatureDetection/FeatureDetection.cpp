@@ -91,12 +91,13 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	cv::Mat rawImage = cv::imread(mbFileName);
 	if (rawImage.data != NULL) 
 	{
-		//if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
-		cornerMaskImage = cv::Mat(rawImage.size(), rawImage.type()/*, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize*/);
-		FillMemory(cornerMaskImage.data, cornerMaskImage.size().area() * cornerMaskImage.elemSize(), 0xFF);
+		if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
+		ULONG alignedRowSize =  ((rawImage.cols * CV_ELEM_SIZE(CV_8SC4) - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		cornerMaskImage.setTo(cv::Scalar::all(0x00));
 
 		if (!originalImage.empty()) { delete[] originalImage.data; originalImage.release(); }
-		ULONG alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
 		originalImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(originalImage);
 
@@ -144,28 +145,26 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		//CloseHandle(hFile);
 		// TODO: End of 'Remove this!'
 
-		for (int i = 0, imax = filteredImage.size().area(); i < imax; ++i)
+		for (int r = 0, rmax = filteredImage.rows; r < rmax; ++r)
 		{
-			if (filteredImage.data[i] != 0x00)
+			for (int c = 0, cmax = filteredImage.cols; c < cmax; ++c)
 			{
-				int x = i % filteredImage.size().width, y = i / filteredImage.size().width;
-				if (0 < x && x < filteredImage.size().width 
-					&& 0 < y && y < filteredImage.size().height)
+				if (filteredImage.at<uchar>(r,c) != 0x00)
 				{
-					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y    , x    ))[0] = 0x00;
-					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y - 1, x    ))[0] = 0x00;
-					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y + 1, x    ))[0] = 0x00;
-					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y    , x - 1))[0] = 0x00;
-					reinterpret_cast<ushort*>(cornerMaskImage.ptr<uchar>(y    , x + 1))[0] = 0x00;
+								      cornerMaskImage.ptr<unsigned>(r    , c    )[0] = 0xFFFF0000;
+					if (0 < r)        cornerMaskImage.ptr<unsigned>(r - 1, c    )[0] = 0xFFFF0000;
+					if (r < rmax - 1) cornerMaskImage.ptr<unsigned>(r + 1, c    )[0] = 0xFFFF0000;
+					if (0 < c)        cornerMaskImage.ptr<unsigned>(r    , c - 1)[0] = 0xFFFF0000;
+					if (c < cmax - 1) cornerMaskImage.ptr<unsigned>(r    , c + 1)[0] = 0xFFFF0000;
 				}
 			}
 		}
 		
-		bmi_disp.bmiHeader.biWidth = rawImage.cols;
+		bmi_disp.bmiHeader.biWidth  =  rawImage.cols;
 		bmi_disp.bmiHeader.biHeight = -rawImage.rows;
 
 		CopyMemory(&bmi_mask.bmiHeader, &bmi_disp.bmiHeader, sizeof(BITMAPINFOHEADER));
-		bmi_mask.bmiHeader.biBitCount = cornerMaskImage.elemSize() << 3;
+		bmi_mask.bmiHeader.biBitCount	= cornerMaskImage.elemSize() << 3;
 
 		RECT client, window, status;
 		GetClientRect(hwnd, &client);
@@ -419,15 +418,20 @@ VOID OnPaintCanvas(HWND hwnd)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);	
-		SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, 
-			ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi_disp, DIB_RGB_COLORS);
+
+		SIZE paintSize = { ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top };
+
+		SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy,	ps.rcPaint.left, ps.rcPaint.top, 
+			ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi_disp, DIB_RGB_COLORS);
 
 		HDC		hdcMem  = CreateCompatibleDC(hdc);
-		HBITMAP hbmpMem = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top),
+		HBITMAP hbmpMem = CreateCompatibleBitmap(hdc, bmi_mask.bmiHeader.biWidth, -bmi_mask.bmiHeader.biHeight),
 				hbmpOld = (HBITMAP)SelectObject(hdcMem, hbmpMem);
 
-		SetDIBits(hdcMem, hbmpMem, ps.rcPaint.top, ps.rcPaint.bottom, cornerMaskImage.data, &bmi_mask, DIB_RGB_COLORS);
-		BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, hdcMem, 0, 0, SRCAND);
+		BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+
+		SetDIBits(hdcMem, hbmpMem, 0, -bmi_mask.bmiHeader.biHeight, cornerMaskImage.data, &bmi_mask, DIB_RGB_COLORS);
+		AlphaBlend(hdc, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy, hdcMem, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy, blend);
 
 		SelectObject(hdcMem, hbmpOld);
 		DeleteObject(hbmpMem);
