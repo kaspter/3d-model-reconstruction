@@ -18,8 +18,8 @@ cv::Mat* displayedImage = NULL;
 BYTE bitmapInfoData[sizeof(BITMAPINFO) + sizeof(RGBQUAD) * GRAYSCALE_PAL_LEVELS] = { 0 };
 BITMAPINFO &bmi_disp = *reinterpret_cast<LPBITMAPINFO>(bitmapInfoData), bmi_mask = { 0 };
 
-MINMAXINFO mmWnd = { 0 };
 POINT imageCenter = { 0 };
+MINMAXINFO mmWnd  = { 0 };
 
 UINT_PTR CALLBACK FileBrowserProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -199,17 +199,6 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	return success;
 }
 
-template <int _size>
-VOID SetMenuGroupBoxChecked(HWND hwnd, int (&indexGroup)[_size], int checkedId)
-{
-	HMENU hMenu = GetMenu(hwnd);
-	for (int i = 0; i < _size; ++i) 
-	{
-		if (checkedId != indexGroup[i]) CheckMenuItem(hMenu, indexGroup[i], MF_BYCOMMAND | MF_UNCHECKED);
-	}
-	CheckMenuItem(hMenu, checkedId, MF_BYCOMMAND | MF_CHECKED);
-}
-
 INT_PTR CALLBACK AboutBoxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(lParam);
@@ -229,6 +218,36 @@ INT_PTR CALLBACK AboutBoxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
 	return (INT_PTR)FALSE;
 }
 
+INT_PTR CALLBACK PropsBoxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+
+		break;
+
+	case WM_CLOSE:
+		EndDialog(hDlg, IDOK);
+	}
+
+	return (INT_PTR)FALSE;
+}
+
+template <int _size>
+VOID SetMenuGroupBoxChecked(HWND hwnd, int (&indexGroup)[_size], int checkedId)
+{
+	HMENU hMenu = GetMenu(hwnd);
+	for (int i = 0; i < _size; ++i) 
+	{
+		if (checkedId != indexGroup[i]) CheckMenuItem(hMenu, indexGroup[i], MF_BYCOMMAND | MF_UNCHECKED);
+	}
+	CheckMenuItem(hMenu, checkedId, MF_BYCOMMAND | MF_CHECKED);
+}
 BOOL OnCreateMain(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 {
 	// Status bar creation
@@ -283,6 +302,10 @@ VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 		switchMenuViewGroup = TRUE; 
 		EnableMenuItem(GetMenu(hwnd), ID_VIEW_FILTERPARAMETERS, MF_BYCOMMAND | MF_ENABLED);
 		displayedImage = &filteredImage;
+		break;
+
+	case ID_VIEW_FILTERPARAMETERS:
+		CreateDialog(hInst, MAKEINTRESOURCE(IDD_PROPSBOX), hwnd, PropsBoxDlgProc);
 		break;
 
 	case IDM_ABOUT:
@@ -350,16 +373,8 @@ LRESULT CALLBACK MainWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	{
 		HANDLE_MSG(hWnd, WM_CREATE, OnCreateMain);
 		HANDLE_MSG(hWnd, WM_COMMAND, OnCommandMain);
-		//HANDLE_MSG(hWnd, WM_NOTIFY, OnNotify);
 		HANDLE_MSG(hWnd, WM_DROPFILES, OnDropFilesMain);
 		HANDLE_MSG(hWnd, WM_SIZE, OnSizeMain);
-		//HANDLE_MSG(hWnd, WM_MOUSEMOVE, OnMouseMove);
-		//HANDLE_MSG(hWnd, WM_PAINT, OnPaint);
-
-		//case WM_MOUSELEAVE:
-		//	SendMessage(GetDlgItem(hWnd, ID_DETECTION_STATUS), SB_SETTEXT, MAKEWPARAM(0, 0), (LPARAM)NULL);
-		//	break;
-
 		HANDLE_MSG(hWnd, WM_DESTROY, OnDestroyMain);
 	}
 
