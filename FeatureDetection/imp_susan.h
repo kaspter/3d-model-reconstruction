@@ -21,7 +21,8 @@ namespace imp
 	//};
 
 	// =================================== SUSAN =====================================
-	template<typename SourceValueType, typename KernelValueType, typename ResultValueType> class SUSANImageFilter : public cv::BaseFilter
+	template<typename SourceValueType, typename KernelValueType, typename ResultValueType> 
+	class SUSANImageFilter : public cv::BaseFilter
 	{
 		// Filter direct parameters
 		unsigned paramRadius;
@@ -47,6 +48,10 @@ namespace imp
 
 		inline void reset() { _kval.clear(); }
 	};
+	cv::Ptr<cv::BaseFilter> getSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t);
+	cv::Ptr<cv::FilterEngine> createSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t, 
+		int rowBorderType = cv::BORDER_DEFAULT, int columnBorderType = -1, const cv::Scalar &borderValue = cv::Scalar());
+	void SusanImagePrepare(const cv::Mat &src, cv::Mat &dst, int radius, double sigma, double t, int borderType = cv::BORDER_DEFAULT);
 
 	template<typename SourceValueType, typename KernelValueType, typename ResultValueType = uchar> 
 	class SUSANFeatureResponse : public cv::BaseFilter

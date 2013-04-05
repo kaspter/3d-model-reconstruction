@@ -91,32 +91,21 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	cv::Mat rawImage = cv::imread(mbFileName);
 	if (rawImage.data != NULL) 
 	{
-		if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
-		ULONG alignedRowSize =  ((rawImage.cols * CV_ELEM_SIZE(CV_8SC4) - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
-		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
-		cornerMaskImage.setTo(cv::Scalar::all(0x00));
-
 		if (!originalImage.empty()) { delete[] originalImage.data; originalImage.release(); }
-		alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		ULONG alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
 		originalImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		rawImage.copyTo(originalImage);
 
-		/* Grayscale image preparation */
-		cv::cvtColor(rawImage, rawImage, CV_BGR2GRAY); //rawImage = filteredImage;
-		if (!grayscaleImage.empty()) { delete[] grayscaleImage.data; grayscaleImage.release(); }
-		alignedRowSize =  ((rawImage.cols * rawImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
-		grayscaleImage = cv::Mat(rawImage.rows, rawImage.cols, rawImage.type(), new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
-		rawImage.copyTo(grayscaleImage);
+		cv::cvtColor(rawImage, grayscaleImage, CV_BGR2GRAY);	
+		if (!filteredImage.empty()) { delete[] filteredImage.data; filteredImage.release(); }
+		alignedRowSize =  ((grayscaleImage.cols * grayscaleImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		filteredImage = cv::Mat(grayscaleImage.size(), grayscaleImage.type(), new BYTE[grayscaleImage.rows * alignedRowSize], alignedRowSize);
 
-		// Move this part hell out of here
-		cv::Ptr<cv::FilterEngine> susanFilterEngine = cv::Ptr<cv::FilterEngine>(new cv::FilterEngine(
-			cv::Ptr<cv::BaseFilter>(new imp::SUSANFeatureResponse<uchar, float>(3, 94.8, 24.5)), 
-			cv::Ptr<cv::BaseRowFilter>(NULL), cv::Ptr<cv::BaseColumnFilter>(NULL), 
-			grayscaleImage.type(), grayscaleImage.type(), grayscaleImage.type(), cv::BORDER_REFLECT_101));
-
-		filteredImage.create(grayscaleImage.size(), grayscaleImage.type());
-		susanFilterEngine->apply(grayscaleImage, filteredImage);
-		
+		if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
+		alignedRowSize =  ((rawImage.cols * CV_ELEM_SIZE(CV_8SC4) - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		cornerMaskImage.setTo(cv::Scalar::all(0x00));
+	
 		// TODO: Remove this!
 		//HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Response.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		//if (hFile == INVALID_HANDLE_VALUE) return 0;
@@ -145,20 +134,20 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		//CloseHandle(hFile);
 		// TODO: End of 'Remove this!'
 
-		for (int r = 0, rmax = filteredImage.rows; r < rmax; ++r)
-		{
-			for (int c = 0, cmax = filteredImage.cols; c < cmax; ++c)
-			{
-				if (filteredImage.at<uchar>(r,c) != 0x00)
-				{
-								      cornerMaskImage.ptr<unsigned>(r    , c    )[0] = 0xFFFF0000;
-					if (0 < r)        cornerMaskImage.ptr<unsigned>(r - 1, c    )[0] = 0xFFFF0000;
-					if (r < rmax - 1) cornerMaskImage.ptr<unsigned>(r + 1, c    )[0] = 0xFFFF0000;
-					if (0 < c)        cornerMaskImage.ptr<unsigned>(r    , c - 1)[0] = 0xFFFF0000;
-					if (c < cmax - 1) cornerMaskImage.ptr<unsigned>(r    , c + 1)[0] = 0xFFFF0000;
-				}
-			}
-		}
+		//for (int r = 0, rmax = filteredImage.rows; r < rmax; ++r)
+		//{
+		//	for (int c = 0, cmax = filteredImage.cols; c < cmax; ++c)
+		//	{
+		//		if (filteredImage.at<uchar>(r,c) != 0x00)
+		//		{
+		//						      cornerMaskImage.ptr<unsigned>(r    , c    )[0] = 0xFFFF0000;
+		//			if (0 < r)        cornerMaskImage.ptr<unsigned>(r - 1, c    )[0] = 0xFFFF0000;
+		//			if (r < rmax - 1) cornerMaskImage.ptr<unsigned>(r + 1, c    )[0] = 0xFFFF0000;
+		//			if (0 < c)        cornerMaskImage.ptr<unsigned>(r    , c - 1)[0] = 0xFFFF0000;
+		//			if (c < cmax - 1) cornerMaskImage.ptr<unsigned>(r    , c + 1)[0] = 0xFFFF0000;
+		//		}
+		//	}
+		//}
 		
 		bmi_disp.bmiHeader.biWidth  =  rawImage.cols;
 		bmi_disp.bmiHeader.biHeight = -rawImage.rows;
@@ -197,6 +186,15 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 	if (!success) { MessageBox(hwnd, errMsg->c_str(), _T("Failed to load an image!"), MB_OK | MB_ICONWARNING); delete errMsg; }
 
 	return success;
+}
+
+VOID ImageProcessFilter(unsigned radius, double sigma, double t)
+{
+	imp::SusanImagePrepare(grayscaleImage, filteredImage, radius, sigma, t);
+}
+VOID ImageProcessDector(unsigned radius, double t, double g)
+{
+
 }
 
 INT_PTR CALLBACK AboutBoxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -287,7 +285,13 @@ VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	case ID_FILE_OPEN:
 		{
 			TSTRING imagePath = FileBrowserInit(hwnd);
-			if (!imagePath.empty())	LoadImageSpecified(hwnd, imagePath);
+			if (!imagePath.empty())	
+			{
+				LoadImageSpecified(hwnd, imagePath);
+				
+				// Temporary code below!
+				ImageProcessFilter(3, 224.3, 18.24);
+			}
 		} break;
 	case IDM_EXIT:
 		DestroyWindow(hwnd);
