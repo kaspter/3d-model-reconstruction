@@ -114,8 +114,7 @@ namespace imp
 	}
 
 
-	// SUSANFeatureDetector implementation below
-
+	// SUSANFeatureResponse implementation below
 	template<typename SourceValueType, typename KernelValueType, typename ResultValueType>
 	inline double SUSANFeatureResponse<SourceValueType, KernelValueType, ResultValueType>::_fexp_u8(SourceValueType nucleus, SourceValueType value)
 	{
