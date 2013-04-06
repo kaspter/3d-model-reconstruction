@@ -84,4 +84,4 @@ namespace imp
 	};
 }
 
-#include "imp_susan.cpp"
+#include "imp_susan_template.cpp"

@@ -92,7 +92,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FeatureDetection.cpp" />
-    <ClInclude Include="imp_susan.cpp" />
+    <ClInclude Include="imp_susan_template.cpp" />
+    <ClCompile Include="imp_susan.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="imp_extension.cpp" />
   </ItemGroup>
@@ -102,6 +103,9 @@
   <ItemGroup>
     <None Include="FeatureDetection.ico" />
     <None Include="small.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Snippets.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
