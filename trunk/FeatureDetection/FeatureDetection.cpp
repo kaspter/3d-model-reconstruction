@@ -106,34 +106,6 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		cornerMaskImage.setTo(cv::Scalar::all(0x00));
 	
-		// TODO: Remove this!
-		//HANDLE hFile = CreateFile(_T("E:\\In-OUT\\CPP_Response.txt"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		//if (hFile == INVALID_HANDLE_VALUE) return 0;
-		//
-		//LPTSTR format = _T("%1.f%c");
-		//SIZE_T fieldWidth = 9, strLen = test.cols * fieldWidth + 1;
-		//LPTSTR outString = new TCHAR[strLen];
-		//
-		//DWORD dwNumOfBytesWritten;
-		//for (int i = 0, imax = test.rows; i < imax; ++i)
-		//{
-		//	float* irow = reinterpret_cast<float*>(&test.data[i * test.step]);
-		//
-		//	LPTSTR curString = outString;
-		//	for (int j = 0, jmax = test.cols; j < jmax; ++j)
-		//	{
-		//		int offset = _stprintf_s(curString, fieldWidth + 1, format, irow[j], ((j < jmax - 1) ? _T('\t') : _T('\r')));
-		//		if (offset < 0) return 0;
-		//		curString += offset;
-		//	}
-		//	*(curString++) = _T('\n');
-		//	WriteFile(hFile, outString, (curString - outString) * sizeof(TCHAR), &dwNumOfBytesWritten, NULL);
-		//}
-		//delete[] outString;
-		//
-		//CloseHandle(hFile);
-		// TODO: End of 'Remove this!'
-
 		//for (int r = 0, rmax = filteredImage.rows; r < rmax; ++r)
 		//{
 		//	for (int c = 0, cmax = filteredImage.cols; c < cmax; ++c)

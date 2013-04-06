@@ -39,7 +39,7 @@
     <ClInclude Include="imp_extension.h">
       <Filter>Заголовочные файлы\ImageProcessor</Filter>
     </ClInclude>
-    <ClInclude Include="imp_susan.cpp">
+    <ClInclude Include="imp_susan_template.cpp">
       <Filter>Файлы исходного кода\ImageProcessor</Filter>
     </ClInclude>
   </ItemGroup>
@@ -52,6 +52,9 @@
     </ClCompile>
     <ClCompile Include="FeatureDetection.cpp">
       <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="imp_susan.cpp">
+      <Filter>Файлы исходного кода\ImageProcessor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -66,5 +69,8 @@
     <None Include="small.ico">
       <Filter>Файлы ресурсов</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Snippets.txt" />
   </ItemGroup>
 </Project>
