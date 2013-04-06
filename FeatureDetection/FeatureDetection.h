@@ -23,7 +23,6 @@
     (void)(fn)((hwnd), WM_MOUSEHOVER, (WPARAM)(UINT)(keyFlags), MAKELPARAM((x), (y)))
 
 typedef std::basic_string<TCHAR> TSTRING, *LPTSTRING; 
-typedef cv::Mat IMG_ALIGNED;
 
 #ifdef _UNICODE
 #define TTTOOLINFO_V2_SIZE TTTOOLINFOW_V2_SIZE

@@ -82,6 +82,11 @@ namespace imp
 
 		inline void reset() { _kval.clear(); }
 	};
+
+	cv::Ptr<cv::BaseFilter> getSusanFeatureResponse(int srcType, int dstType, unsigned radius, double t, double g);
+	cv::Ptr<cv::FilterEngine> createSusanFeatureResponse(int srcType, int dstType, unsigned radius, double t, double g, 
+		int rowBorderType = cv::BORDER_DEFAULT, int columnBorderType = -1, const cv::Scalar &borderValue = cv::Scalar());
+	void SusanFeatureResponse(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType = cv::BORDER_DEFAULT);
 }
 
 #include "imp_susan_template.cpp"

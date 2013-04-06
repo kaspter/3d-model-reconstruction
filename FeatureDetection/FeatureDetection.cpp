@@ -101,26 +101,11 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 		alignedRowSize =  ((grayscaleImage.cols * grayscaleImage.elemSize() - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
 		filteredImage = cv::Mat(grayscaleImage.size(), grayscaleImage.type(), new BYTE[grayscaleImage.rows * alignedRowSize], alignedRowSize);
 
-		if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
-		alignedRowSize =  ((rawImage.cols * CV_ELEM_SIZE(CV_8SC4) - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
-		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
-		cornerMaskImage.setTo(cv::Scalar::all(0x00));
-	
-		//for (int r = 0, rmax = filteredImage.rows; r < rmax; ++r)
-		//{
-		//	for (int c = 0, cmax = filteredImage.cols; c < cmax; ++c)
-		//	{
-		//		if (filteredImage.at<uchar>(r,c) != 0x00)
-		//		{
-		//						      cornerMaskImage.ptr<unsigned>(r    , c    )[0] = 0xFFFF0000;
-		//			if (0 < r)        cornerMaskImage.ptr<unsigned>(r - 1, c    )[0] = 0xFFFF0000;
-		//			if (r < rmax - 1) cornerMaskImage.ptr<unsigned>(r + 1, c    )[0] = 0xFFFF0000;
-		//			if (0 < c)        cornerMaskImage.ptr<unsigned>(r    , c - 1)[0] = 0xFFFF0000;
-		//			if (c < cmax - 1) cornerMaskImage.ptr<unsigned>(r    , c + 1)[0] = 0xFFFF0000;
-		//		}
-		//	}
-		//}
-		
+		//if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
+		//alignedRowSize =  ((rawImage.cols * CV_ELEM_SIZE(CV_8SC4) - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
+		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4);//, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		//cornerMaskImage.setTo(cv::Scalar::all(0x00));
+			
 		bmi_disp.bmiHeader.biWidth  =  rawImage.cols;
 		bmi_disp.bmiHeader.biHeight = -rawImage.rows;
 
@@ -166,7 +151,38 @@ VOID ImageProcessFilter(unsigned radius, double sigma, double t)
 }
 VOID ImageProcessDector(unsigned radius, double t, double g)
 {
+	cv::Mat featureImage(filteredImage.size(), CV_8UC1);
+	imp::SusanFeatureResponse(filteredImage, featureImage, radius, t, g);	
+	featureImage = imp::NonMaxSupp3x3_8uc1(featureImage);
 
+	double  _rad   = 0.85;
+	cv::Mat matrix = imp::DiskMatrix_8uc1(_rad);
+	std::vector<cv::Point> layout;
+	for (int i = 0, anchor = static_cast<int>(ROUND_VAL(_rad)); i < matrix.rows; ++i)
+	{
+		int offset = i * matrix.step; // step equals width in this case
+		for (int j = 0; j < matrix.cols; ++j)
+		{
+			if (matrix.data[offset + j] == 0x00) continue;
+			layout.push_back(cv::Point(j - anchor, i - anchor));
+		}
+	}
+	const cv::Point *p = &layout[0];
+
+	FillMemory(cornerMaskImage.data, cornerMaskImage.size().area() * cornerMaskImage.elemSize(), 0x00);
+	for (int r = 0, rmax = featureImage.rows; r < rmax; ++r)
+	{
+		for (int c = 0, cmax = featureImage.cols; c < cmax; ++c)
+		{
+			if (featureImage.at<uchar>(r,c) == 0x00) continue;
+			for (int i = 0, imax = layout.size(); i < imax; ++i)
+			{
+				int x = c + p[i].x, y = r + p[i].y;
+				if (0 < x && x < cornerMaskImage.cols - 1 && 0 < y && y < cornerMaskImage.rows - 1)
+					*cornerMaskImage.ptr<unsigned>(y, x) = 0xFFFF0000;				
+			}
+		}
+	}
 }
 
 INT_PTR CALLBACK AboutBoxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -262,7 +278,8 @@ VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 				LoadImageSpecified(hwnd, imagePath);
 				
 				// Temporary code below!
-				ImageProcessFilter(3, 224.3, 18.24);
+				ImageProcessFilter(3, 11.95, 22.24);
+				ImageProcessDector(3, 11.87, 17.89);
 			}
 		} break;
 	case IDM_EXIT:
@@ -410,19 +427,22 @@ VOID OnPaintCanvas(HWND hwnd)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);	
 
-		SIZE paintSize = { ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top };
+		RECT client;
+		GetClientRect(hwnd, &client);
 
-		SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy,	ps.rcPaint.left, ps.rcPaint.top, 
-			ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi_disp, DIB_RGB_COLORS);
+		SIZE paintSize = { client.right - client.left, client.bottom - client.top };
+		StretchDIBits(hdc, 0, 0, paintSize.cx, paintSize.cy, 0, 0, bmi_disp.bmiHeader.biWidth, -bmi_disp.bmiHeader.biHeight, displayedImage->data, &bmi_disp, DIB_RGB_COLORS, SRCCOPY);
+		//SetDIBitsToDevice(hdc, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy,	ps.rcPaint.left, ps.rcPaint.top, 
+		//	ps.rcPaint.top, ps.rcPaint.bottom, displayedImage->data, &bmi_disp, DIB_RGB_COLORS);
 
 		HDC		hdcMem  = CreateCompatibleDC(hdc);
-		HBITMAP hbmpMem = CreateCompatibleBitmap(hdc, bmi_mask.bmiHeader.biWidth, -bmi_mask.bmiHeader.biHeight),
+		HBITMAP hbmpMem = CreateCompatibleBitmap(hdc, paintSize.cx, paintSize.cy),
 				hbmpOld = (HBITMAP)SelectObject(hdcMem, hbmpMem);
 
 		BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
-
-		SetDIBits(hdcMem, hbmpMem, 0, -bmi_mask.bmiHeader.biHeight, cornerMaskImage.data, &bmi_mask, DIB_RGB_COLORS);
-		AlphaBlend(hdc, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy, hdcMem, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy, blend);
+		StretchDIBits(hdcMem, 0, 0, paintSize.cx, paintSize.cy, 0, 0, bmi_mask.bmiHeader.biWidth, -bmi_mask.bmiHeader.biHeight, cornerMaskImage.data, &bmi_mask, DIB_RGB_COLORS, SRCCOPY);
+		AlphaBlend(hdc, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx = ps.rcPaint.right - ps.rcPaint.left, 
+			paintSize.cy = ps.rcPaint.bottom - ps.rcPaint.top, hdcMem, ps.rcPaint.left, ps.rcPaint.top, paintSize.cx, paintSize.cy, blend);
 
 		SelectObject(hdcMem, hbmpOld);
 		DeleteObject(hbmpMem);
