@@ -155,12 +155,13 @@ VOID ImageProcessDector(unsigned radius, double t, double g)
 	imp::SusanFeatureResponse(filteredImage, featureImage, radius, t, g);	
 	featureImage = imp::NonMaxSupp3x3_8uc1(featureImage);
 
-	double  _rad   = 0.85;
-	cv::Mat matrix = imp::DiskMatrix_8uc1(_rad);
+	double  _rad   = 1.0;
+	uchar trace[]  = { 1, 1, 1, 1, 0, 1, 1, 1, 1 };
+	cv::Mat matrix = cv::Mat(3, 3, CV_8SC1, static_cast<void*>(trace));
 	std::vector<cv::Point> layout;
 	for (int i = 0, anchor = static_cast<int>(ROUND_VAL(_rad)); i < matrix.rows; ++i)
 	{
-		int offset = i * matrix.step; // step equals width in this case
+		int offset = i * matrix.step;
 		for (int j = 0; j < matrix.cols; ++j)
 		{
 			if (matrix.data[offset + j] == 0x00) continue;
