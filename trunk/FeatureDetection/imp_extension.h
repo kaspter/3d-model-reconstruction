@@ -4,8 +4,11 @@ namespace imp
 {
 #define ROUND_VAL(x) (double(x) > 0.0 ? floor((x) + 0.5) : ceil((x) - 0.5))
 
-	cv::Mat DiskMatrix_8uc1 (double radius);
-	cv::Mat NonMaxSupp3x3_8uc1(const cv::Mat &hcr);
+	// Produces a square matrix (2*radius + 1)x(2*radius + 1) filled by 1's in a disk form
+	cv::Mat diskMatrix_8uc1 (double radius);
+	 // Gives a local maxima mask (map) for an 8-bit image given
+	void nonMaxSupp3x3_8uc1(cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues = false);
+	
 	//void preprocess2DKernel( const cv::Mat& kernel, std::vector<cv::Point>& coords, std::vector<uchar>& coeffs );
 
 	template<typename SwapType> 

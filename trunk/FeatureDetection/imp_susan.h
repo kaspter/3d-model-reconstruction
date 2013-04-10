@@ -51,7 +51,7 @@ namespace imp
 	cv::Ptr<cv::BaseFilter> getSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t);
 	cv::Ptr<cv::FilterEngine> createSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t, 
 		int rowBorderType = cv::BORDER_DEFAULT, int columnBorderType = -1, const cv::Scalar &borderValue = cv::Scalar());
-	void SusanImagePrepare(const cv::Mat &src, cv::Mat &dst, int radius, double sigma, double t, int borderType = cv::BORDER_DEFAULT);
+	void filterSusan(const cv::Mat &src, cv::Mat &dst, int radius, double sigma, double t, int borderType = cv::BORDER_DEFAULT);
 
 	template<typename SourceValueType, typename KernelValueType, typename ResultValueType = uchar> 
 	class SUSANFeatureResponse : public cv::BaseFilter
@@ -86,7 +86,7 @@ namespace imp
 	cv::Ptr<cv::BaseFilter> getSusanFeatureResponse(int srcType, int dstType, unsigned radius, double t, double g);
 	cv::Ptr<cv::FilterEngine> createSusanFeatureResponse(int srcType, int dstType, unsigned radius, double t, double g, 
 		int rowBorderType = cv::BORDER_DEFAULT, int columnBorderType = -1, const cv::Scalar &borderValue = cv::Scalar());
-	void SusanFeatureResponse(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType = cv::BORDER_DEFAULT);
+	void cornerSusan(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType = cv::BORDER_DEFAULT);
 }
 
 #include "imp_susan_template.cpp"
