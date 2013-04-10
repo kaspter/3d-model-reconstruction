@@ -15,7 +15,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (imgLeft.data == NULL || imgRight.data == NULL)
 	{
-		std::cerr << "cannot locate image(s) specofied!";
+		std::cerr << "cannot locate image(s) specified!";
 		retResult = -1;
 		goto EXIT;
 	}
