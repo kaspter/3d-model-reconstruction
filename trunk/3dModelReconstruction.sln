@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FeatureDetection", "FeatureDetection\FeatureDetection.vcxproj", "{99687B41-E406-4583-83C3-162CBD2436EC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StereoReconstruction", "StereoReconstruction\StereoReconstruction.vcxproj", "{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -13,6 +15,10 @@ Global
 		{99687B41-E406-4583-83C3-162CBD2436EC}.Debug|Win32.Build.0 = Debug|Win32
 		{99687B41-E406-4583-83C3-162CBD2436EC}.Release|Win32.ActiveCfg = Release|Win32
 		{99687B41-E406-4583-83C3-162CBD2436EC}.Release|Win32.Build.0 = Release|Win32
+		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Debug|Win32.Build.0 = Debug|Win32
+		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Release|Win32.ActiveCfg = Release|Win32
+		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
