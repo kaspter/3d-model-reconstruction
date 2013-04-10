@@ -34,7 +34,7 @@ namespace imp
 			ksize		= cv::Size(2*radius + 1, 2*radius + 1);
 			anchor		= cv::Point(radius, radius); 
 
-			cv::Mat matrix = DiskMatrix_8uc1(radius); matrix.at<uchar>(anchor) = 0;
+			cv::Mat matrix = diskMatrix_8uc1(radius); matrix.at<uchar>(anchor) = 0;
 			for (int i = 0; i < matrix.rows; ++i)
 			{
 				int offset = i * matrix.step; // step equals width in this case
@@ -145,7 +145,7 @@ namespace imp
 
 			_dist		= double(radius - 1);
 
-			cv::Mat matrix = DiskMatrix_8uc1(radius);
+			cv::Mat matrix = diskMatrix_8uc1(radius);
 			for (int i = 0; i < matrix.rows; ++i)
 			{
 				int offset = i * matrix.step; // step equals width in this case

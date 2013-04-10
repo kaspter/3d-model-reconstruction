@@ -147,13 +147,13 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 
 VOID ImageProcessFilter(unsigned radius, double sigma, double t)
 {
-	imp::SusanImagePrepare(grayscaleImage, filteredImage, radius, sigma, t);
+	imp::filterSusan(grayscaleImage, filteredImage, radius, sigma, t);
 }
 VOID ImageProcessDector(unsigned radius, double t, double g)
 {
 	cv::Mat featureImage(filteredImage.size(), CV_8UC1);
-	imp::SusanFeatureResponse(filteredImage, featureImage, radius, t, g);	
-	featureImage = imp::NonMaxSupp3x3_8uc1(featureImage);
+	imp::cornerSusan(filteredImage, featureImage, radius, t, g);	
+	imp::nonMaxSupp3x3_8uc1(featureImage, featureImage);
 
 	double  _rad   = 1.0;
 	uchar trace[]  = { 1, 1, 1, 1, 0, 1, 1, 1, 1 };

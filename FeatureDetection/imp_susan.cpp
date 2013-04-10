@@ -72,7 +72,7 @@ namespace imp
 			);
 	}
 
-	void SusanImagePrepare(const cv::Mat &src, cv::Mat &dst, int radius, double sigma, double t, int borderType)
+	void filterSusan(const cv::Mat &src, cv::Mat &dst, int radius, double sigma, double t, int borderType)
 	{
 		CV_Assert( src.dims == 2 );
 		if ( dst.dims != 2 || src.depth() > dst.depth() || src.channels() != dst.channels() || src.size() != dst.size() )
@@ -153,7 +153,7 @@ namespace imp
 			);
 	}
 
-	void SusanFeatureResponse(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType)
+	void cornerSusan(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType)
 	{
 		CV_Assert( src.channels() == 1 && src.dims == 2 && src.depth() == CV_8U );
 		if ( dst.dims != 2 || src.channels() < dst.channels() || src.size() != dst.size() )
