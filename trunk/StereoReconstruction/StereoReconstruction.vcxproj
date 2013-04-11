@@ -57,7 +57,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_core244d.lib;opencv_features2d244d.lib;opencv_nonfree244d.lib;opencv_flann244d.lib;opencv_imgproc244d.lib;opencv_highgui244d.lib;IlmImfd.lib;libjpegd.lib;libjasperd.lib;libpngd.lib;libtiffd.lib;zlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;opencv_core244d.lib;opencv_features2d244d.lib;opencv_nonfree244d.lib;opencv_flann244d.lib;opencv_imgproc244d.lib;opencv_highgui244d.lib;IlmImfd.lib;libjpegd.lib;libjasperd.lib;libpngd.lib;libtiffd.lib;zlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc11\staticlib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
