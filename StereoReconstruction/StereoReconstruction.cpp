@@ -74,7 +74,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// cv::Mat alternative image set representation needed by OpenCV interface
 	std::vector<cv::Mat> images;
-	std::vector<cv::Mat> output;
+	//std::vector<cv::Mat> output;
+	cv::Mat	drawImg;
 
 	bool terminate = false;
 	for (int i = 0, imax = files.size(); i < imax; ++i)
@@ -85,6 +86,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			continue;
 		}
 		images.push_back(*files[i]);
+		cv::cvtColor(images[i], images[i], CV_RGB2GRAY);
 	}
 	if (terminate) { retResult = -1; goto EXIT; }
 
@@ -98,22 +100,79 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 
 		std::string algorithm_name = "SIFT";
-		cv::Ptr<cv::Feature2D> algorithm = cv::Feature2D::create(algorithm_name);
-		
-		output.resize(files.size());
+		cv::Ptr<cv::Feature2D> algorithm = cv::Feature2D::create(algorithm_name);			
 
 		std::vector<cv::Mat>					descriptors(files.size());
 		std::vector<std::vector<cv::KeyPoint>>	keypoints(files.size());
 		for (int i = 0, imax = files.size(); i < imax; ++i)
 		{
 			(*algorithm)(images[i], cv::Mat(), keypoints[i], descriptors[i]);
-			cv::drawKeypoints(images[i], keypoints[i], output[i], cv::Scalar(0x000000FF));
+			//cv::drawKeypoints(images[i], keypoints[i], output[i], cv::Scalar(0x000000FF));
 		}
 
+		std::string matcher_name = "FlannBased";
+		cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(matcher_name);
 
+		std::vector<cv::DMatch> matches;
+		matcher->match(descriptors[0],descriptors[1], matches);		
+		
+		std::vector<cv::Mat> points(files.size(), cv::Mat(matches.size(), 1, CV_32FC2));
+		//cv::drawMatches(output[0],keypoints[0], output[1],keypoints[1], matches, drawImg);		
+		for (int i=0, imax = matches.size(); i<imax; ++i) 
+		{
+			float* elemPtr = points[0].ptr<float>(i);
+			elemPtr[0] = keypoints[0][matches[i].queryIdx].pt.x;
+			elemPtr[1] = keypoints[0][matches[i].queryIdx].pt.y;
+
+			elemPtr = points[1].ptr<float>(i);
+			elemPtr[0] = keypoints[1][matches[i].trainIdx].pt.x;
+			elemPtr[1] = keypoints[1][matches[i].trainIdx].pt.y;
+		}
+		cv::Mat fundamentalMatrix = cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 3, 0.99);
+
+		std::cout<<"------------Fundamental matrix-----------------"<<std::endl;
+		std::cout<<fundamentalMatrix<<std::endl;
+
+		std::vector<cv::Mat> correspondentLines(files.size());
+		cv::computeCorrespondEpilines(points[0], 1, fundamentalMatrix, correspondentLines[1]);
+		cv::computeCorrespondEpilines(points[1], 2, fundamentalMatrix, correspondentLines[0]);		
+
+		std::cout<<"------------Left Correspondent Lines-----------------"<<std::endl;
+		std::cout<<correspondentLines[0]<<std::endl;
+		std::cout<<"------------Right Correspondent Lines-----------------"<<std::endl;
+		std::cout<<correspondentLines[1]<<std::endl;
+
+		std::vector<cv::Mat> homography(files.size());
+		cv::stereoRectifyUncalibrated(points[0], points[1], fundamentalMatrix, images[1].size(), homography[0], homography[1]);
+
+		std::cout<<"------------Left Homography-----------------"<<std::endl;
+		std::cout<<homography[0]<<std::endl;
+		std::cout<<"------------Right Homography-----------------"<<std::endl;
+		std::cout<<homography[1]<<std::endl;		
+
+		float camerMatrixElements [] = {1, 0, images[0].cols/2, 
+										0, 1, images[0].rows/2,
+										0, 0, 1};
+		cv::Mat cameraMatrix(3, 3, CV_64FC1, camerMatrixElements);
+		std::vector<cv::Mat> remapData (files.size());
+
+		cv::Mat R = cameraMatrix.inv() * homography[0] * cameraMatrix, temp( images[0].size(), images[0].type() );				
+		cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, images[0].size(), CV_32FC1, remapData[0], remapData[1]);			
+		cv::remap(images[0], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
+		temp.copyTo(images[0]);
+
+		R = cameraMatrix.inv() * homography[1] * cameraMatrix;				
+		cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, images[1].size(), CV_32FC1, remapData[0], remapData[1]);
+		cv::remap(images[1], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
+		temp.copyTo(images[1]);
+		temp.release();
+
+		drawImg.create(images[0].rows, images[0].cols * 2, images[0].type());
+		images[0].copyTo(drawImg(cv::Rect(0, 0, images[0].cols, images[0].rows)));
+		images[1].copyTo(drawImg(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
 	}
 
-	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &output[1], 0x00, NULL);
+	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &drawImg, 0x00, NULL);
 	WaitForSingleObject(threadPresenter, INFINITE);
 	CloseHandle(threadPresenter);
 
