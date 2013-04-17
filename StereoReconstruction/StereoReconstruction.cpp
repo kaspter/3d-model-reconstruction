@@ -22,6 +22,35 @@ public:
 	const std::string	&name()			const { return _imageFilePath; }
 };
 
+std::vector<std::vector<cv::Point2f>> matchedKeypointsCoords(const std::vector<std::vector<cv::KeyPoint>> &keypoints, 
+	const std::vector<cv::DMatch> &matches, std::vector<uchar> &match_status = std::vector<uchar>())
+{
+	CV_Assert( keypoints.size() == 2 );
+	
+	bool	 notFiltered	= match_status.empty() || match_status.size() != matches.size();
+	unsigned pointsCount	= 0;
+
+	std::vector<std::vector<cv::Point2f>> points = std::vector<std::vector<cv::Point2f>>(2, std::vector<cv::Point2f>(matches.size()));
+	for (int i=0, imax = matches.size(); i<imax; ++i) 
+	{
+		if ( notFiltered || match_status[i] != 0x00 )
+		{
+			const cv::DMatch &match = matches[i];
+			points[0][i] = cv::Point2f(keypoints[0][match.queryIdx].pt.x, keypoints[0][match.queryIdx].pt.y);
+			points[1][i] = cv::Point2f(keypoints[1][match.queryIdx].pt.x, keypoints[1][match.queryIdx].pt.y);
+			++pointsCount;
+		}
+	}
+
+	if ( !notFiltered )
+	{
+		points[0].resize(pointsCount);
+		points[1].resize(pointsCount);
+	}
+
+	return points;
+}
+
 WNDPROC subclassWindowProc = NULL;
 LRESULT CALLBACK presenterWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -92,47 +121,50 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// Further code is divided by blocks because of using 'goto' statements 
 	// Blockwise code structure prevents of the 'C2362' compiler error
-	{
-		// Image features recognition and description block
+	{	// Image features recognition and description block
+		// NonFree OpenCV module initialization
 		if (!cv::initModule_nonfree())
 		{
 			std::cerr << "Failed to init Non-Free Features2d module" << std::endl; goto EXIT;
 		}
 
-		std::string algorithm_name = "SIFT";
-		cv::Ptr<cv::Feature2D> algorithm = cv::Feature2D::create(algorithm_name);			
+		//// Step 1: Image pair feature detection
+		std::string detector_name = "SIFT";
+		cv::Ptr<cv::Feature2D> algorithm = cv::Feature2D::create(detector_name);			
 
-		std::vector<cv::Mat>					descriptors(files.size());
-		std::vector<std::vector<cv::KeyPoint>>	keypoints(files.size());
-		for (int i = 0, imax = files.size(); i < imax; ++i)
-		{
-			(*algorithm)(images[i], cv::Mat(), keypoints[i], descriptors[i]);
-			//cv::drawKeypoints(images[i], keypoints[i], output[i], cv::Scalar(0x000000FF));
-		}
+		std::vector<cv::Mat>					_descriptors(files.size());
+		std::vector<std::vector<cv::KeyPoint>>	_keypoints  (files.size());
+		(*algorithm)(images[0], cv::Mat(), _keypoints[0], _descriptors[0]);
+		(*algorithm)(images[1], cv::Mat(), _keypoints[1], _descriptors[1]);
+		//cv::drawKeypoints(images[i], _keypoints[i], output[i], cv::Scalar(0x000000FF));
 
+		//// Step 2: Image features correspondence tracking
 		std::string matcher_name = "FlannBased";
 		cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(matcher_name);
 
-		std::vector<cv::DMatch> matches;
-		matcher->match(descriptors[0],descriptors[1], matches);		
+		std::vector<cv::DMatch> _matches;
+		matcher->match(_descriptors[0],_descriptors[1], _matches);	
+		//cv::drawMatches(output[0],_keypoints[0], output[1],_keypoints[1], _matches, drawImg);
 		
-		std::vector<cv::Mat> points(files.size(), cv::Mat(matches.size(), 1, CV_32FC2));
-		//cv::drawMatches(output[0],keypoints[0], output[1],keypoints[1], matches, drawImg);		
-		for (int i=0, imax = matches.size(); i<imax; ++i) 
-		{
-			float* elemPtr = points[0].ptr<float>(i);
-			elemPtr[0] = keypoints[0][matches[i].queryIdx].pt.x;
-			elemPtr[1] = keypoints[0][matches[i].queryIdx].pt.y;
+		//// Step 3: Fundamental matrix estimation (with intermediate data conversion)
+		std::vector<std::vector<cv::Point2f>> points = matchedKeypointsCoords(_keypoints, _matches);
 
-			elemPtr = points[1].ptr<float>(i);
-			elemPtr[0] = keypoints[1][matches[i].trainIdx].pt.x;
-			elemPtr[1] = keypoints[1][matches[i].trainIdx].pt.y;
-		}
-		cv::Mat fundamentalMatrix = cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 3, 0.99);
+		double _val_dummy, _val_max;
+		cv::minMaxIdx(points[0], &_val_dummy, &_val_max);
+		std::vector<uchar> _match_status(_matches.size(), 0x00);
+		cv::Mat fundamentalMatrix = cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status);
+		
+		points = matchedKeypointsCoords(_keypoints, _matches, _match_status);
+		_match_status.clear();
 
-		std::cout<<"------------Fundamental matrix-----------------"<<std::endl;
+		std::cout<<"--------------- Fundamental matrix -----------------"<<std::endl;
 		std::cout<<fundamentalMatrix<<std::endl;
 
+		//// Step 4: Camera matrices estimation up to projection transformation
+
+		//// Will be here
+
+		////
 		std::vector<cv::Mat> correspondentLines(files.size());
 		cv::computeCorrespondEpilines(points[0], 1, fundamentalMatrix, correspondentLines[1]);
 		cv::computeCorrespondEpilines(points[1], 2, fundamentalMatrix, correspondentLines[0]);		
@@ -150,8 +182,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout<<"------------Right Homography-----------------"<<std::endl;
 		std::cout<<homography[1]<<std::endl;		
 
-		float camerMatrixElements [] = {1, 0, images[0].cols/2, 
-										0, 1, images[0].rows/2,
+		float camerMatrixElements [] = {1, 0, float(images[0].cols/2), 
+										0, 1, float(images[0].rows/2),
 										0, 0, 1};
 		cv::Mat cameraMatrix(3, 3, CV_64FC1, camerMatrixElements);
 		std::vector<cv::Mat> remapData (files.size());
