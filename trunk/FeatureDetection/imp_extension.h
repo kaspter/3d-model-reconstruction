@@ -15,10 +15,11 @@ namespace imp
 	inline void swap(SwapType &a, SwapType &b) { SwapType temp = a; a = b; b = temp; }
 
 	template<typename _vt> 
-	inline int sign(_vt val)				{ return val != 0 ? (val > 0 ? 1 : -1) : 0; }
-	inline int sign(unsigned val)			{ return static_cast<int>(val > 0); }
-	inline int sign(uchar val)				{ return static_cast<int>(val > 0); }
-	inline int sign(ushort val)				{ return static_cast<int>(val > 0); }
-	inline int sign(unsigned long val)		{ return static_cast<int>(val > 0); }
-	inline int sign(unsigned long long val) { return static_cast<int>(val > 0); }
+	inline int sign(_vt val) { return val != 0 ? (val > 0 ? 1 : -1) : 0; }
+
+	template<> inline int sign<unsigned>			(unsigned			val) { return static_cast<int>(val > 0); }
+	template<> inline int sign<uchar>				(uchar				val) { return static_cast<int>(val > 0); }
+	template<> inline int sign<ushort>				(ushort				val) { return static_cast<int>(val > 0); }
+	template<> inline int sign<unsigned long>		(unsigned long		val) { return static_cast<int>(val > 0); }
+	template<> inline int sign<unsigned long long>	(unsigned long long val) { return static_cast<int>(val > 0); }
 } 
