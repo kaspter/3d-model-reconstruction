@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FeatureDetection", "Feature
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StereoReconstruction", "StereoReconstruction\StereoReconstruction.vcxproj", "{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CameraCalibration", "CameraCalibration\CameraCalibration.vcxproj", "{ED1A2893-0096-4880-97FB-4F961C37A81F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Debug|Win32.Build.0 = Debug|Win32
 		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Release|Win32.ActiveCfg = Release|Win32
 		{5574AB4F-E475-4DA9-BE7D-443CF7FD3864}.Release|Win32.Build.0 = Release|Win32
+		{ED1A2893-0096-4880-97FB-4F961C37A81F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{ED1A2893-0096-4880-97FB-4F961C37A81F}.Debug|Win32.Build.0 = Debug|Win32
+		{ED1A2893-0096-4880-97FB-4F961C37A81F}.Release|Win32.ActiveCfg = Release|Win32
+		{ED1A2893-0096-4880-97FB-4F961C37A81F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
