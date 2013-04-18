@@ -36,8 +36,8 @@ std::vector<std::vector<cv::Point2f>> matchedKeypointsCoords(const std::vector<s
 		if ( notFiltered || match_status[i] != 0x00 )
 		{
 			const cv::DMatch &match = matches[i];
-			points[0][i] = cv::Point2f(keypoints[0][match.queryIdx].pt.x, keypoints[0][match.queryIdx].pt.y);
-			points[1][i] = cv::Point2f(keypoints[1][match.queryIdx].pt.x, keypoints[1][match.queryIdx].pt.y);
+			points[0][pointsCount] = cv::Point2f(keypoints[0][match.queryIdx].pt.x, keypoints[0][match.queryIdx].pt.y);
+			points[1][pointsCount] = cv::Point2f(keypoints[1][match.trainIdx].pt.x, keypoints[1][match.trainIdx].pt.y);
 			++pointsCount;
 		}
 	}
@@ -77,7 +77,7 @@ DWORD _stdcall presenterThreadFunc(LPVOID threadParameter)
 	HWND hwnd			= static_cast<HWND>(cvGetWindowHandle(windowName.c_str()));
 	subclassWindowProc	= (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)presenterWindowProc);
 	
-	// Code should be run at window creation time, which is impossible within the current situation
+	// Code should be run at window creation time, which is impossible at the current situation
 	//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MAXIMIZEBOX);
 	//SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_DRAWFRAME);
 
@@ -103,8 +103,6 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// cv::Mat alternative image set representation needed by OpenCV interface
 	std::vector<cv::Mat> images;
-	//std::vector<cv::Mat> output;
-	cv::Mat	drawImg;
 
 	bool terminate = false;
 	for (int i = 0, imax = files.size(); i < imax; ++i)
@@ -119,6 +117,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	if (terminate) { retResult = -1; goto EXIT; }
 
+	cv::Mat	output;
 	// Further code is divided by blocks because of using 'goto' statements 
 	// Blockwise code structure prevents of the 'C2362' compiler error
 	{	// Image features recognition and description block
@@ -128,6 +127,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			std::cerr << "Failed to init Non-Free Features2d module" << std::endl; goto EXIT;
 		}
 
+		//std::vector<cv::Mat> _outpair(images);
+
 		//// Step 1: Image pair feature detection
 		std::string detector_name = "SIFT";
 		cv::Ptr<cv::Feature2D> algorithm = cv::Feature2D::create(detector_name);			
@@ -136,7 +137,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::vector<std::vector<cv::KeyPoint>>	_keypoints  (files.size());
 		(*algorithm)(images[0], cv::Mat(), _keypoints[0], _descriptors[0]);
 		(*algorithm)(images[1], cv::Mat(), _keypoints[1], _descriptors[1]);
-		//cv::drawKeypoints(images[i], _keypoints[i], output[i], cv::Scalar(0x000000FF));
+		//cv::drawKeypoints(images[i], _keypoints[i], _outpair[i], cv::Scalar(0x000000FF));
 
 		//// Step 2: Image features correspondence tracking
 		std::string matcher_name = "FlannBased";
@@ -144,7 +145,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		std::vector<cv::DMatch> _matches;
 		matcher->match(_descriptors[0],_descriptors[1], _matches);	
-		//cv::drawMatches(output[0],_keypoints[0], output[1],_keypoints[1], _matches, drawImg);
+
+		//cv::drawMatches(_outpair[0],_keypoints[0], _outpair[1],_keypoints[1], _matches, output);
+		//goto SHOW;
 		
 		//// Step 3: Fundamental matrix estimation (with intermediate data conversion)
 		std::vector<std::vector<cv::Point2f>> points = matchedKeypointsCoords(_keypoints, _matches);
@@ -153,7 +156,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		cv::minMaxIdx(points[0], &_val_dummy, &_val_max);
 		std::vector<uchar> _match_status(_matches.size(), 0x00);
 		cv::Mat fundamentalMatrix = cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status);
-		
 		points = matchedKeypointsCoords(_keypoints, _matches, _match_status);
 		_match_status.clear();
 
@@ -161,8 +163,29 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout<<fundamentalMatrix<<std::endl;
 
 		//// Step 4: Camera matrices estimation up to projection transformation
+		cv::SVD _fm_svd(fundamentalMatrix);
 
-		//// Will be here
+		//std::cout << _fm_svd.w;
+
+		double _singular_ratio = std::abs(_fm_svd.w.at<double>(0) / _fm_svd.w.at<double>(1));
+		if (_singular_ratio > 1.0) _singular_ratio = 1.0 / _singular_ratio; // flip ratio to keep it [0,1]
+		if (_singular_ratio < 0.7) 
+		{
+			std::cout << "singular values are too far apart" << std::endl;
+			retResult = -1; goto EXIT;
+		}
+
+		std::vector<cv::Mat_<double>> _R(2, cv::Mat_<double>());
+		std::vector<cv::Mat_<double>> _t(2, cv::Mat_<double>());
+
+		cv::Matx33d W(0,-1, 0,	//HZ 9.13
+					  1, 0, 0,
+					  0, 0, 1);
+
+		_R[0] = _fm_svd.u * cv::Mat(W)		* _fm_svd.vt;	//HZ 9.19
+		_R[1] = _fm_svd.u * cv::Mat(W.t())	* _fm_svd.vt;	//HZ 9.19
+		_t[0] =  _fm_svd.u.col(2); //u3
+		_t[1] = -_fm_svd.u.col(2); //u3
 
 		////
 		std::vector<cv::Mat> correspondentLines(files.size());
@@ -199,12 +222,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		temp.copyTo(images[1]);
 		temp.release();
 
-		drawImg.create(images[0].rows, images[0].cols * 2, images[0].type());
-		images[0].copyTo(drawImg(cv::Rect(0, 0, images[0].cols, images[0].rows)));
-		images[1].copyTo(drawImg(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
+		output.create(images[0].rows, images[0].cols * 2, images[0].type());
+		images[0].copyTo(output(cv::Rect(0, 0, images[0].cols, images[0].rows)));
+		images[1].copyTo(output(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
 	}
 
-	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &drawImg, 0x00, NULL);
+SHOW:
+	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &output, 0x00, NULL);
 	WaitForSingleObject(threadPresenter, INFINITE);
 	CloseHandle(threadPresenter);
 
