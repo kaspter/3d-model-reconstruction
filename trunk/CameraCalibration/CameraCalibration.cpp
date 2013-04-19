@@ -26,11 +26,21 @@ bool PatternSize(const std::string &param_val, const std::string &delim_val, cv:
 }
 
 #define ROUND_VAL(x) (double(x) > 0.0 ? floor((x) + 0.5) : ceil((x) - 0.5))
-cv::Size operator/(const cv::Size &sz, size_t d)
+template <typename _St, typename _Dt>
+inline cv::Size_<_St> operator/(const cv::Size_<_St> &sz, _Dt d)
 {
-	return cv::Size(
-		static_cast<int>(ROUND_VAL(sz.width  / double(d))),
-		static_cast<int>(ROUND_VAL(sz.height / double(d)))
+	return cv::Size_<_St>(sz.width / d, sz.height / d);
+}
+template <typename _St, typename _Dt>
+inline cv::Size_<_St> &operator/=(cv::Size_<_St> &sz, _Dt d)
+{
+	return sz = sz / d;
+}
+inline bool operator==(const cv::Size &a, const cv::Size_<double> &b)
+{
+	return a == cv::Size(
+		static_cast<int>(ROUND_VAL(b.width)), 
+		static_cast<int>(ROUND_VAL(b.height))
 		);
 }
 
@@ -83,12 +93,15 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		std::cout << "Chessboard: " << pattern_size << " with " << square_size << "mm squares." << std::endl << std::endl;
 
-		cv::Size imageAverageSize;
+		cv::Size_<float> imageSizeAverage;	
+		std::vector<cv::Size> imageSizes;
 		std::vector<std::vector<cv::Point2f>> imagePoints;
 
 		try
 		{
 			std::regex regex(arguments.get<std::string>("1"));
+
+			std::vector<std::string> file_set;
 
 			WIN32_FIND_DATA ffData;
 			HANDLE h = FindFirstFile(appDir.insert(appDir.length() - 1, "\\*.*").c_str(), &ffData);
@@ -99,23 +112,23 @@ int _tmain(int argc, _TCHAR* argv[])
 				{
 					if (std::regex_match(ffData.cFileName, regex))
 					{
-						cv::Mat image = cv::imread(ffData.cFileName);
-						if (image.data == NULL)
+						cv::Mat image = cv::imread(ffData.cFileName, CV_LOAD_IMAGE_GRAYSCALE);
+						if (image.empty())
 						{
 							std::cerr << "Cannot load '" << ffData.cFileName << "'! Skipped." << std::endl;
 							continue;
 						}
-						cv::cvtColor(image, image, cv::COLOR_RGB2GRAY);
 
 						std::vector<cv::Point2f> corners(pattern_size.area());
 						if (!cv::findChessboardCorners(image, pattern_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
 						{
-							std::cerr << "Can't find chessboard at '" << ffData.cFileName << "'!" << std::endl;
+							std::cerr << "Can't find chessboard corners at '" << ffData.cFileName << "'!" << std::endl;
 							continue;
 						}
 						cv::cornerSubPix(image, corners, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 
-						imageAverageSize += image.size();
+						imageSizeAverage += static_cast<cv::Size_<float>>(image.size());
+						imageSizes.push_back(image.size());
 						imagePoints.push_back(corners);	
 
 						std::cout << imagePoints.size() << " '" << ffData.cFileName << "' (" << image.size().height << " x " << image.size().width << ")" << std::endl;
@@ -137,6 +150,39 @@ int _tmain(int argc, _TCHAR* argv[])
 			goto EXIT;
 		}
 
+		bool scaling = false;
+
+		imageSizeAverage /= imagePoints.size();
+		for (int i = 0, imax = imagePoints.size(); i < imax; ++i)
+		{
+			cv::Size *pImageSize = &imageSizes[i];
+			
+			if (*pImageSize == imageSizeAverage) continue;
+			cv::Size_<float> scale(
+				imageSizeAverage.width  / pImageSize->width,
+				imageSizeAverage.height / pImageSize->height
+				);
+
+			std::vector<cv::Point2f> *corners = &imagePoints[i];
+			for (auto p = corners->begin(), pend = corners->end(); p != pend; ++p)
+			{
+				p->x *= scale.width;
+				p->y *= scale.height;
+			}
+
+			scaling = true;
+		}
+
+		if (scaling)
+		{
+			std::cout << "============================== !!!! WARNING !!!! ==============================" << std::endl
+					  << "    The images given are non-uniform by size so corner points scaling occured  " << std::endl 
+					  << "     That may have negative impact on the precision of further computations    " << std::endl
+					  << "        It is reasonable to check that images have concurrent orientation      " << std::endl
+					  << "===============================================================================" << std::endl 
+					  << std::endl;
+		}
+
 		std::cout << "Calibrating camera..." << std::endl;
 
 		std::vector<cv::Point3f> chessboardPoints(pattern_size.area());
@@ -150,8 +196,16 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		cv::Mat K, d;
 		std::vector<cv::Mat> r, t;
-		cv::calibrateCamera(objectPoints, imagePoints, imageAverageSize / imagePoints.size(), K, d, r, t);
 
+		double error = cv::calibrateCamera(objectPoints, imagePoints, imageSizeAverage, K, d, r, t);
+
+		double fx = K.at<double>(0,0);
+		K.at<double>(0,0) = 1.0;
+		K.at<double>(1,1) = K.at<double>(1,1) / fx;
+		K.at<double>(0,2) /= imageSizeAverage.width;
+		K.at<double>(1,2) /= imageSizeAverage.height;
+
+		std::cout << "Final minimization error: " << error << std::endl;
 		std::cout << "Camera intrinsics matrix:" << std::endl << K << std::endl;
 		std::cout << "Camera distortion vector:" << std::endl << d << std::endl;
 
@@ -160,15 +214,16 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			cv::FileStorage storage(output, cv::FileStorage::WRITE | cv::FileStorage::FORMAT_XML, "utf8");
 
-			storage << "camera_intr" << K << "camera_dist" << d;
+			storage << "camera_intrinsics" << K << "camera_distortion" << d;
 			storage.release();
 
 			std::cout << "'" << output << "' was successfully saved!" << std::endl;
 		}
+		std::cout << std::endl;
 	}
 
 EXIT:
-	std::cout << "Hit any key to exit.";
+	std::cout << "Hit any key to exit...";
 	_gettchar();
 	return retResult;
 }
