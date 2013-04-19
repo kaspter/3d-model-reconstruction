@@ -2,7 +2,6 @@
 //
 
 #include "stdafx.h"
-#include "resource.h"
 
 bool PatternSize(const std::string &param_val, const std::string &delim_val, cv::Size &pattern_size)
 {
@@ -22,33 +21,44 @@ bool PatternSize(const std::string &param_val, const std::string &delim_val, cv:
 	}
 	if (values.size() != 2) values.resize(2, values[0]);
 
-	pattern_size = cv::Size(values[1], values[0]);
+	pattern_size = cv::Size(values[0], values[1]);
 	return true;
+}
+
+#define ROUND_VAL(x) (double(x) > 0.0 ? floor((x) + 0.5) : ceil((x) - 0.5))
+cv::Size operator/(const cv::Size &sz, size_t d)
+{
+	return cv::Size(
+		static_cast<int>(ROUND_VAL(sz.width  / double(d))),
+		static_cast<int>(ROUND_VAL(sz.height / double(d)))
+		);
 }
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	SetConsoleTitle("Chessboard camera calibration");
+
 	int retResult = 0;
 
 	SetLastError(0);
 
 	{
-		LPWSTR rcWideString = NULL;
-		if (LoadStringW(GetModuleHandle(NULL), IDS_PARSER_TEMPLATE, (LPWSTR)&rcWideString, 0) == 0)
-		{
-			retResult = static_cast<int>(GetLastError());
-			goto EXIT;
-		}
-		size_t rcWideStringLength = wcslen(rcWideString);
+		//LPWSTR rcWideString = NULL;
+		//if (LoadStringW(GetModuleHandle(NULL), IDS_PARSER_TEMPLATE, (LPWSTR)&rcWideString, 0) == 0)
+		//{
+		//	retResult = static_cast<int>(GetLastError());
+		//	goto EXIT;
+		//}
+		//size_t rcWideStringLength = wcslen(rcWideString);
 
-		std::string parserTemplate(rcWideStringLength, 0x00);
-		if (WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, rcWideString, rcWideStringLength, &parserTemplate[0], parserTemplate.size(), NULL, FALSE) == 0);
-		{
-			retResult = static_cast<int>(GetLastError());
-			if (retResult != 0) goto EXIT;
-		}
+		//std::string parserTemplate(rcWideStringLength, 0x00);
+		//if (WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, rcWideString, rcWideStringLength, &parserTemplate[0], parserTemplate.size(), NULL, FALSE) == 0)
+		//{
+		//	retResult = static_cast<int>(GetLastError());
+		//	if (retResult != 0) goto EXIT;
+		//}
 
-		cv::CommandLineParser arguments(argc, argv, parserTemplate.c_str());
+		cv::CommandLineParser arguments(argc, argv, "{cbs||8,6|}{usz||10|}{dir|directory||}{out|output||}{1||^.+\\.jpe?g$|}");
 
 		std::string appDir = arguments.get<std::string>("dir");
 		if (!appDir.empty())
@@ -58,20 +68,31 @@ int _tmain(int argc, _TCHAR* argv[])
 		appDir.resize(GetCurrentDirectory(0, NULL), 0x00);
 		GetCurrentDirectory(appDir.size(), &appDir[0]);
 		
-		std::vector<std::vector<cv::Point2f>> opticalFlow;
-
-		cv::Size chessboard_size;
-		if (!PatternSize(arguments.get<std::string>("pat"), ",;:", chessboard_size))
+		cv::Size pattern_size;
+		float square_size;
+		if (!PatternSize(arguments.get<std::string>("cbs"), ",;:", pattern_size))
 		{
 			std::cerr << "Bad pattern size specified." << std::endl;
 			goto EXIT;
 		}
+		if ((square_size = arguments.get<float>("usz")) <= 0)
+		{
+			std::cerr << "Bad square size specified." << std::endl;
+			goto EXIT;
+		}
+
+		std::cout << "Chessboard: " << pattern_size << " with " << square_size << "mm squares." << std::endl << std::endl;
+
+		cv::Size imageAverageSize;
+		std::vector<std::vector<cv::Point2f>> imagePoints;
 
 		WIN32_FIND_DATA data;
 		HANDLE h = FindFirstFile(appDir.insert(appDir.length() - 1, "\\*.*").c_str(), &data);
 		if( h != INVALID_HANDLE_VALUE )
 		{
-			std::regex  regex(arguments.get<std::string>("1"));
+			std::cout << "Processing images..." << std::endl;
+
+			std::regex regex(arguments.get<std::string>("1"));
 			do
 			{
 				if (std::regex_match(data.cFileName, regex))
@@ -84,22 +105,58 @@ int _tmain(int argc, _TCHAR* argv[])
 					}
 					cv::cvtColor(image, image, cv::COLOR_RGB2GRAY);
 
-					std::vector<cv::Point2f> corners(chessboard_size.area());
-					if (!cv::findChessboardCorners(image, chessboard_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
+					std::vector<cv::Point2f> corners(pattern_size.area());
+					if (!cv::findChessboardCorners(image, pattern_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
 					{
 						std::cerr << "Can't find chessboard at '" << data.cFileName << "'!" << std::endl;
 						continue;
 					}
 					cv::cornerSubPix(image, corners, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 
-					opticalFlow.push_back(corners);				
+					imageAverageSize += image.size();
+					imagePoints.push_back(corners);	
+
+					std::cout << imagePoints.size() << " '" << data.cFileName << "' (" << image.size().height << " x " << image.size().width << ")" << std::endl;
 				}
 			} while(FindNextFile(h,&data));
+			std::cout << std::endl;
 		}
 		FindClose(h);
 
-		// Process image data, compute both the camera intrinsics matrix and the distortion vector
-		// Save visualize and, optionally, save the data estimated (depends on -out parameter)
+		if (imagePoints.empty())
+		{
+			std::cerr << "No chessboard data found. Calibration aborted!" << std::endl;
+			goto EXIT;
+		}
+
+		std::cout << "Calibrating camera..." << std::endl;
+
+		std::vector<cv::Point3f> chessboardPoints(pattern_size.area());
+		for (int r = 0, rmax = pattern_size.height; r < rmax; ++r)
+		{
+			cv::Point3f *row = &chessboardPoints[r * pattern_size.width];
+			for (int c = 0, cmax = pattern_size.width; c < cmax; ++c)
+				row[c] = cv::Point3f(c * square_size, r * square_size, 0);
+		}
+		std::vector<std::vector<cv::Point3f>> objectPoints(imagePoints.size(), chessboardPoints);
+
+		cv::Mat K, d;
+		std::vector<cv::Mat> r, t;
+		cv::calibrateCamera(objectPoints, imagePoints, imageAverageSize / imagePoints.size(), K, d, r, t);
+
+		std::cout << "Camera intrinsics matrix:" << std::endl << K << std::endl;
+		std::cout << "Camera distortion vector:" << std::endl << d << std::endl;
+
+		std::string output = arguments.get<std::string>("out");
+		if (!output.empty())
+		{
+			cv::FileStorage storage(output, cv::FileStorage::WRITE | cv::FileStorage::FORMAT_XML, "utf8");
+
+			storage << "camera_intr" << K << "camera_dist" << d;
+			storage.release();
+
+			std::cout << "'" << output << "' was successfully saved!" << std::endl;
+		}
 	}
 
 EXIT:
