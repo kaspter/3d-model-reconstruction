@@ -86,46 +86,54 @@ int _tmain(int argc, _TCHAR* argv[])
 		cv::Size imageAverageSize;
 		std::vector<std::vector<cv::Point2f>> imagePoints;
 
-		WIN32_FIND_DATA data;
-		HANDLE h = FindFirstFile(appDir.insert(appDir.length() - 1, "\\*.*").c_str(), &data);
-		if( h != INVALID_HANDLE_VALUE )
+		try
 		{
-			std::cout << "Processing images..." << std::endl;
-
 			std::regex regex(arguments.get<std::string>("1"));
-			do
+
+			WIN32_FIND_DATA ffData;
+			HANDLE h = FindFirstFile(appDir.insert(appDir.length() - 1, "\\*.*").c_str(), &ffData);
+			if( h != INVALID_HANDLE_VALUE )
 			{
-				if (std::regex_match(data.cFileName, regex))
+				std::cout << "Processing images..." << std::endl;
+				do
 				{
-					cv::Mat image = cv::imread(data.cFileName);
-					if (image.data == NULL)
+					if (std::regex_match(ffData.cFileName, regex))
 					{
-						std::cerr << "Cannot load '" << data.cFileName << "'! Skipped." << std::endl;
-						continue;
+						cv::Mat image = cv::imread(ffData.cFileName);
+						if (image.data == NULL)
+						{
+							std::cerr << "Cannot load '" << ffData.cFileName << "'! Skipped." << std::endl;
+							continue;
+						}
+						cv::cvtColor(image, image, cv::COLOR_RGB2GRAY);
+
+						std::vector<cv::Point2f> corners(pattern_size.area());
+						if (!cv::findChessboardCorners(image, pattern_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
+						{
+							std::cerr << "Can't find chessboard at '" << ffData.cFileName << "'!" << std::endl;
+							continue;
+						}
+						cv::cornerSubPix(image, corners, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+
+						imageAverageSize += image.size();
+						imagePoints.push_back(corners);	
+
+						std::cout << imagePoints.size() << " '" << ffData.cFileName << "' (" << image.size().height << " x " << image.size().width << ")" << std::endl;
 					}
-					cv::cvtColor(image, image, cv::COLOR_RGB2GRAY);
-
-					std::vector<cv::Point2f> corners(pattern_size.area());
-					if (!cv::findChessboardCorners(image, pattern_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
-					{
-						std::cerr << "Can't find chessboard at '" << data.cFileName << "'!" << std::endl;
-						continue;
-					}
-					cv::cornerSubPix(image, corners, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
-
-					imageAverageSize += image.size();
-					imagePoints.push_back(corners);	
-
-					std::cout << imagePoints.size() << " '" << data.cFileName << "' (" << image.size().height << " x " << image.size().width << ")" << std::endl;
-				}
-			} while(FindNextFile(h,&data));
-			std::cout << std::endl;
+				} while(FindNextFile(h,&ffData));
+				std::cout << std::endl;
+			}
+			FindClose(h);
 		}
-		FindClose(h);
-
-		if (imagePoints.empty())
+		catch(std::regex_error &e)
 		{
-			std::cerr << "No chessboard data found. Calibration aborted!" << std::endl;
+			std::cout << "Regex syntax problem. " << e.what() << std::endl;
+			goto EXIT;
+		}
+
+		if (imagePoints.size() < 2)
+		{
+			std::cerr << "Insufficient ffData provided. Calibration aborted!" << std::endl;
 			goto EXIT;
 		}
 
