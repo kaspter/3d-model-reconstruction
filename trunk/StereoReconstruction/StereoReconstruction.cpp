@@ -11,10 +11,10 @@ private:
 	std::string _imageFilePath;
 
 public:
-	ImageFileDescriptor(const std::string &imageFilePath) 
+	ImageFileDescriptor(const std::string &imageFilePath, int flags = 1) 
 		: _imageFilePath(imageFilePath)
 	{
-		_image = cv::imread(_imageFilePath);
+		_image = cv::imread(_imageFilePath, flags);
 	}
 
 	const cv::Mat		*operator->()   const { return &_image; }
@@ -98,11 +98,12 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// Image set preparation step
 	std::vector<ImageFileDescriptor> files;
-	files.push_back(ImageFileDescriptor(arguments.get<std::string>("left")));
-	files.push_back(ImageFileDescriptor(arguments.get<std::string>("right")));
+	files.push_back(ImageFileDescriptor(arguments.get<std::string>("left"),  CV_LOAD_IMAGE_GRAYSCALE));
+	files.push_back(ImageFileDescriptor(arguments.get<std::string>("right"), CV_LOAD_IMAGE_GRAYSCALE));
 
 	// cv::Mat alternative image set representation needed by OpenCV interface
 	std::vector<cv::Mat> images;
+	cv::Mat				 output;
 
 	bool terminate = false;
 	for (int i = 0, imax = files.size(); i < imax; ++i)
@@ -113,21 +114,27 @@ int _tmain(int argc, _TCHAR* argv[])
 			continue;
 		}
 		images.push_back(*files[i]);
-		cv::cvtColor(images[i], images[i], CV_RGB2GRAY);
 	}
 	if (terminate) { retResult = -1; goto EXIT; }
 
-	cv::Mat	output;
 	// Further code is divided by blocks because of using 'goto' statements 
 	// Blockwise code structure prevents of the 'C2362' compiler error
 	{	// Image features recognition and description block
 		// NonFree OpenCV module initialization
 		if (!cv::initModule_nonfree())
 		{
-			std::cerr << "Failed to init Non-Free Features2d module" << std::endl; goto EXIT;
+			std::cerr << "Failed to init Non-Free Features2d module" << std::endl; 
+			goto EXIT;
 		}
 
-		//std::vector<cv::Mat> _outpair(images);
+		cv::Size pairSize = pairSize;
+		if (pairSize != pairSize)
+		{
+			std::cerr << "Stereopair images are not equal by size! Reconstruction is impossible.";
+			goto EXIT;
+		}
+
+		// TODO: Load camera intrinsic parameters here.
 
 		//// Step 1: Image pair feature detection
 		std::string detector_name = "SIFT";
@@ -137,7 +144,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::vector<std::vector<cv::KeyPoint>>	_keypoints  (files.size());
 		(*algorithm)(images[0], cv::Mat(), _keypoints[0], _descriptors[0]);
 		(*algorithm)(images[1], cv::Mat(), _keypoints[1], _descriptors[1]);
-		//cv::drawKeypoints(images[i], _keypoints[i], _outpair[i], cv::Scalar(0x000000FF));
+			//cv::drawKeypoints(images[i], _keypoints[i], _outpair[i], cv::Scalar(0x000000FF));
 
 		//// Step 2: Image features correspondence tracking
 		std::string matcher_name = "FlannBased";
@@ -146,8 +153,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::vector<cv::DMatch> _matches;
 		matcher->match(_descriptors[0],_descriptors[1], _matches);	
 
-		//cv::drawMatches(_outpair[0],_keypoints[0], _outpair[1],_keypoints[1], _matches, output);
-		//goto SHOW;
+			//cv::drawMatches(_outpair[0],_keypoints[0], _outpair[1],_keypoints[1], _matches, output);
+			//goto SHOW;
 		
 		//// Step 3: Fundamental matrix estimation (with intermediate data conversion)
 		std::vector<std::vector<cv::Point2f>> points = matchedKeypointsCoords(_keypoints, _matches);
@@ -163,9 +170,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout<<fundamentalMatrix<<std::endl;
 
 		//// Step 4: Camera matrices estimation up to projection transformation
-		cv::SVD _fm_svd(fundamentalMatrix);
+		// TODO: Improve fundamental matrix up to an essential matrix
 
-		//std::cout << _fm_svd.w;
+		cv::Mat E; //= K.t() * F * K; 
+		cv::SVD _fm_svd(E);
 
 		double _singular_ratio = std::abs(_fm_svd.w.at<double>(0) / _fm_svd.w.at<double>(1));
 		if (_singular_ratio > 1.0) _singular_ratio = 1.0 / _singular_ratio; // flip ratio to keep it [0,1]
@@ -187,54 +195,53 @@ int _tmain(int argc, _TCHAR* argv[])
 		_t[0] =  _fm_svd.u.col(2); //u3
 		_t[1] = -_fm_svd.u.col(2); //u3
 
-		////
-		std::vector<cv::Mat> correspondentLines(files.size());
-		cv::computeCorrespondEpilines(points[0], 1, fundamentalMatrix, correspondentLines[1]);
-		cv::computeCorrespondEpilines(points[1], 2, fundamentalMatrix, correspondentLines[0]);		
+		//// 
+			//std::vector<cv::Mat> correspondentLines(files.size());
+			//cv::computeCorrespondEpilines(points[0], 1, fundamentalMatrix, correspondentLines[1]);
+			//cv::computeCorrespondEpilines(points[1], 2, fundamentalMatrix, correspondentLines[0]);		
 
-		std::cout<<"------------Left Correspondent Lines-----------------"<<std::endl;
-		std::cout<<correspondentLines[0]<<std::endl;
-		std::cout<<"------------Right Correspondent Lines-----------------"<<std::endl;
-		std::cout<<correspondentLines[1]<<std::endl;
+			//std::cout<<"------------Left Correspondent Lines-----------------"<<std::endl;
+			//std::cout<<correspondentLines[0]<<std::endl;
+			//std::cout<<"------------Right Correspondent Lines-----------------"<<std::endl;
+			//std::cout<<correspondentLines[1]<<std::endl;
 
-		std::vector<cv::Mat> homography(files.size());
-		cv::stereoRectifyUncalibrated(points[0], points[1], fundamentalMatrix, images[1].size(), homography[0], homography[1]);
+			//std::vector<cv::Mat> homography(files.size());
+			//cv::stereoRectifyUncalibrated(points[0], points[1], fundamentalMatrix, pairSize, homography[0], homography[1]);
 
-		std::cout<<"------------Left Homography-----------------"<<std::endl;
-		std::cout<<homography[0]<<std::endl;
-		std::cout<<"------------Right Homography-----------------"<<std::endl;
-		std::cout<<homography[1]<<std::endl;		
+			//std::cout<<"------------Left Homography-----------------"<<std::endl;
+			//std::cout<<homography[0]<<std::endl;
+			//std::cout<<"------------Right Homography-----------------"<<std::endl;
+			//std::cout<<homography[1]<<std::endl;		
 
-		float camerMatrixElements [] = {1, 0, float(images[0].cols/2), 
-										0, 1, float(images[0].rows/2),
-										0, 0, 1};
-		cv::Mat cameraMatrix(3, 3, CV_64FC1, camerMatrixElements);
-		std::vector<cv::Mat> remapData (files.size());
+			//float camerMatrixElements [] = {1, 0, float(images[0].cols/2), 
+			//								0, 1, float(images[0].rows/2),
+			//								0, 0, 1};
+			//cv::Mat cameraMatrix(3, 3, CV_64FC1, camerMatrixElements);
+			//std::vector<cv::Mat> remapData (files.size());
 
-		cv::Mat R = cameraMatrix.inv() * homography[0] * cameraMatrix, temp( images[0].size(), images[0].type() );				
-		cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, images[0].size(), CV_32FC1, remapData[0], remapData[1]);			
-		cv::remap(images[0], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
-		temp.copyTo(images[0]);
+			//cv::Mat R = cameraMatrix.inv() * homography[0] * cameraMatrix, temp( pairSize, images[0].type() );				
+			//cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, pairSize, CV_32FC1, remapData[0], remapData[1]);			
+			//cv::remap(images[0], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
+			//temp.copyTo(images[0]);
 
-		R = cameraMatrix.inv() * homography[1] * cameraMatrix;				
-		cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, images[1].size(), CV_32FC1, remapData[0], remapData[1]);
-		cv::remap(images[1], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
-		temp.copyTo(images[1]);
-		temp.release();
+			//R = cameraMatrix.inv() * homography[1] * cameraMatrix;				
+			//cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, pairSize, CV_32FC1, remapData[0], remapData[1]);
+			//cv::remap(images[1], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
+			//temp.copyTo(images[1]);
+			//temp.release();
 
-		output.create(images[0].rows, images[0].cols * 2, images[0].type());
-		images[0].copyTo(output(cv::Rect(0, 0, images[0].cols, images[0].rows)));
-		images[1].copyTo(output(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
+			//output.create(images[0].rows, images[0].cols * 2, images[0].type());
+			//images[0].copyTo(output(cv::Rect(0, 0, images[0].cols, images[0].rows)));
+			//images[1].copyTo(output(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
 	}
 
-SHOW:
+//SHOW:
 	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &output, 0x00, NULL);
 	WaitForSingleObject(threadPresenter, INFINITE);
 	CloseHandle(threadPresenter);
 
 EXIT:
-	std::cout << "Success! Hit any key to exit.";
-	
+	std::cout << "Hit any key to exit...";
 	_gettchar();
 	return retResult;
 }
