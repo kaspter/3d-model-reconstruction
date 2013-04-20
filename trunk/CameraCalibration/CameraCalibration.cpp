@@ -25,25 +25,6 @@ bool PatternSize(const std::string &param_val, const std::string &delim_val, cv:
 	return true;
 }
 
-#define ROUND_VAL(x) (double(x) > 0.0 ? floor((x) + 0.5) : ceil((x) - 0.5))
-template <typename _St, typename _Dt>
-inline cv::Size_<_St> operator/(const cv::Size_<_St> &sz, _Dt d)
-{
-	return cv::Size_<_St>(sz.width / d, sz.height / d);
-}
-template <typename _St, typename _Dt>
-inline cv::Size_<_St> &operator/=(cv::Size_<_St> &sz, _Dt d)
-{
-	return sz = sz / d;
-}
-inline bool operator==(const cv::Size &a, const cv::Size_<double> &b)
-{
-	return a == cv::Size(
-		static_cast<int>(ROUND_VAL(b.width)), 
-		static_cast<int>(ROUND_VAL(b.height))
-		);
-}
-
 int _tmain(int argc, _TCHAR* argv[])
 {
 	SetConsoleTitle("Chessboard camera calibration");
@@ -53,21 +34,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	SetLastError(0);
 
 	{
-		//LPWSTR rcWideString = NULL;
-		//if (LoadStringW(GetModuleHandle(NULL), IDS_PARSER_TEMPLATE, (LPWSTR)&rcWideString, 0) == 0)
-		//{
-		//	retResult = static_cast<int>(GetLastError());
-		//	goto EXIT;
-		//}
-		//size_t rcWideStringLength = wcslen(rcWideString);
-
-		//std::string parserTemplate(rcWideStringLength, 0x00);
-		//if (WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, rcWideString, rcWideStringLength, &parserTemplate[0], parserTemplate.size(), NULL, FALSE) == 0)
-		//{
-		//	retResult = static_cast<int>(GetLastError());
-		//	if (retResult != 0) goto EXIT;
-		//}
-
 		cv::CommandLineParser arguments(argc, argv, "{cbs||8,6|}{usz||10|}{dir|directory||}{out|output||}{1||^.+\\.jpe?g$|}");
 
 		std::string appDir = arguments.get<std::string>("dir");
@@ -93,9 +59,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		std::cout << "Chessboard: " << pattern_size << " with " << square_size << "mm squares." << std::endl << std::endl;
 
-		cv::Size_<float> imageSizeAverage;	
-		std::vector<cv::Size> imageSizes;
-		std::vector<std::vector<cv::Point2f>> imagePoints;
+		cv::Size                                initSize;
+		std::vector<std::vector<cv::Point2f>>	imagePoints;
 
 		try
 		{
@@ -127,9 +92,8 @@ int _tmain(int argc, _TCHAR* argv[])
 						}
 						cv::cornerSubPix(image, corners, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 
-						imageSizeAverage += static_cast<cv::Size_<float>>(image.size());
-						imageSizes.push_back(image.size());
-						imagePoints.push_back(corners);	
+						if (initSize.area() == 0) initSize = image.size();
+						imagePoints.push_back(corners);
 
 						std::cout << imagePoints.size() << " '" << ffData.cFileName << "' (" << image.size().height << " x " << image.size().width << ")" << std::endl;
 					}
@@ -150,39 +114,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			goto EXIT;
 		}
 
-		bool scaling = false;
-
-		imageSizeAverage /= imagePoints.size();
-		for (int i = 0, imax = imagePoints.size(); i < imax; ++i)
-		{
-			cv::Size *pImageSize = &imageSizes[i];
-			
-			if (*pImageSize == imageSizeAverage) continue;
-			cv::Size_<float> scale(
-				imageSizeAverage.width  / pImageSize->width,
-				imageSizeAverage.height / pImageSize->height
-				);
-
-			std::vector<cv::Point2f> *corners = &imagePoints[i];
-			for (auto p = corners->begin(), pend = corners->end(); p != pend; ++p)
-			{
-				p->x *= scale.width;
-				p->y *= scale.height;
-			}
-
-			scaling = true;
-		}
-
-		if (scaling)
-		{
-			std::cout << "============================== !!!! WARNING !!!! ==============================" << std::endl
-					  << "    The images given are non-uniform by size so corner points scaling occured  " << std::endl 
-					  << "     That may have negative impact on the precision of further computations    " << std::endl
-					  << "        It is reasonable to check that images have concurrent orientation      " << std::endl
-					  << "===============================================================================" << std::endl 
-					  << std::endl;
-		}
-
 		std::cout << "Calibrating camera..." << std::endl;
 
 		std::vector<cv::Point3f> chessboardPoints(pattern_size.area());
@@ -197,13 +128,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		cv::Mat K, d;
 		std::vector<cv::Mat> r, t;
 
-		double error = cv::calibrateCamera(objectPoints, imagePoints, imageSizeAverage, K, d, r, t);
+		double error = cv::calibrateCamera(objectPoints, imagePoints, initSize, K, d, r, t);
 
 		double fx = K.at<double>(0,0);
 		K.at<double>(0,0) = 1.0;
 		K.at<double>(1,1) = K.at<double>(1,1) / fx;
-		K.at<double>(0,2) /= imageSizeAverage.width;
-		K.at<double>(1,2) /= imageSizeAverage.height;
+		K.at<double>(0,2) /= initSize.width;
+		K.at<double>(1,2) /= initSize.height;
 
 		std::cout << "Final minimization error: " << error << std::endl;
 		std::cout << "Camera intrinsics matrix:" << std::endl << K << std::endl;
