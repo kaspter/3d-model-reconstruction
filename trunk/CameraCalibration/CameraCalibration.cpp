@@ -130,15 +130,15 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		double error = cv::calibrateCamera(objectPoints, imagePoints, initSize, K, d, r, t);
 
-		double fx = K.at<double>(0,0);
-		K.at<double>(0,0) = 1.0;
-		K.at<double>(1,1) = K.at<double>(1,1) / fx;
+		double fx = static_cast<double>(std::max(initSize.width, initSize.height));
+		K.at<double>(0,0) /= fx;
+		K.at<double>(1,1) /= fx;
 		K.at<double>(0,2) /= initSize.width;
 		K.at<double>(1,2) /= initSize.height;
 
 		std::cout << "Final minimization error: " << error << std::endl;
-		std::cout << "Camera intrinsics matrix:" << std::endl << K << std::endl;
-		std::cout << "Camera distortion vector:" << std::endl << d << std::endl;
+		std::cout << "Camera intrinsics matrix:" << std::endl << K << std::endl << std::endl;
+		std::cout << "Camera distortion vector:" << std::endl << d << std::endl << std::endl;
 
 		std::string output = arguments.get<std::string>("out");
 		if (!output.empty())
