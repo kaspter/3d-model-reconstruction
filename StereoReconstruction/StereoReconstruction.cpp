@@ -22,7 +22,8 @@ public:
 	const std::string	&name()			const { return _imageFilePath; }
 };
 
-std::vector<std::vector<cv::Point2f>> matchedKeypointsCoords(const std::vector<std::vector<cv::KeyPoint>> &keypoints, 
+template <class _pointT>
+std::vector<std::vector<cv::Point_<_pointT>>> matchedKeypointsCoords(const std::vector<std::vector<cv::KeyPoint>> &keypoints, 
 	const std::vector<cv::DMatch> &matches, std::vector<uchar> &match_status = std::vector<uchar>())
 {
 	CV_Assert( keypoints.size() == 2 );
@@ -30,14 +31,14 @@ std::vector<std::vector<cv::Point2f>> matchedKeypointsCoords(const std::vector<s
 	bool	 notFiltered	= match_status.empty() || match_status.size() != matches.size();
 	unsigned pointsCount	= 0;
 
-	std::vector<std::vector<cv::Point2f>> points = std::vector<std::vector<cv::Point2f>>(2, std::vector<cv::Point2f>(matches.size()));
+	std::vector<std::vector<cv::Point_<_pointT>>> points = std::vector<std::vector<cv::Point_<_pointT>>>(2, std::vector<cv::Point_<_pointT>>(matches.size()));
 	for (int i=0, imax = matches.size(); i<imax; ++i) 
 	{
 		if ( notFiltered || match_status[i] != 0x00 )
 		{
 			const cv::DMatch &match = matches[i];
-			points[0][pointsCount] = cv::Point2f(keypoints[0][match.queryIdx].pt.x, keypoints[0][match.queryIdx].pt.y);
-			points[1][pointsCount] = cv::Point2f(keypoints[1][match.trainIdx].pt.x, keypoints[1][match.trainIdx].pt.y);
+			points[0][pointsCount] = cv::Point_<_pointT>(keypoints[0][match.queryIdx].pt.x, keypoints[0][match.queryIdx].pt.y);
+			points[1][pointsCount] = cv::Point_<_pointT>(keypoints[1][match.trainIdx].pt.x, keypoints[1][match.trainIdx].pt.y);
 			++pointsCount;
 		}
 	}
@@ -90,27 +91,74 @@ DWORD _stdcall presenterThreadFunc(LPVOID threadParameter)
 	return msg.wParam;
 }
 
+bool HZEssentialDecomposition(const cv::Mat &E, cv::Mat &R1, cv::Mat &R2, cv::Mat t1, cv::Mat t2)
+{
+	cv::SVD _fm_svd(E);
+
+	double _singular_ratio = std::abs(_fm_svd.w.at<double>(0) / _fm_svd.w.at<double>(1));
+	if (_singular_ratio > 1.0) _singular_ratio = 1.0 / _singular_ratio; // flip ratio to keep it [0,1]
+	if (_singular_ratio < 0.7) return false;
+
+	cv::Matx33d W(0,-1, 0,	//HZ 9.13
+				  1, 0, 0,
+				  0, 0, 1);
+
+	R1 = _fm_svd.u * cv::Mat(W)		* _fm_svd.vt;	//HZ 9.19
+	R2 = _fm_svd.u * cv::Mat(W.t())	* _fm_svd.vt;	//HZ 9.19
+	
+	t1 =  _fm_svd.u.col(2); //u3
+	t2 = -t1;				//u3
+
+	return true;
+}
+
+inline bool isCoherent(const cv::Mat &R)
+{
+	return std::abs(cv::determinant(R)) - 1 < 1e-07;
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
 	int retResult = 0;
 
-	cv::CommandLineParser arguments(argc, argv, "{l| left||left channel image path string}{r|right||right channel image path string}");
+	cv::CommandLineParser arguments(argc, argv, "{l|left||}{r|right||}{1|||}");
+
+	std::vector<ImageFileDescriptor> files;
+	std::vector<cv::Mat>			 images;
+	cv::Mat intrinsics, distortion, output;
+
+	// Reading calibration data
+	std::string		storageName;
+	cv::FileStorage storage(storageName = arguments.get<std::string>("1"), cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8");
+
+	if (!storage.isOpened()) 
+	{
+		std::cerr << "Cannot read calibration data: file '" << storageName << "' does not exist." << std::endl;
+		retResult = -1; goto EXIT;
+	}
+
+	storage["camera_intrinsics"] >> intrinsics;
+	storage["camera_distortion"] >> distortion;
+
+	if (intrinsics.empty() || intrinsics.size() != cv::Size(3,3) || intrinsics.type() != CV_64FC1
+		|| distortion.empty() || distortion.size () != cv::Size(5,1) || distortion.type() != CV_64FC1)
+	{
+		std::cerr << "Cannot read calibration data: invalid contents of file '" << storageName << "'!" << std::endl;
+		retResult = -1; goto EXIT;
+	}
 
 	// Image set preparation step
-	std::vector<ImageFileDescriptor> files;
 	files.push_back(ImageFileDescriptor(arguments.get<std::string>("left"),  CV_LOAD_IMAGE_GRAYSCALE));
 	files.push_back(ImageFileDescriptor(arguments.get<std::string>("right"), CV_LOAD_IMAGE_GRAYSCALE));
-
-	// cv::Mat alternative image set representation needed by OpenCV interface
-	std::vector<cv::Mat> images;
-	cv::Mat				 output;
 
 	bool terminate = false;
 	for (int i = 0, imax = files.size(); i < imax; ++i)
 	{
-		if (terminate = files[i]->empty())
+		if (files[i]->empty())
 		{
 			std::cerr << "Cannot locate an image at: "<< files[i].name() << "!" << std::endl;
+
+			terminate = true;
 			continue;
 		}
 		images.push_back(*files[i]);
@@ -127,8 +175,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			goto EXIT;
 		}
 
-		cv::Size pairSize = pairSize;
-		if (pairSize != pairSize)
+		cv::Size pairSize = images[0].size();
+		if (pairSize != images[1].size())
 		{
 			std::cerr << "Stereopair images are not equal by size! Reconstruction is impossible.";
 			goto EXIT;
@@ -156,49 +204,111 @@ int _tmain(int argc, _TCHAR* argv[])
 			//cv::drawMatches(_outpair[0],_keypoints[0], _outpair[1],_keypoints[1], _matches, output);
 			//goto SHOW;
 		
-		//// Step 3: Fundamental matrix estimation (with intermediate data conversion)
-		std::vector<std::vector<cv::Point2f>> points = matchedKeypointsCoords(_keypoints, _matches);
+		//// Step 3: Essential matrix estimation (with intermediate data conversion)
+		std::vector<std::vector<cv::Point2d>> points = matchedKeypointsCoords<double>(_keypoints, _matches);
 
 		double _val_dummy, _val_max;
 		cv::minMaxIdx(points[0], &_val_dummy, &_val_max);
+
+		double fx = static_cast<double>(std::max(pairSize.width, pairSize.height));
+		intrinsics.at<double>(0,0) *= fx;
+		intrinsics.at<double>(1,1) *= fx;
+		intrinsics.at<double>(0,2) *= pairSize.width;
+		intrinsics.at<double>(1,2) *= pairSize.height;
+
 		std::vector<uchar> _match_status(_matches.size(), 0x00);
-		cv::Mat fundamentalMatrix = cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status);
-		points = matchedKeypointsCoords(_keypoints, _matches, _match_status);
-		_match_status.clear();
+		cv::Mat	essential = intrinsics.t() * cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status) * intrinsics;
 
-		std::cout<<"--------------- Fundamental matrix -----------------"<<std::endl;
-		std::cout<<fundamentalMatrix<<std::endl;
+		std::cout<<"Camera intrinsics are:"<<std::endl;
+		std::cout<<intrinsics<<std::endl<<std::endl;
 
-		//// Step 4: Camera matrices estimation up to projection transformation
-		// TODO: Improve fundamental matrix up to an essential matrix
+		std::cout<<"Essential matrix:"<<std::endl;
+		std::cout<<essential<<std::endl;
 
-		cv::Mat E; //= K.t() * F * K; 
-		cv::SVD _fm_svd(E);
-
-		double _singular_ratio = std::abs(_fm_svd.w.at<double>(0) / _fm_svd.w.at<double>(1));
-		if (_singular_ratio > 1.0) _singular_ratio = 1.0 / _singular_ratio; // flip ratio to keep it [0,1]
-		if (_singular_ratio < 0.7) 
+		if (std::abs(cv::determinant(essential)) > 1e-07)
 		{
-			std::cout << "singular values are too far apart" << std::endl;
+			std::cerr << "Essential matrix determinant is not equal zero." << std::endl;
 			retResult = -1; goto EXIT;
 		}
 
-		std::vector<cv::Mat_<double>> _R(2, cv::Mat_<double>());
-		std::vector<cv::Mat_<double>> _t(2, cv::Mat_<double>());
+		points = matchedKeypointsCoords<double>(_keypoints, _matches, _match_status);
+		_match_status.clear();
 
-		cv::Matx33d W(0,-1, 0,	//HZ 9.13
-					  1, 0, 0,
-					  0, 0, 1);
+		for (int i = 0, imax = points.size(); i < imax; ++i)
+			cv::undistortPoints(points[i], points[i], intrinsics, distortion);
 
-		_R[0] = _fm_svd.u * cv::Mat(W)		* _fm_svd.vt;	//HZ 9.19
-		_R[1] = _fm_svd.u * cv::Mat(W.t())	* _fm_svd.vt;	//HZ 9.19
-		_t[0] =  _fm_svd.u.col(2); //u3
-		_t[1] = -_fm_svd.u.col(2); //u3
+		//// Step 4: Camera matrices estimation up to projection transformation
+		std::vector<cv::Mat_<double>> _R(2, cv::Mat_<double>(3,3));
+		std::vector<cv::Mat_<double>> _t(2, cv::Mat_<double>(1,3));
 
-		//// 
+		if (!HZEssentialDecomposition(essential, _R[0], _R[1], _t[0], _t[1]))
+		{
+			std::cerr << "Singular values are too far apart." << std::endl;
+			retResult = -1; goto EXIT;
+		}
+
+		if (cv::determinant(_R[0]) + 1 < 1e-09 )
+			HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
+
+		std::cout<<std::endl;
+
+		std::vector<cv::Matx34d> camera(2, cv::Matx34d(
+			1, 0, 0, /*I|0*/ 0, 
+			0, 1, 0, /*I|0*/ 0, 
+			0, 0, 1, /*I|0*/ 0
+			));
+
+		unsigned maxFrontalCount = 0;
+		for (int r = 0; r < 2; ++r)
+		{
+			cv::Mat_<double> R = _R[r];
+			if (!isCoherent(R)) continue;
+
+			for (int t = 0; t < 2; ++t)
+			{
+				cv::Matx34d P_ = cv::Matx34d(
+					R(0,0), R(0,1), R(0,2), _t[t](0),
+					R(1,0), R(1,1), R(1,2), _t[t](1),
+					R(2,0), R(2,1), R(2,2), _t[t](2)
+					);
+
+				cv::Mat spaceHomogeneous(points[0].size(), 1, CV_64FC4);
+				cv::triangulatePoints(camera[0], P_, points[0], points[1], spaceHomogeneous);
+
+				spaceHomogeneous = spaceHomogeneous.reshape(4, points[0].size());
+				cv::Mat spaceEuclidian(points[0].size(), 1, CV_64FC3);
+				for (int i = 0, imax = points[0].size(); i < imax; ++i)
+				{
+					cv::Vec4d point4d = spaceHomogeneous.at<cv::Vec4d>(i);
+					double scale = point4d[3] != 0 ? 1 / point4d[3] : std::numeric_limits<double>::infinity();
+					spaceEuclidian.at<cv::Point3d>(i) = cv::Point3d(
+							point4d[0] * scale,
+							point4d[1] * scale,
+							point4d[2] * scale
+						);
+				}
+
+				cv::Mat p(cv::Matx44d::eye());cv::Mat test(P_);
+				cv::Mat(P_).copyTo(p(cv::Rect(0,0,4,3)));
+				cv::perspectiveTransform(spaceEuclidian, spaceEuclidian, p);
+
+				unsigned frontalCount = 0;
+				for (int i = 0; i < spaceEuclidian.rows; ++i)
+				{
+					if (spaceEuclidian.at<cv::Point3d>(i).z > 0) frontalCount++;
+				}
+				if (frontalCount > maxFrontalCount)
+				{
+					maxFrontalCount = frontalCount;
+					camera[1] = P_;
+				}
+
+			}
+		}
+
 			//std::vector<cv::Mat> correspondentLines(files.size());
-			//cv::computeCorrespondEpilines(points[0], 1, fundamentalMatrix, correspondentLines[1]);
-			//cv::computeCorrespondEpilines(points[1], 2, fundamentalMatrix, correspondentLines[0]);		
+			//cv::computeCorrespondEpilines(points[0], 1, F, correspondentLines[1]);
+			//cv::computeCorrespondEpilines(points[1], 2, F, correspondentLines[0]);		
 
 			//std::cout<<"------------Left Correspondent Lines-----------------"<<std::endl;
 			//std::cout<<correspondentLines[0]<<std::endl;
@@ -206,7 +316,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			//std::cout<<correspondentLines[1]<<std::endl;
 
 			//std::vector<cv::Mat> homography(files.size());
-			//cv::stereoRectifyUncalibrated(points[0], points[1], fundamentalMatrix, pairSize, homography[0], homography[1]);
+			//cv::stereoRectifyUncalibrated(points[0], points[1], F, pairSize, homography[0], homography[1]);
 
 			//std::cout<<"------------Left Homography-----------------"<<std::endl;
 			//std::cout<<homography[0]<<std::endl;
@@ -235,7 +345,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			//images[1].copyTo(output(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
 	}
 
-//SHOW:
 	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &output, 0x00, NULL);
 	WaitForSingleObject(threadPresenter, INFINITE);
 	CloseHandle(threadPresenter);
