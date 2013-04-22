@@ -91,9 +91,20 @@ DWORD _stdcall presenterThreadFunc(LPVOID threadParameter)
 	return msg.wParam;
 }
 
-bool HZEssentialDecomposition(const cv::Mat &E, cv::Mat &R1, cv::Mat &R2, cv::Mat t1, cv::Mat t2)
+bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputArray R2, cv::OutputArray t1, cv::OutputArray t2)
 {
-	cv::SVD _fm_svd(E);
+	cv::Mat E = _E.getMat();
+
+	CV_Assert(E.depth() == CV_64F);
+
+	int new_sz[] = { 3, 3 };
+	cv::SVD _fm_svd(E.reshape(1, _countof(new_sz), new_sz));
+
+	R1.create(E.size(), CV_64FC1);
+	R2.create(E.size(), CV_64FC1);
+
+	t1.create(3, 1, CV_64FC1);
+	t2.create(3, 1, CV_64FC1);
 
 	double _singular_ratio = std::abs(_fm_svd.w.at<double>(0) / _fm_svd.w.at<double>(1));
 	if (_singular_ratio > 1.0) _singular_ratio = 1.0 / _singular_ratio; // flip ratio to keep it [0,1]
@@ -103,11 +114,11 @@ bool HZEssentialDecomposition(const cv::Mat &E, cv::Mat &R1, cv::Mat &R2, cv::Ma
 				  1, 0, 0,
 				  0, 0, 1);
 
-	R1 = _fm_svd.u * cv::Mat(W)		* _fm_svd.vt;	//HZ 9.19
-	R2 = _fm_svd.u * cv::Mat(W.t())	* _fm_svd.vt;	//HZ 9.19
+	R1.getMat() = _fm_svd.u * cv::Mat(W)	 * _fm_svd.vt;	//HZ 9.19
+	R2.getMat() = _fm_svd.u * cv::Mat(W.t()) * _fm_svd.vt;	//HZ 9.19
 	
-	t1 =  _fm_svd.u.col(2); //u3
-	t2 = -t1;				//u3
+	_fm_svd.u.col(2).copyTo(t1.getMat());	//u3
+	t2.getMat() = -_fm_svd.u.col(2);		//u3
 
 	return true;
 }
@@ -192,6 +203,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::vector<std::vector<cv::KeyPoint>>	_keypoints  (files.size());
 		(*algorithm)(images[0], cv::Mat(), _keypoints[0], _descriptors[0]);
 		(*algorithm)(images[1], cv::Mat(), _keypoints[1], _descriptors[1]);
+		algorithm.release();
 			//cv::drawKeypoints(images[i], _keypoints[i], _outpair[i], cv::Scalar(0x000000FF));
 
 		//// Step 2: Image features correspondence tracking
@@ -199,7 +211,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(matcher_name);
 
 		std::vector<cv::DMatch> _matches;
-		matcher->match(_descriptors[0],_descriptors[1], _matches);	
+		matcher->match(_descriptors[0],_descriptors[1], _matches);
+		matcher.release();
 
 			//cv::drawMatches(_outpair[0],_keypoints[0], _outpair[1],_keypoints[1], _matches, output);
 			//goto SHOW;
@@ -234,12 +247,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		points = matchedKeypointsCoords<double>(_keypoints, _matches, _match_status);
 		_match_status.clear();
 
-		for (int i = 0, imax = points.size(); i < imax; ++i)
-			cv::undistortPoints(points[i], points[i], intrinsics, distortion);
+		cv::undistortPoints(points[0], points[0], intrinsics, distortion, cv::noArray(), intrinsics);	
+		cv::undistortPoints(points[1], points[1], intrinsics, distortion, cv::noArray(), intrinsics);
 
 		//// Step 4: Camera matrices estimation up to projection transformation
-		std::vector<cv::Mat_<double>> _R(2, cv::Mat_<double>(3,3));
-		std::vector<cv::Mat_<double>> _t(2, cv::Mat_<double>(1,3));
+		std::vector<cv::Mat_<double>> _R(2), _t(2);
 
 		if (!HZEssentialDecomposition(essential, _R[0], _R[1], _t[0], _t[1]))
 		{
@@ -247,10 +259,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			retResult = -1; goto EXIT;
 		}
 
-		if (cv::determinant(_R[0]) + 1 < 1e-09 )
+		if (cv::determinant(_R[0]) + 1 < 1e-09 ) // det(R1) == -1
 			HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
-
-		std::cout<<std::endl;
 
 		std::vector<cv::Matx34d> camera(2, cv::Matx34d(
 			1, 0, 0, /*I|0*/ 0, 
@@ -258,7 +268,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			0, 0, 1, /*I|0*/ 0
 			));
 
-		unsigned maxFrontalCount = 0;
+		double maxFrontalPercentage = 0;
 		for (int r = 0; r < 2; ++r)
 		{
 			cv::Mat_<double> R = _R[r];
@@ -272,11 +282,11 @@ int _tmain(int argc, _TCHAR* argv[])
 					R(2,0), R(2,1), R(2,2), _t[t](2)
 					);
 
-				cv::Mat spaceHomogeneous(points[0].size(), 1, CV_64FC4);
+				cv::Mat spaceHomogeneous;
 				cv::triangulatePoints(camera[0], P_, points[0], points[1], spaceHomogeneous);
 
 				spaceHomogeneous = spaceHomogeneous.reshape(4, points[0].size());
-				cv::Mat spaceEuclidian(points[0].size(), 1, CV_64FC3);
+				cv::Mat spaceEuclidian(spaceHomogeneous.rows, 1, CV_64FC3);
 				for (int i = 0, imax = points[0].size(); i < imax; ++i)
 				{
 					cv::Vec4d point4d = spaceHomogeneous.at<cv::Vec4d>(i);
@@ -288,23 +298,26 @@ int _tmain(int argc, _TCHAR* argv[])
 						);
 				}
 
-				cv::Mat p(cv::Matx44d::eye());cv::Mat test(P_);
+				cv::Mat p(cv::Matx44d::eye());
 				cv::Mat(P_).copyTo(p(cv::Rect(0,0,4,3)));
 				cv::perspectiveTransform(spaceEuclidian, spaceEuclidian, p);
 
 				unsigned frontalCount = 0;
 				for (int i = 0; i < spaceEuclidian.rows; ++i)
 				{
+					std::cout << spaceEuclidian.at<cv::Point3d>(i) << std::endl;
 					if (spaceEuclidian.at<cv::Point3d>(i).z > 0) frontalCount++;
 				}
-				if (frontalCount > maxFrontalCount)
+				double frontalPercentage = 100.0 * frontalCount / spaceEuclidian.rows;
+				if (frontalPercentage > maxFrontalPercentage)
 				{
-					maxFrontalCount = frontalCount;
+					maxFrontalPercentage = frontalPercentage;
 					camera[1] = P_;
 				}
-
 			}
 		}
+
+		std::cout << std::endl;
 
 			//std::vector<cv::Mat> correspondentLines(files.size());
 			//cv::computeCorrespondEpilines(points[0], 1, F, correspondentLines[1]);
