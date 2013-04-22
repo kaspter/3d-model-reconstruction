@@ -3,7 +3,6 @@
 
 #include "stdafx.h"
 
-
 class ImageFileDescriptor
 {
 private:
@@ -122,7 +121,6 @@ bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputA
 
 	return true;
 }
-
 inline bool isCoherent(const cv::Mat &R)
 {
 	return std::abs(cv::determinant(R)) - 1 < 1e-07;
@@ -196,14 +194,16 @@ int _tmain(int argc, _TCHAR* argv[])
 		// TODO: Load camera intrinsic parameters here.
 
 		//// Step 1: Image pair feature detection
-		std::string detector_name = "SIFT";
-		cv::Ptr<cv::Feature2D> algorithm = cv::Feature2D::create(detector_name);			
+		std::string tracker_name = "SIFT";
+		cv::Ptr<cv::FeatureDetector>		detector	= cv::FeatureDetector::create(tracker_name);
+		cv::Ptr<cv::DescriptorExtractor>	extractor	= cv::DescriptorExtractor::create(tracker_name);
+		
+		std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
+		detector->detect(images, _keypoints);
+		detector.release();
 
-		std::vector<cv::Mat>					_descriptors(files.size());
-		std::vector<std::vector<cv::KeyPoint>>	_keypoints  (files.size());
-		(*algorithm)(images[0], cv::Mat(), _keypoints[0], _descriptors[0]);
-		(*algorithm)(images[1], cv::Mat(), _keypoints[1], _descriptors[1]);
-		algorithm.release();
+		std::vector<cv::Mat> _descriptors(2);
+		extractor->compute(images, _keypoints, _descriptors);
 			//cv::drawKeypoints(images[i], _keypoints[i], _outpair[i], cv::Scalar(0x000000FF));
 
 		//// Step 2: Image features correspondence tracking
@@ -305,7 +305,6 @@ int _tmain(int argc, _TCHAR* argv[])
 				unsigned frontalCount = 0;
 				for (int i = 0; i < spaceEuclidian.rows; ++i)
 				{
-					std::cout << spaceEuclidian.at<cv::Point3d>(i) << std::endl;
 					if (spaceEuclidian.at<cv::Point3d>(i).z > 0) frontalCount++;
 				}
 				double frontalPercentage = 100.0 * frontalCount / spaceEuclidian.rows;
@@ -319,39 +318,20 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		std::cout << std::endl;
 
-			//std::vector<cv::Mat> correspondentLines(files.size());
-			//cv::computeCorrespondEpilines(points[0], 1, F, correspondentLines[1]);
-			//cv::computeCorrespondEpilines(points[1], 2, F, correspondentLines[0]);		
-
-			//std::cout<<"------------Left Correspondent Lines-----------------"<<std::endl;
-			//std::cout<<correspondentLines[0]<<std::endl;
-			//std::cout<<"------------Right Correspondent Lines-----------------"<<std::endl;
-			//std::cout<<correspondentLines[1]<<std::endl;
-
-			//std::vector<cv::Mat> homography(files.size());
+		//// Step 5: Image rectification
+			//std::vector<cv::Mat> homography(2);
 			//cv::stereoRectifyUncalibrated(points[0], points[1], F, pairSize, homography[0], homography[1]);
 
-			//std::cout<<"------------Left Homography-----------------"<<std::endl;
-			//std::cout<<homography[0]<<std::endl;
-			//std::cout<<"------------Right Homography-----------------"<<std::endl;
-			//std::cout<<homography[1]<<std::endl;		
+			//std::vector<cv::Mat> remapData(2);
+			//cv::Mat tempRemapped;
 
-			//float camerMatrixElements [] = {1, 0, float(images[0].cols/2), 
-			//								0, 1, float(images[0].rows/2),
-			//								0, 0, 1};
-			//cv::Mat cameraMatrix(3, 3, CV_64FC1, camerMatrixElements);
-			//std::vector<cv::Mat> remapData (files.size());
+			//cv::initUndistortRectifyMap(intrinsics, distortion, cv::Mat(), intrinsics, pairSize, CV_16SC2, remapData[0], remapData[1]);
+			//
+			//cv::remap(images[0], tempRemapped, remapData[0], remapData[1], cv::INTER_LINEAR);
+			//tempRemapped.copyTo(images[0]);
 
-			//cv::Mat R = cameraMatrix.inv() * homography[0] * cameraMatrix, temp( pairSize, images[0].type() );				
-			//cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, pairSize, CV_32FC1, remapData[0], remapData[1]);			
-			//cv::remap(images[0], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
-			//temp.copyTo(images[0]);
-
-			//R = cameraMatrix.inv() * homography[1] * cameraMatrix;				
-			//cv::initUndistortRectifyMap(cameraMatrix, cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0)), R, cameraMatrix, pairSize, CV_32FC1, remapData[0], remapData[1]);
-			//cv::remap(images[1], temp, remapData[0], remapData[1], cv::INTER_LINEAR);
-			//temp.copyTo(images[1]);
-			//temp.release();
+			//cv::remap(images[1], tempRemapped, remapData[0], remapData[1], cv::INTER_LINEAR);
+			//tempRemapped.copyTo(images[1]);
 
 			//output.create(images[0].rows, images[0].cols * 2, images[0].type());
 			//images[0].copyTo(output(cv::Rect(0, 0, images[0].cols, images[0].rows)));
