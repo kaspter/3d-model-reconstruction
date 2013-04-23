@@ -1,7 +1,5 @@
 #pragma once
 
-#include "imp_extension.h"
-
 namespace imp
 {
 	//class RadialCachedFilterBase : cv::BaseFilter
@@ -88,17 +86,18 @@ namespace imp
 		int rowBorderType = cv::BORDER_DEFAULT, int columnBorderType = -1, const cv::Scalar &borderValue = cv::Scalar());
 	void cornerSusan(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType = cv::BORDER_DEFAULT);
 
-	class SusanDetector : public cv::FeatureDetector
+	class SUSAN : public cv::FeatureDetector
 	{
 		void detectImpl( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask=cv::Mat() ) const;
 
-		unsigned					paramRadius;		
-		double						paramG;
-		double						paramT;
-		cv::Ptr<cv::BaseFilter>		filter;
+		unsigned paramRadius;		
+		double	 paramG;
+		double	 paramT;
+
+		bool	 preFilter;
 
 	public: 
-		SusanDetector ( double paramT = 64, double paramG = 18.5, unsigned paramRadius = 3, cv::Ptr<cv::BaseFilter> &filter = cv::Ptr<cv::BaseFilter>(NULL) );
+		SUSAN ( unsigned radius = 3, double t = 64.0, double g = 18.5, bool useOwnFilter = false );
 		cv::AlgorithmInfo* info() const;
 	};
 }

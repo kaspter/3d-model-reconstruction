@@ -1,6 +1,8 @@
 #pragma once // Despite the extension, this file, actually, plays a header role 
 			 // because of templated classes member definition within.
 
+#include "imp_extension.h"
+
 namespace imp 
 {
 	// SUSAImageFilter implementation below
@@ -69,7 +71,6 @@ namespace imp
 						cache_row[i] = _fexp_xx(*pt, ~(i - UCHAR_MAX) + (i <= UCHAR_MAX), i <= UCHAR_MAX ? 0 : UCHAR_MAX);
 					}
 				}
-				//_fexp = &SUSANImageFilter<SourceValueType, KernelValueType, ResultValueType>::_fexp_u8;
 			}
 		}
 
