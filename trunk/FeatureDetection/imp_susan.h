@@ -96,7 +96,7 @@ namespace imp
 
 		bool	 preFilter;
 
-	public: 
+	public:
 		SUSAN ( unsigned radius = 3, double t = 64.0, double g = 18.5, bool useOwnFilter = false );
 		cv::AlgorithmInfo* info() const;
 	};

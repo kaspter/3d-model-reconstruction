@@ -26,9 +26,17 @@ namespace imp
 		cornerSusan(src, dst, paramRadius, paramT, paramG);
 		nonMaxSupp3x3_8uc1(dst, dst);
 
-		// TODO: Extract keypoint data to vector
+		keypoints.clear();
+		for (int r=0; r<dst.rows; ++r)
+		{
+			uchar* row = dst.ptr<uchar>(r);
+			for (int c=0; c<dst.cols; ++c)
+			{
+				if (row[c] != 0x00) keypoints.push_back( cv::KeyPoint(c, r, paramRadius) );
+			}
+		}
+		cv::FeatureDetector::removeInvalidPoints(mask, keypoints);
 	}	
-
 
 	// Image preprocessing section
 	cv::Ptr<cv::BaseFilter> getSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t)
