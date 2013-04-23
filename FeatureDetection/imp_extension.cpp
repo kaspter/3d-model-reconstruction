@@ -44,7 +44,7 @@ namespace imp
 		uchar *skip_cur = skip.ptr<uchar>(0), 
 			  *skip_nxt = skip.ptr<uchar>(1); 
 		
-		int c, r, cmax = src.cols - 1, rmax = src.rows -1;
+		int c, r, cmax = src.cols - 2, rmax = src.rows -2;
 		for (r = 0; r < rmax; )
 		{
 			buf_row = buf.ptr<uchar>(++r);
