@@ -1,5 +1,4 @@
 #include "stdafx.h"
-
 #include "imp_extension.h"
 
 namespace imp
