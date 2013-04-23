@@ -20,7 +20,7 @@ namespace imp
 	//	inline RadialCachedFilterBase()
 	//};
 
-	// =================================== SUSAN =====================================
+	// =================================== SUSAN =====================================	
 	template<typename SourceValueType, typename KernelValueType, typename ResultValueType> 
 	class SUSANImageFilter : public cv::BaseFilter
 	{
@@ -87,6 +87,20 @@ namespace imp
 	cv::Ptr<cv::FilterEngine> createSusanFeatureResponse(int srcType, int dstType, unsigned radius, double t, double g, 
 		int rowBorderType = cv::BORDER_DEFAULT, int columnBorderType = -1, const cv::Scalar &borderValue = cv::Scalar());
 	void cornerSusan(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType = cv::BORDER_DEFAULT);
+
+	class SusanDetector : public cv::FeatureDetector
+	{
+		void detectImpl( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask=cv::Mat() ) const;
+
+		unsigned					paramRadius;		
+		double						paramG;
+		double						paramT;
+		cv::Ptr<cv::BaseFilter>		filter;
+
+	public: 
+		SusanDetector ( double paramT = 64, double paramG = 18.5, unsigned paramRadius = 3, cv::Ptr<cv::BaseFilter> &filter = cv::Ptr<cv::BaseFilter>(NULL) );
+		cv::AlgorithmInfo* info() const;
+	};
 }
 
 #include "imp_susan_template.cpp"

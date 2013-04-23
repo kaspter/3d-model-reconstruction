@@ -4,6 +4,29 @@
 
 namespace imp 
 {
+	SusanDetector::SusanDetector (double paramT, double paramG, unsigned paramRadius, cv::Ptr<cv::BaseFilter> &filter)
+	{
+		this->paramT		= paramT;
+		this->paramG		= paramG;
+		this->paramRadius	= paramRadius;		
+		this->filter		= filter;
+	}
+
+	void SusanDetector::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
+	{		
+		cv::Mat dst, src = image;
+
+		if ( src.channels() != 1 || src.depth() != CV_8U ) cv::cvtColor(image, src, CV_BGR2GRAY);
+		if ( filter != NULL ) 
+		{
+			filter->apply(src,src);
+		}
+
+		cornerSusan(src, dst, paramRadius, paramT, paramG);
+		nonMaxSupp3x3_8uc1(dst, dst);
+	}	
+
+
 	// Image preprocessing section
 	cv::Ptr<cv::BaseFilter> getSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t)
 	{
