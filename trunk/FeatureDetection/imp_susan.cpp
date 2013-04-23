@@ -1,29 +1,32 @@
 
 #include "stdafx.h"
+
 #include "imp_susan.h"
+#include "imp_extension.h"
 
 namespace imp 
 {
-	SusanDetector::SusanDetector (double paramT, double paramG, unsigned paramRadius, cv::Ptr<cv::BaseFilter> &filter)
+	SUSAN::SUSAN (unsigned radius, double t, double g, bool useOwnFilter)
 	{
-		this->paramT		= paramT;
-		this->paramG		= paramG;
-		this->paramRadius	= paramRadius;		
-		this->filter		= filter;
+		this->paramRadius	= radius;
+		this->paramT		= t;
+		this->paramG		= g;
+		this->preFilter		= useOwnFilter;
 	}
 
-	void SusanDetector::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
-	{		
+	void SUSAN::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
+	{	
+		CV_Assert(image.dims == 2);
+
 		cv::Mat dst, src = image;
 
 		if ( src.channels() != 1 || src.depth() != CV_8U ) cv::cvtColor(image, src, CV_BGR2GRAY);
-		if ( filter != NULL ) 
-		{
-			filter->apply(src,src);
-		}
-
+		
+		if (preFilter) filterSusan(src, src, paramRadius, paramRadius / 3.0, paramT);
 		cornerSusan(src, dst, paramRadius, paramT, paramG);
 		nonMaxSupp3x3_8uc1(dst, dst);
+
+		// TODO: Extract keypoint data to vector
 	}	
 
 
