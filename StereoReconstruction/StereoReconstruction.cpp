@@ -200,8 +200,10 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		//// Step 1: Image pair feature detection
 		std::string tracker_name = "SIFT";
-		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create(tracker_name/*"PyramidSUSAN"*/);
+		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create("SUSAN");
 		cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create(tracker_name);
+
+		detector->set("tparam", -50.0);
 
 		std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
 		detector->detect(images, _keypoints);

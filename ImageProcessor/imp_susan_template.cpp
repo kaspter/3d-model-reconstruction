@@ -49,14 +49,14 @@ namespace imp
 	}
 
 	template<typename SourceValueType, typename KernelValueType, typename ResultValueType>
-	void SUSANImageFilter<SourceValueType, KernelValueType, ResultValueType>::init(unsigned radius, double sigma = -1.0, double t = -1.0)
+	void SUSANImageFilter<SourceValueType, KernelValueType, ResultValueType>::init(unsigned radius, double sigma, double t)
 	{
 		CV_Assert(radius > 0);
 
 		if (sigma == -1.0) sigma = paramSigma;
 		if (t     == -1.0) t     = paramT;
 
-		CV_Assert(sigma > 0.0 && t > 0.0);
+		CV_Assert(sigma > 0.0 && t > 1.0);
 
 		if (radius != paramRadius)
 		{
@@ -168,9 +168,9 @@ namespace imp
 				
 	public:
 		inline SUSANFeatureResponse (unsigned radius, double t, double g)
-			: paramRadius(0), paramT(27.0), paramG(1.0) { init(radius, t, g); }
+			: paramRadius(0), paramT(27.0), paramG(-1.0) { init(radius, t, g); }
 
-		void init(unsigned radius, double t = -1.0, double g = -1.0);
+		void init(unsigned radius, double t = -1.0, double g = -2.0);
 		void operator()(const uchar** src, uchar* dst, int dststep, int dstcount, int width, int cn);
 
 		inline void reset() { _kval.clear(); }
@@ -189,16 +189,14 @@ namespace imp
 	}
 
 	template<typename SourceValueType, typename KernelValueType, typename ResultValueType>
-	void SUSANFeatureResponse<SourceValueType, KernelValueType, ResultValueType>::init(unsigned radius, double t = -1.0, double g = -1.0)
+	void SUSANFeatureResponse<SourceValueType, KernelValueType, ResultValueType>::init(unsigned radius, double t, double g)
 	{
 		CV_Assert(radius > 0);
-
-		if (t == -1.0) t = paramT;
-		if (g == -2.0) g = paramG;
 
 		unsigned nmax = 0;
 		if (radius != paramRadius)
 		{
+			if (g == -2.0) g = -1.0;
 			paramRadius = radius;
 			ksize		= cv::Size(2*radius + 1, 2*radius + 1);
 			anchor		= cv::Point(radius, radius);
@@ -221,9 +219,11 @@ namespace imp
 			_psrc.resize(_pt.size());
 		}
 
+		if (t == -1.0) t = paramT;
+		if (g == -2.0) g = paramG;
 		if (g == -1.0) g = nmax / 2.0; 
 		
-		CV_Assert(g > 0.0 && t > 0.0);
+		CV_Assert(t >= 1.0 && g > 0.0);
 
 		if (g != paramG || t != paramT)
 		{

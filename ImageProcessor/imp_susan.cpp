@@ -7,6 +7,13 @@
 
 namespace imp 
 {
+	inline bool isGrayMap(const cv::Mat &bitmap)
+	{
+		int depth = bitmap.depth();
+		return bitmap.channels() == 1 &&
+			(depth == CV_8U || depth == CV_16U || depth == CV_32F);
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	cv::Ptr<cv::BaseFilter> getSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t)
@@ -161,7 +168,7 @@ namespace imp
 
 	void cornerSusan(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType)
 	{
-		CV_Assert( src.channels() == 1 && src.dims == 2 && src.depth() == CV_8U );
+		CV_Assert( src.dims == 2 && isGrayMap(src) );
 		if ( dst.dims != 2 || src.channels() < dst.channels() || src.size() != dst.size() )
 		{
 			CV_Assert( dst.empty() || dst.refcount != NULL );
@@ -175,23 +182,27 @@ namespace imp
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	SUSAN::SUSAN (unsigned radius, double t, double g, bool useOwnFilter)
+	inline void SUSAN::_set_radius(unsigned radius)  { _radius = std::max(1U, radius); }
+	inline void SUSAN::_set_tparam(double t)		 { _tparam = std::max(t, 1.0); }
+	inline void SUSAN::_set_gparam(double g)		 { _gparam = g == -1 ? g : std::max(g, 0.0); }
+
+	SUSAN::SUSAN (unsigned radius, double t, double g, bool prefilter)
+		: _prefilter(prefilter)
 	{
-		this->paramRadius	= radius;
-		this->paramT		= t;
-		this->paramG		= g;
-		this->preFilter		= useOwnFilter;
+		_set_radius(radius);
+		_set_tparam(t);
+		_set_gparam(g);
 	}
 
 	void SUSAN::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
 	{	
 		CV_Assert(image.dims == 2);
-
-		cv::Mat dst, src;
-		if ( image.channels() != 1 || image.depth() != CV_8U ) cv::cvtColor(image, src, CV_BGR2GRAY); else src = image.clone();
 		
-		if (preFilter) filterSusan(src, src, paramRadius, paramRadius / 3.0, paramT * 2);
-		cornerSusan(src, dst, paramRadius, paramT, paramG);
+		cv::Mat dst, src;
+		if ( !isGrayMap(image) ) cv::cvtColor(image, src, CV_BGR2GRAY); else image.copyTo(src);
+		
+		if (_prefilter) filterSusan(src, src, _radius, _radius / 3.0, _tparam * 2);
+		cornerSusan(src, dst, _radius, _tparam, _gparam);
 		nonMaxSupp3x3_8uc1(dst, dst);
 
 		keypoints.clear();
@@ -203,7 +214,7 @@ namespace imp
 				if (row[c] != 0x00) keypoints.push_back( cv::KeyPoint(
 					static_cast<float>(c), 
 					static_cast<float>(r),
-					static_cast<float>(2*paramRadius + 1)
+					static_cast<float>(2 * _radius + 1)
 				));
 			}
 		}

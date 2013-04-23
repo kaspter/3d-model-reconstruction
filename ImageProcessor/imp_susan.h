@@ -16,14 +16,20 @@ namespace imp
 	{
 		void detectImpl( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask=cv::Mat() ) const;
 
-		unsigned paramRadius;		
-		double	 paramG;
-		double	 paramT;
+		unsigned _radius;		
+		double	 _gparam, _tparam;
 
-		bool	 preFilter;
+		bool	 _prefilter;
+
+		void _set_radius(unsigned radius);
+		void _set_tparam(double t);
+		void _set_gparam(double g);
+
+		typedef void (cv::Algorithm::*UintSetter) (unsigned);
+		typedef void (cv::Algorithm::*DblSetter) (double);
 
 	public:
-		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool useOwnFilter = false );
+		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool prefilter = false );
 		cv::AlgorithmInfo* info() const;
 	};
 }
