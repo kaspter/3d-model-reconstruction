@@ -27,7 +27,7 @@ namespace imp
 				
 	public:
 		inline SUSANImageFilter (unsigned radius, double sigma, double t)
-			: paramRadius(0), paramSigma(1.0), paramT(1.0)	{ init(radius, sigma, t); }
+			: paramRadius(0), paramSigma(radius / 3.0), paramT(1.0)	{ init(radius, sigma, t); }
 
 		void init(unsigned radius, double sigma = -1.0, double t = -1.0);
 		void operator()(const uchar** src, uchar* dst, int dststep, int dstcount, int width, int cn);
@@ -153,8 +153,8 @@ namespace imp
 
 		// Filter direct parameters
 		unsigned paramRadius;		
+		double	 paramT;
 		double	 paramG;
-		double	 paramT;		
 
 		// Internal intermediate data structures
 		std::vector<cv::Point>		 _pt;		// Kernel top-left based relative coordinates.
@@ -168,7 +168,7 @@ namespace imp
 				
 	public:
 		inline SUSANFeatureResponse (unsigned radius, double t, double g)
-			: paramRadius(0), paramG(1.0), paramT(1.0) { init(radius, t, g); }
+			: paramRadius(0), paramT(27.0), paramG(1.0) { init(radius, t, g); }
 
 		void init(unsigned radius, double t = -1.0, double g = -1.0);
 		void operator()(const uchar** src, uchar* dst, int dststep, int dstcount, int width, int cn);
@@ -194,10 +194,9 @@ namespace imp
 		CV_Assert(radius > 0);
 
 		if (t == -1.0) t = paramT;
-		if (g == -1.0) g = paramG;
+		if (g == -2.0) g = paramG;
 
-		CV_Assert(g > 0.0 && t > 0.0);
-
+		unsigned nmax = 0;
 		if (radius != paramRadius)
 		{
 			paramRadius = radius;
@@ -212,11 +211,19 @@ namespace imp
 				int offset = i * matrix.step; // step equals width in this case
 				for (int j = 0; j < matrix.cols; ++j)
 				{
-					if (matrix.data[j + offset] != 0) _pt.push_back(cv::Point(j,i));
+					if (matrix.data[j + offset] != 0) 
+					{
+						_pt.push_back(cv::Point(j,i));
+						++nmax;
+					}
 				}
 			}
 			_psrc.resize(_pt.size());
 		}
+
+		if (g == -1.0) g = nmax / 2.0; 
+		
+		CV_Assert(g > 0.0 && t > 0.0);
 
 		if (g != paramG || t != paramT)
 		{
