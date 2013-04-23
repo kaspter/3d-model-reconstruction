@@ -3,21 +3,19 @@
 #include "resource.h"
 #include "windowsx.h"
 
-#include "imp_susan.h"
-
 #define MAIN_WINDOW_CLASS	_T("MainWindowClass")
 #define CANVAS_WINDOW_CLASS _T("CanvasWindowClass")
 
 #define GRAYSCALE_PAL_LEVELS ((USHORT)256)
 
 /* VOID Cls_OnMouseLeave(HWND hwnd) */
-#define HANDLE_WM_MOUSELEAVE(hwnd, wParam, lParam, fn) \
+#define HANDLE_WM_MOUSELEAVE(hwnd, wParam, lParam, fn)  \
     ((fn)((hwnd)), 0L)
 #define FORWARD_WM_MOUSELEAVE(hwnd, lpCreateStruct, fn) \
     (VOID)(DWORD)(fn)((hwnd), WM_MOUSELEAVE, 0L, 0L)
 
 /* VOID Cls_OnMouseHover(HWND hwnd, int x, int y, UINT keyFlags) */
-#define HANDLE_WM_MOUSEHOVER(hwnd, wParam, lParam, fn) \
+#define HANDLE_WM_MOUSEHOVER(hwnd, wParam, lParam, fn)  \
     ((fn)((hwnd), (int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam), (UINT)(wParam)), 0L)
 #define FORWARD_WM_MOUSEHOVER(hwnd, x, y, keyFlags, fn) \
     (void)(fn)((hwnd), WM_MOUSEHOVER, (WPARAM)(UINT)(keyFlags), MAKELPARAM((x), (y)))

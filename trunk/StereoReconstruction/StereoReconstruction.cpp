@@ -192,10 +192,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 
 		// TODO: Load camera intrinsic parameters here.
-
+		cv::initModule_features2d();
 		//// Step 1: Image pair feature detection
 		std::string tracker_name = "SIFT";
-		cv::Ptr<cv::FeatureDetector>		detector	= cv::FeatureDetector::create(tracker_name);
+		cv::Ptr<cv::FeatureDetector>		detector	= cv::FeatureDetector::create("HARRIS");
 		cv::Ptr<cv::DescriptorExtractor>	extractor	= cv::DescriptorExtractor::create(tracker_name);
 		
 		std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
@@ -214,7 +214,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		matcher->match(_descriptors[0],_descriptors[1], _matches);
 		matcher.release();
 
-			//cv::drawMatches(_outpair[0],_keypoints[0], _outpair[1],_keypoints[1], _matches, output);
+			//cv::drawMatches(images[0],_keypoints[0], images[1],_keypoints[1], _matches, output);
 			//goto SHOW;
 		
 		//// Step 3: Essential matrix estimation (with intermediate data conversion)

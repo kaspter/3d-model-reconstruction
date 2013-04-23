@@ -11,23 +11,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{99687B41-E406-4583-83C3-162CBD2436EC}</ProjectGuid>
+    <ProjectGuid>{05F49655-83EB-434B-9848-D93CA1696937}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>FeatureDetection</RootNamespace>
+    <RootNamespace>ImageProcessor</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -39,65 +39,66 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
+  <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(OPENCV_DIR)\include;$(SolutionDir)ImageProcessor</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(OPENCV_DIR)\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc11\staticlib;$(SolutionDir)$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>comctl32.lib;Msimg32.lib;opencv_core244d.lib;opencv_imgproc244d.lib;opencv_highgui244d.lib;opencv_features2d244d.lib;opencv_flann244d.lib;IlmImfd.lib;libjpegd.lib;libjasperd.lib;libpngd.lib;libtiffd.lib;zlibd.lib;ImageProcessor.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc11\staticlib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core244d.lib;opencv_imgproc244d.lib;opencv_highgui244d.lib;opencv_features2d244d.lib;opencv_flann244d.lib;IlmImfd.lib;libjpegd.lib;libjasperd.lib;libpngd.lib;libtiffd.lib;zlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(OPENCV_DIR)\include;$(SolutionDir)ImageProcessor</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(OPENCV_DIR)\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc11\staticlib;$(SolutionDir)$(Configuration)</AdditionalLibraryDirectories>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc11\staticlib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_core244.lib;opencv_imgproc244.lib;opencv_highgui244.lib;opencv_features2d244.lib;opencv_flann244.lib;IlmImf.lib;libjpeg.lib;libjasper.lib;libpng.lib;libtiff.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="FeatureDetection.h" />
-    <ClInclude Include="Resource.h" />
+    <ClInclude Include="imp_extension.h" />
+    <ClInclude Include="imp_init.h" />
+    <ClInclude Include="imp_private.h" />
+    <ClInclude Include="imp_susan.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FeatureDetection.cpp" />
-    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="imp_extension.cpp" />
+    <ClCompile Include="imp_init.cpp" />
+    <ClCompile Include="imp_susan.cpp" />
+    <ClInclude Include="imp_susan_template.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="FeatureDetection.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="FeatureDetection.ico" />
-    <None Include="small.ico" />
+    <Text Include="Snippets.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
