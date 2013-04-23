@@ -178,9 +178,16 @@ int _tmain(int argc, _TCHAR* argv[])
 	// Blockwise code structure prevents of the 'C2362' compiler error
 	{	// Image features recognition and description block
 		// NonFree OpenCV module initialization
-		if (!cv::initModule_nonfree())
+		if (!(cv::initModule_nonfree()
+			&& cv::initModule_features2d()))
 		{
-			std::cerr << "Failed to init Non-Free Features2d module" << std::endl; 
+			std::cerr << "Failed to init Non-Free & Features2d modules" << std::endl; 
+			goto EXIT;
+		}
+
+		if (!imp::initModule())
+		{
+			std::cerr << "Failed to init ImageProcessor module" << std::endl; 
 			goto EXIT;
 		}
 
@@ -191,20 +198,17 @@ int _tmain(int argc, _TCHAR* argv[])
 			goto EXIT;
 		}
 
-		// TODO: Load camera intrinsic parameters here.
-		cv::initModule_features2d();
 		//// Step 1: Image pair feature detection
 		std::string tracker_name = "SIFT";
-		cv::Ptr<cv::FeatureDetector>		detector	= cv::FeatureDetector::create("HARRIS");
-		cv::Ptr<cv::DescriptorExtractor>	extractor	= cv::DescriptorExtractor::create(tracker_name);
-		
+		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create(tracker_name/*"PyramidSUSAN"*/);
+		cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create(tracker_name);
+
 		std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
 		detector->detect(images, _keypoints);
 		detector.release();
 
 		std::vector<cv::Mat> _descriptors(2);
 		extractor->compute(images, _keypoints, _descriptors);
-			//cv::drawKeypoints(images[i], _keypoints[i], _outpair[i], cv::Scalar(0x000000FF));
 
 		//// Step 2: Image features correspondence tracking
 		std::string matcher_name = "FlannBased";
@@ -214,14 +218,14 @@ int _tmain(int argc, _TCHAR* argv[])
 		matcher->match(_descriptors[0],_descriptors[1], _matches);
 		matcher.release();
 
-			//cv::drawMatches(images[0],_keypoints[0], images[1],_keypoints[1], _matches, output);
-			//goto SHOW;
+		cv::drawMatches(images[0],_keypoints[0], images[1],_keypoints[1], _matches, output);
+		goto SHOW;
 		
 		//// Step 3: Essential matrix estimation (with intermediate data conversion)
 		std::vector<std::vector<cv::Point2d>> points = matchedKeypointsCoords<double>(_keypoints, _matches);
 
-		double _val_dummy, _val_max;
-		cv::minMaxIdx(points[0], &_val_dummy, &_val_max);
+		double _val_max;
+		cv::minMaxIdx(points[0], NULL, &_val_max);
 
 		double fx = static_cast<double>(std::max(pairSize.width, pairSize.height));
 		intrinsics.at<double>(0,0) *= fx;
@@ -338,6 +342,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			//images[1].copyTo(output(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
 	}
 
+SHOW:
 	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &output, 0x00, NULL);
 	WaitForSingleObject(threadPresenter, INFINITE);
 	CloseHandle(threadPresenter);

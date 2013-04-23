@@ -30,3 +30,5 @@
 #include "opencv2\calib3d\calib3d.hpp"
 
 // TODO: reference additional headers your program requires here
+#include "imp_init.h"
+#include "imp_susan.h"

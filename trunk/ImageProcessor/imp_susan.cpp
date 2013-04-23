@@ -187,11 +187,10 @@ namespace imp
 	{	
 		CV_Assert(image.dims == 2);
 
-		cv::Mat dst, src = image;
-
-		if ( src.channels() != 1 || src.depth() != CV_8U ) cv::cvtColor(image, src, CV_BGR2GRAY);
+		cv::Mat dst, src;
+		if ( image.channels() != 1 || image.depth() != CV_8U ) cv::cvtColor(image, src, CV_BGR2GRAY); else src = image.clone();
 		
-		if (preFilter) filterSusan(src, src, paramRadius, paramRadius / 3.0, paramT);
+		if (preFilter) filterSusan(src, src, paramRadius, paramRadius / 3.0, paramT * 2);
 		cornerSusan(src, dst, paramRadius, paramT, paramG);
 		nonMaxSupp3x3_8uc1(dst, dst);
 
@@ -204,10 +203,10 @@ namespace imp
 				if (row[c] != 0x00) keypoints.push_back( cv::KeyPoint(
 					static_cast<float>(c), 
 					static_cast<float>(r),
-					static_cast<float>(paramRadius)
+					static_cast<float>(2*paramRadius + 1)
 				));
 			}
 		}
-		cv::FeatureDetector::removeInvalidPoints(mask, keypoints);
+		cv::KeyPointsFilter::runByPixelsMask(keypoints, mask);
 	}	
 }
