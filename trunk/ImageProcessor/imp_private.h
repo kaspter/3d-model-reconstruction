@@ -34,7 +34,7 @@ struct _CallProxy
 };
 
 #define IMP_MANAGER_CLASS(classname, baseclass, declarations)	\
-class classname##Manager : public baseclass					\
+class classname##Manager : public baseclass						\
 {																\
 	typedef _CallProxy<classname, baseclass> MyProxy;			\
 public:															\

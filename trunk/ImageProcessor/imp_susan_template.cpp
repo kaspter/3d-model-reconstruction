@@ -96,8 +96,10 @@ namespace imp
 					double *cache_row = _ctable.ptr<double>(pt->x, pt->y);
 					for (int i = 0; i < ctable_sizes[2]; ++i)
 					{
-						cache_row[i] = _fexp_xx(*pt, static_cast<SourceValueType>(~(i - UCHAR_MAX) + (i <= UCHAR_MAX)),
-																	static_cast<SourceValueType>(i <= UCHAR_MAX ? 0 : UCHAR_MAX));
+						cache_row[i] = _fexp_xx(*pt, 
+								static_cast<SourceValueType>(~(i - UCHAR_MAX) + (i <= UCHAR_MAX)),
+								static_cast<SourceValueType>(i <= UCHAR_MAX ? 0 : UCHAR_MAX)
+							);
 					}
 				}
 			}
@@ -237,11 +239,11 @@ namespace imp
 				_ctable.resize(2*UCHAR_MAX + 1);					
 
 				double* values = &_ctable[0];					
-				for (int i = 0, iMax = _ctable.size(); i < iMax; ++i)
+				for (int i = 0, imax = _ctable.size(); i < imax; ++i)
 					values[i] = _fexp_xx(
 						static_cast<SourceValueType>(~(i - UCHAR_MAX) + (i <= UCHAR_MAX)),
 						static_cast<SourceValueType>(i <= UCHAR_MAX ? 0 : UCHAR_MAX)
-						);
+					);
 			}
 		}
 

@@ -198,20 +198,27 @@ int _tmain(int argc, _TCHAR* argv[])
 			goto EXIT;
 		}
 
-		// TEST
+		// TODO: Test graymap histogram
 		//std::vector<unsigned> image_histogram;
 		//imp::discreteGraymapHistogram(images[0], image_histogram);
 
-		// TEST end
-
 		//// Step 1: Image pair feature detection
 		std::string tracker_name = "SIFT";
-		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create("SUSAN");
+		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create("PyramidSUSAN");
 		cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create(tracker_name);
 
+		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 7.23);
+		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
+		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 16;
+
 		std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
-		detector->detect(images, _keypoints);
+
+		BEGIN_TIMER_SECTION(__timer);
+		detector->detect(images, _keypoints);	
+		END_TIMER_SECTION(__timer, "SUSAN completed for: ");
+
 		detector.release();
+
 
 		std::vector<cv::Mat> _descriptors(2);
 		extractor->compute(images, _keypoints, _descriptors);
