@@ -7,13 +7,6 @@
 
 namespace imp 
 {
-	inline bool isGrayMap(const cv::Mat &bitmap)
-	{
-		int depth = bitmap.depth();
-		return bitmap.channels() == 1 &&
-			(depth == CV_8U || depth == CV_16U || depth == CV_32F);
-	}
-
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	cv::Ptr<cv::BaseFilter> getSusanImageFilter(int srcType, int dstType, unsigned radius, double sigma, double t)
@@ -85,7 +78,7 @@ namespace imp
 
 	void filterSusan(const cv::Mat &src, cv::Mat &dst, int radius, double sigma, double t, int borderType)
 	{
-		CV_Assert( src.dims == 2 );
+		CV_Assert( isBitmap(src) );
 		if ( dst.dims != 2 || src.depth() > dst.depth() || src.channels() != dst.channels() || src.size() != dst.size() )
 		{
 			CV_Assert( dst.empty() || dst.refcount != NULL );
@@ -168,7 +161,7 @@ namespace imp
 
 	void cornerSusan(const cv::Mat &src, cv::Mat &dst, int radius, double t, double g, int borderType)
 	{
-		CV_Assert( src.dims == 2 && isGrayMap(src) );
+		CV_Assert( isGraymap(src) );
 		if ( dst.dims != 2 || src.channels() < dst.channels() || src.size() != dst.size() )
 		{
 			CV_Assert( dst.empty() || dst.refcount != NULL );
@@ -199,11 +192,11 @@ namespace imp
 		CV_Assert(image.dims == 2);
 		
 		cv::Mat dst, src;
-		if ( !isGrayMap(image) ) cv::cvtColor(image, src, CV_BGR2GRAY); else image.copyTo(src);
+		if ( !isGraymap(image) ) cv::cvtColor(image, src, CV_BGR2GRAY); else image.copyTo(src);
 		
 		if (_prefilter) filterSusan(src, src, _radius, _radius / 3.0, _tparam * 2);
 		cornerSusan(src, dst, _radius, _tparam, _gparam);
-		nonMaxSupp3x3_8uc1(dst, dst);
+		nonMaxSuppression3x3(dst, dst);
 
 		keypoints.clear();
 		for (int r=0; r<dst.rows; ++r)
