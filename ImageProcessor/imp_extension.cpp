@@ -26,7 +26,7 @@ namespace imp
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	template<typename _ElemT>
-	void nms_perform(cv::Mat &src, cv::Mat &dst, _ElemT maxValue)
+	void nms_perform(const cv::Mat &src, cv::Mat &dst, _ElemT maxValue)
 	{
 		cv::Mat skip(cv::Size(src.cols, 2), CV_8UC1, cv::Scalar(0));
 		uchar *skip_cur = skip.ptr<uchar>(0), 
@@ -34,7 +34,7 @@ namespace imp
 		
 		for (int r = 0, rmax = src.rows - 2; r < rmax; )
 		{
-			_ElemT *buf_row  = src.ptr<_ElemT>(++r);
+			const _ElemT *buf_row  = src.ptr<_ElemT>(++r);
 
 			for(int c = 0, cmax = src.cols - 2; c < cmax; )
 			{
@@ -49,7 +49,7 @@ namespace imp
 
 				skip_cur[c + 1] = true;
 
-				_ElemT *buf_row_temp = src.ptr<_ElemT>(r + 1);
+				const _ElemT *buf_row_temp = src.ptr<_ElemT>(r + 1);
 				if (buf_row[c] <= buf_row_temp[c - 1]) continue; /**/skip_nxt[c - 1] = true;
 				if (buf_row[c] <= buf_row_temp[c	]) continue; /**/skip_nxt[c    ] = true;
 				if (buf_row[c] <= buf_row_temp[c + 1]) continue; /**/skip_nxt[c + 1] = true;
@@ -66,7 +66,7 @@ namespace imp
 			memset(skip_nxt, 0, src.step);
 		}
 	}
-	void nonMaxSuppression3x3(cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues)
+	void nonMaxSuppression3x3(const cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues)
 	{
 		CV_Assert(!src.empty() && isGraymap(src));
 
@@ -82,7 +82,7 @@ namespace imp
 			CV_Assert( dst.empty() || dst.refcount != NULL );
 
 			buf = src;
-			dst.create(src.size(), src.type());	
+			dst.create(buf.size(), buf.type());	
 		}
 		dst.setTo(cv::Scalar::all(0));
 		
@@ -90,15 +90,15 @@ namespace imp
 		switch(depth)
 		{
 		case CV_8U:
-			nms_perform(src, dst, preserveMaximaValues ? 
+			nms_perform(buf, dst, preserveMaximaValues ? 
 				std::numeric_limits<uchar>::max() : std::numeric_limits<uchar>::min());
 			break;
 		case CV_16U:
-			nms_perform(src, dst, preserveMaximaValues ? 
+			nms_perform(buf, dst, preserveMaximaValues ? 
 				std::numeric_limits<ushort>::max() : std::numeric_limits<ushort>::min());
 			break;
 		case CV_32F:
-			nms_perform(src, dst, float(preserveMaximaValues));
+			nms_perform(buf, dst, float(preserveMaximaValues));
 			break;
 		}
 	}
@@ -107,19 +107,19 @@ namespace imp
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	template<typename _ElemT>
-	void hiest_perform(cv::Mat &src, cv::Mat &dst)
+	void hiest_perform(const cv::Mat &src, cv::Mat &dst)
 	{
 		unsigned *hist = reinterpret_cast<unsigned*>(dst.data);
 		for (int r = 0, rmax = src.rows; r < rmax; ++r)
 		{
-			_ElemT *src_row = src.ptr<_ElemT>(r);
+			const _ElemT *src_row = src.ptr<_ElemT>(r);
 			for (int c = 0, cmax = src.cols; c < cmax; ++c)	
 			{
 				if (hist[src_row[c]] != std::numeric_limits<unsigned>::max()) ++(hist[src_row[c]]);
 			}
 		}
 	}
-	void discreteGraymapHistogram(cv::Mat &src, cv::OutputArray &dst)
+	void discreteGraymapHistogram(const cv::Mat &src, cv::OutputArray &dst)
 	{
 		int sdepth = src.depth();
 		CV_Assert( isGraymap(src) && sdepth != CV_32F );

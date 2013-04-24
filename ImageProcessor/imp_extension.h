@@ -2,14 +2,41 @@
 
 #define ROUND_VAL(x) (double(x) > 0.0 ? floor((x) + 0.5) : ceil((x) - 0.5))
 
+#define BEGIN_TIMER_SECTION(time_var)	\
+	int64 time_var = cv::getTickCount()
+
+#if WIN32
+#include <winbase.h>
+#define END_TIMER_SECTION(time_var, logtext)									\
+{																				\
+	std::string debugstr(strlen(logtext) + 21, '\0');							\
+	sprintf_s(&debugstr[0], debugstr.length(), "%s: %f\n", logtext,				\
+					(cv::getTickCount() - time_var) / cv::getTickFrequency());	\
+	OutputDebugStringA(debugstr.c_str());										\
+}
+#else
+#include <iostream>
+#define END_TIMER_SECTION(time_var, logtext)																\	
+	std::cout << logtext << ": " << (cv::getTickCount() - time_var) / cv::getTickFrequency() << std::endl
+#endif
+
+	//assert
+
 namespace imp
 {
+	class PyramidAdapterHack : public cv::PyramidAdaptedFeatureDetector
+	{
+	public:
+		using cv::PyramidAdaptedFeatureDetector::maxLevel;
+		using cv::PyramidAdaptedFeatureDetector::detector;
+	};
+
 	// Produces a square matrix (2*radius + 1)x(2*radius + 1) filled by 1's in a disk form
 	cv::Mat diskMask(double radius);
 	// Gives a local maxima mask (map) for a grayscale image given
-	void nonMaxSuppression3x3(cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues = false);
+	void nonMaxSuppression3x3(const cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues = false);
 	// Gives graymap intensity occurence histogram for a grayscale image
-	void discreteGraymapHistogram(cv::Mat &src, cv::OutputArray &dst);
+	void discreteGraymapHistogram(const cv::Mat &src, cv::OutputArray &dst);
 	
 	template<typename SwapType> 
 	inline void swap(SwapType &a, SwapType &b) { SwapType temp = a; a = b; b = temp; }
