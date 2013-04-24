@@ -64,7 +64,7 @@ namespace imp
 			ksize		= cv::Size(2*radius + 1, 2*radius + 1);
 			anchor		= cv::Point(radius, radius); 
 
-			cv::Mat matrix = diskMatrix_8uc1(radius); matrix.at<uchar>(anchor) = 0;
+			cv::Mat matrix = diskMask(radius); matrix.at<uchar>(anchor) = 0;
 			for (int i = 0; i < matrix.rows; ++i)
 			{
 				int offset = i * matrix.step; // step equals width in this case
@@ -96,7 +96,8 @@ namespace imp
 					double *cache_row = _ctable.ptr<double>(pt->x, pt->y);
 					for (int i = 0; i < ctable_sizes[2]; ++i)
 					{
-						cache_row[i] = _fexp_xx(*pt, ~(i - UCHAR_MAX) + (i <= UCHAR_MAX), i <= UCHAR_MAX ? 0 : UCHAR_MAX);
+						cache_row[i] = _fexp_xx(*pt, static_cast<SourceValueType>(~(i - UCHAR_MAX) + (i <= UCHAR_MAX)),
+																	static_cast<SourceValueType>(i <= UCHAR_MAX ? 0 : UCHAR_MAX));
 					}
 				}
 			}
@@ -203,7 +204,7 @@ namespace imp
 
 			_dist		= double(radius - 1);
 
-			cv::Mat matrix = diskMatrix_8uc1(radius);
+			cv::Mat matrix = diskMask(radius);
 			for (int i = 0; i < matrix.rows; ++i)
 			{
 				int offset = i * matrix.step; // step equals width in this case
@@ -237,7 +238,10 @@ namespace imp
 
 				double* values = &_ctable[0];					
 				for (int i = 0, iMax = _ctable.size(); i < iMax; ++i)
-					values[i] = _fexp_xx(~(i - UCHAR_MAX) + (i <= UCHAR_MAX), i <= UCHAR_MAX ? 0 : UCHAR_MAX);
+					values[i] = _fexp_xx(
+						static_cast<SourceValueType>(~(i - UCHAR_MAX) + (i <= UCHAR_MAX)),
+						static_cast<SourceValueType>(i <= UCHAR_MAX ? 0 : UCHAR_MAX)
+						);
 			}
 		}
 

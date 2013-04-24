@@ -198,6 +198,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			goto EXIT;
 		}
 
+		// TEST
+		//std::vector<unsigned> image_histogram;
+		//imp::discreteGraymapHistogram(images[0], image_histogram);
+
+		// TEST end
+
 		//// Step 1: Image pair feature detection
 		std::string tracker_name = "SIFT";
 		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create("SUSAN");

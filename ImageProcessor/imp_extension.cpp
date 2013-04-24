@@ -4,7 +4,9 @@
 
 namespace imp
 {
-	cv::Mat diskMatrix_8uc1 (double radius)
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	cv::Mat diskMask(double radius)
 	{
 		assert(radius > 0);
 
@@ -20,12 +22,55 @@ namespace imp
 		return res;
 	}
 
-	void nonMaxSupp3x3_8uc1(cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues)
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	template<typename _ElemT>
+	void nms_perform(cv::Mat &src, cv::Mat &dst, _ElemT maxValue)
 	{
-		CV_Assert(src.type() == CV_8UC1 && src.dims == 2 && !src.empty());
+		cv::Mat skip(cv::Size(src.cols, 2), CV_8UC1, cv::Scalar(0));
+		uchar *skip_cur = skip.ptr<uchar>(0), 
+			  *skip_nxt = skip.ptr<uchar>(1); 
+		
+		for (int r = 0, rmax = src.rows - 2; r < rmax; )
+		{
+			_ElemT *buf_row  = src.ptr<_ElemT>(++r);
+
+			for(int c = 0, cmax = src.cols - 2; c < cmax; )
+			{
+				if (skip_cur[++c]) continue;
+
+				if (buf_row[c] <= buf_row[c + 1])
+				{
+					do { ++c; } while (c < cmax && buf_row[c] <= buf_row[c + 1]); 
+					if (c == cmax) break;	
+				}
+				else if (buf_row[c] <= buf_row[c - 1]) continue;
+
+				skip_cur[c + 1] = true;
+
+				_ElemT *buf_row_temp = src.ptr<_ElemT>(r + 1);
+				if (buf_row[c] <= buf_row_temp[c - 1]) continue; /**/skip_nxt[c - 1] = true;
+				if (buf_row[c] <= buf_row_temp[c	]) continue; /**/skip_nxt[c    ] = true;
+				if (buf_row[c] <= buf_row_temp[c + 1]) continue; /**/skip_nxt[c + 1] = true;
+				
+				buf_row_temp = src.ptr<_ElemT>(r - 1);
+				if (buf_row[c] <= buf_row_temp[c - 1]) continue;
+				if (buf_row[c] <= buf_row_temp[c    ]) continue;
+				if (buf_row[c] <= buf_row_temp[c + 1]) continue;
+
+				dst.at<_ElemT>(r, c) = maxValue != _ElemT(0) ? maxValue : buf_row[c];
+			}
+
+			swap(skip_cur, skip_nxt);
+			memset(skip_nxt, 0, src.step);
+		}
+	}
+	void nonMaxSuppression3x3(cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues)
+	{
+		CV_Assert(!src.empty() && isGraymap(src));
 
 		cv::Mat buf;
-		uchar *buf_row  = NULL;
 
 		bool inPlace;
 		if (inPlace = src.data == dst.data)
@@ -40,44 +85,56 @@ namespace imp
 			dst.create(src.size(), src.type());	
 		}
 		dst.setTo(cv::Scalar::all(0));
-
-		cv::Mat skip(cv::Size(src.cols, 2), CV_8UC1, cv::Scalar(0));
-		uchar *skip_cur = skip.ptr<uchar>(0), 
-			  *skip_nxt = skip.ptr<uchar>(1); 
 		
-		int c, r, cmax = src.cols - 2, rmax = src.rows - 2;
-		for (r = 0; r < rmax; )
+		int depth = src.depth();
+		switch(depth)
 		{
-			buf_row = buf.ptr<uchar>(++r);
+		case CV_8U:
+			nms_perform(src, dst, preserveMaximaValues ? 
+				std::numeric_limits<uchar>::max() : std::numeric_limits<uchar>::min());
+			break;
+		case CV_16U:
+			nms_perform(src, dst, preserveMaximaValues ? 
+				std::numeric_limits<ushort>::max() : std::numeric_limits<ushort>::min());
+			break;
+		case CV_32F:
+			nms_perform(src, dst, float(preserveMaximaValues));
+			break;
+		}
+	}
 
-			for(c = 0; c < cmax; )
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	template<typename _ElemT>
+	void hiest_perform(cv::Mat &src, cv::Mat &dst)
+	{
+		unsigned *hist = reinterpret_cast<unsigned*>(dst.data);
+		for (int r = 0, rmax = src.rows; r < rmax; ++r)
+		{
+			_ElemT *src_row = src.ptr<_ElemT>(r);
+			for (int c = 0, cmax = src.cols; c < cmax; ++c)	
 			{
-				if (skip_cur[++c]) continue;
-
-				if (buf_row[c] <= buf_row[c + 1])
-				{
-					do { ++c; } while (c < cmax && buf_row[c] <= buf_row[c + 1]); 
-					if (c == cmax) break;	
-				}
-				else if (buf_row[c] <= buf_row[c - 1]) continue;
-
-				skip_cur[c + 1] = true;
-
-				uchar *buf_row_temp = buf.ptr<uchar>(r + 1);
-				if (buf_row[c] <= buf_row_temp[c - 1]) continue; /**/skip_nxt[c - 1] = true;
-				if (buf_row[c] <= buf_row_temp[c	]) continue; /**/skip_nxt[c    ] = true;
-				if (buf_row[c] <= buf_row_temp[c + 1]) continue; /**/skip_nxt[c + 1] = true;
-				
-				buf_row_temp = buf.ptr<uchar>(r - 1);
-				if (buf_row[c] <= buf_row_temp[c - 1]) continue;
-				if (buf_row[c] <= buf_row_temp[c    ]) continue;
-				if (buf_row[c] <= buf_row_temp[c + 1]) continue;
-
-				dst.at<uchar>(r, c) = preserveMaximaValues ? buf_row[c] : UCHAR_MAX;
+				if (hist[src_row[c]] != std::numeric_limits<unsigned>::max()) ++(hist[src_row[c]]);
 			}
+		}
+	}
+	void discreteGraymapHistogram(cv::Mat &src, cv::OutputArray &dst)
+	{
+		int sdepth = src.depth();
+		CV_Assert( isGraymap(src) && sdepth != CV_32F );
 
-			swap(skip_cur, skip_nxt);
-			memset(skip_nxt, 0, src.step);
+		cv::Mat hist;
+		switch (sdepth)
+		{
+		case CV_8U:
+			dst.create(std::numeric_limits<uchar>::max() + 1, 1, cv::DataType<unsigned>::type);
+			hiest_perform<uchar>(src, hist = dst.getMat());
+			break;
+		case CV_16U:
+			dst.create(std::numeric_limits<ushort>::max() + 1, 1, cv::DataType<unsigned>::type);
+			hiest_perform<uchar>(src, hist = dst.getMat());
+			break;
 		}
 	}
 }
