@@ -15,20 +15,16 @@ namespace imp
 	class SUSAN : public cv::FeatureDetector
 	{
 		void detectImpl( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask=cv::Mat() ) const;
-
+	
 		unsigned _radius;		
 		double	 _gparam, _tparam;
-
 		bool	 _prefilter;
 
-		void _set_radius(unsigned radius);
-		void _set_tparam(double t);
-		void _set_gparam(double g);
-
-		typedef void (cv::Algorithm::*UintSetter) (unsigned);
-		typedef void (cv::Algorithm::*DblSetter) (double);
-
 	public:
+		void set_radius(unsigned r);
+		void set_tparam(double   t);
+		void set_gparam(double   g);
+
 		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool prefilter = false );
 		cv::AlgorithmInfo* info() const;
 	};
