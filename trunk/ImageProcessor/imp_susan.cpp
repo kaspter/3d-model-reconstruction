@@ -182,16 +182,16 @@ namespace imp
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	inline void SUSAN::_set_radius(unsigned radius)  { _radius = std::max(1U, radius); }
-	inline void SUSAN::_set_tparam(double t)		 { _tparam = std::max(t, 1.0); }
-	inline void SUSAN::_set_gparam(double g)		 { _gparam = g == -1 ? g : std::max(g, 0.0); }
+	inline void SUSAN::set_radius(unsigned r) {	_radius = std::max(1U, r);	}
+	inline void SUSAN::set_tparam(double   t) { _tparam = std::max(t, 1.0); }
+	inline void SUSAN::set_gparam(double   g) { _gparam = g == -1.0 ? g : std::max(g, 0.0); }
 
 	SUSAN::SUSAN (unsigned radius, double t, double g, bool prefilter)
 		: _prefilter(prefilter)
 	{
-		_set_radius(radius);
-		_set_tparam(t);
-		_set_gparam(g);
+		set_radius(radius);
+		set_tparam(t);
+		set_gparam(g);
 	}
 
 	void SUSAN::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
