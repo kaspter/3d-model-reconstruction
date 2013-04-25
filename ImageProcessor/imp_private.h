@@ -1,5 +1,10 @@
 #pragma once
 
+#include "opencv2\core\core.hpp"
+
+namespace imp
+{
+
 template <class _Derived, class _Base>
 _Derived *virtual_cast(_Base *ptr)
 {
@@ -33,10 +38,12 @@ struct _CallProxy
 	}
 };
 
+} // namespace imp
+
 #define IMP_MANAGER_CLASS(classname, baseclass, declarations)	\
 class classname##Manager : public baseclass						\
 {																\
-	typedef _CallProxy<classname, baseclass> MyProxy;			\
+	typedef ::imp::_CallProxy<classname, baseclass> MyProxy;	\
 public:															\
 	declarations;												\
 };
