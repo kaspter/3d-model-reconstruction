@@ -1,7 +1,5 @@
 #pragma once
 
-#include "opencv2\core\core.hpp"
-
 namespace imp
 {
 
@@ -39,6 +37,8 @@ struct _CallProxy
 };
 
 } // namespace imp
+
+#include "opencv2\core\core.hpp"
 
 #define IMP_MANAGER_CLASS(classname, baseclass, declarations)	\
 class classname##Manager : public baseclass						\

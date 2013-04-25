@@ -5,6 +5,12 @@
 
 #pragma once
 
+#pragma comment(lib, "vtksys-gd.lib")
+#pragma comment(lib, "vtkCommon-gd.lib")
+#pragma comment(lib, "vtkFiltering-gd.lib")
+#pragma comment(lib, "pcl_common_debug.lib")
+#pragma comment(lib, "pcl_visualization_debug.lib")
+
 #include "targetver.h"
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
@@ -29,7 +35,12 @@
 #include "opencv2\highgui\highgui.hpp"
 #include "opencv2\calib3d\calib3d.hpp"
 
+#include "boost\thread\thread.hpp"
+#include "pcl\visualization\cloud_viewer.h"
+
 // TODO: reference additional headers your program requires here
 #include "imp_init.h"
 #include "imp_susan.h"
+
+#define  IMP_MACROS_EXTENDED
 #include "imp_extension.h"

@@ -90,6 +90,21 @@ DWORD _stdcall presenterThreadFunc(LPVOID threadParameter)
 	return msg.wParam;
 }
 
+//void SubPixelExtimation(const cv::Mat &src, std::vector<cv::KeyPoint> &keypoints, cv::Size winSize, cv::Size zeroSize = cv::Size(-1, -1), 
+//						cv::TermCriteria criteria = cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 1e-03))
+//{
+//	CV_Assert(imp::isGraymap(src));
+//
+//	if (keypoints.empty()) return;
+//
+//	std::vector<cv::Point2f> corners(keypoints.size());
+//
+//	cv::KeyPoint* keypoint = &keypoints[0];
+//	cv::Point2f*  corner   = &corners[0];
+//
+//
+//}
+
 bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputArray R2, cv::OutputArray t1, cv::OutputArray t2)
 {
 	cv::Mat E = _E.getMat();
@@ -207,18 +222,17 @@ int _tmain(int argc, _TCHAR* argv[])
 		cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create("PyramidSUSAN");
 		cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create(tracker_name);
 
-		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 7.23);
+		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 5);
+		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 10.89);
+		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 55.50);
 		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
 		reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 16;
 
 		std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
-
-		BEGIN_TIMER_SECTION(__timer);
-		detector->detect(images, _keypoints);	
-		END_TIMER_SECTION(__timer, "SUSAN completed for: ");
-
+		IMP_BEGIN_TIMER_SECTION(timer)
+			detector->detect(images, _keypoints);	
+		IMP_END_TIMER_SECTION(timer, "SUSAN coped in: ")
 		detector.release();
-
 
 		std::vector<cv::Mat> _descriptors(2);
 		extractor->compute(images, _keypoints, _descriptors);
@@ -232,7 +246,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		matcher.release();
 
 		cv::drawMatches(images[0],_keypoints[0], images[1],_keypoints[1], _matches, output);
-		goto SHOW;
+		//goto SHOW;
 		
 		//// Step 3: Essential matrix estimation (with intermediate data conversion)
 		std::vector<std::vector<cv::Point2d>> points = matchedKeypointsCoords<double>(_keypoints, _matches);
@@ -255,7 +269,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout<<"Essential matrix:"<<std::endl;
 		std::cout<<essential<<std::endl;
 
-		if (std::abs(cv::determinant(essential)) > 1e-07)
+		if (!(std::abs(cv::determinant(essential)) < std::numeric_limits<float>::epsilon()))
 		{
 			std::cerr << "Essential matrix determinant is not equal zero." << std::endl;
 			retResult = -1; goto EXIT;
@@ -276,14 +290,16 @@ int _tmain(int argc, _TCHAR* argv[])
 			retResult = -1; goto EXIT;
 		}
 
-		if (cv::determinant(_R[0]) + 1 < 1e-09 ) // det(R1) == -1
+		if (cv::determinant(_R[0]) + 1 < std::numeric_limits<float>::epsilon()) // det(R1) == -1
 			HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
 
 		std::vector<cv::Matx34d> camera(2, cv::Matx34d(
-			1, 0, 0, /*I|0*/ 0, 
-			0, 1, 0, /*I|0*/ 0, 
-			0, 0, 1, /*I|0*/ 0
+				1, 0, 0, /*I|0*/ 0, 
+				0, 1, 0, /*I|0*/ 0, 
+				0, 0, 1, /*I|0*/ 0
 			));
+
+		cv::Mat opencvCloud;
 
 		double maxFrontalPercentage = 0;
 		for (int r = 0; r < 2; ++r)
@@ -294,16 +310,16 @@ int _tmain(int argc, _TCHAR* argv[])
 			for (int t = 0; t < 2; ++t)
 			{
 				cv::Matx34d P_ = cv::Matx34d(
-					R(0,0), R(0,1), R(0,2), _t[t](0),
-					R(1,0), R(1,1), R(1,2), _t[t](1),
-					R(2,0), R(2,1), R(2,2), _t[t](2)
+						R(0,0), R(0,1), R(0,2), _t[t](0),
+						R(1,0), R(1,1), R(1,2), _t[t](1),
+						R(2,0), R(2,1), R(2,2), _t[t](2)
 					);
 
 				cv::Mat spaceHomogeneous;
 				cv::triangulatePoints(camera[0], P_, points[0], points[1], spaceHomogeneous);
 
 				spaceHomogeneous = spaceHomogeneous.reshape(4, points[0].size());
-				cv::Mat spaceEuclidian(spaceHomogeneous.rows, 1, CV_64FC3);
+				cv::Mat spaceEuclidianProjected, spaceEuclidian(spaceHomogeneous.rows, 1, CV_64FC3);
 				for (int i = 0, imax = points[0].size(); i < imax; ++i)
 				{
 					cv::Vec4d point4d = spaceHomogeneous.at<cv::Vec4d>(i);
@@ -317,24 +333,53 @@ int _tmain(int argc, _TCHAR* argv[])
 
 				cv::Mat p(cv::Matx44d::eye());
 				cv::Mat(P_).copyTo(p(cv::Rect(0,0,4,3)));
-				cv::perspectiveTransform(spaceEuclidian, spaceEuclidian, p);
+				cv::perspectiveTransform(spaceEuclidian, spaceEuclidianProjected, p);
 
 				unsigned frontalCount = 0;
-				for (int i = 0; i < spaceEuclidian.rows; ++i)
+				for (int i = 0; i < spaceEuclidianProjected.rows; ++i)
 				{
-					if (spaceEuclidian.at<cv::Point3d>(i).z > 0) frontalCount++;
+					if (spaceEuclidianProjected.at<cv::Point3d>(i).z > 0) frontalCount++;
 				}
-				double frontalPercentage = 100.0 * frontalCount / spaceEuclidian.rows;
+				double frontalPercentage = 100.0 * frontalCount / spaceEuclidianProjected.rows;
 				if (frontalPercentage > maxFrontalPercentage)
 				{
 					maxFrontalPercentage = frontalPercentage;
+					
 					camera[1] = P_;
+					spaceEuclidian.convertTo(opencvCloud, CV_32F);
 				}
 			}
 		}
 
 		std::cout << std::endl;
 
+		// Step 6: Model graph visualization
+		if (!opencvCloud.empty())
+		{
+			boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D model vertex cloud"));
+			boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>	 cloud (new pcl::PointCloud<pcl::PointXYZ>(opencvCloud.cols, opencvCloud.rows, pcl::PointXYZ()));
+
+			size_t	channels  = opencvCloud.channels(), 
+					elem_size = opencvCloud.elemSize();
+			for (int r = 0; r < opencvCloud.rows; ++r)
+			{
+				float* row = opencvCloud.ptr<float>(r);
+				for (int c = 0; c < opencvCloud.cols; ++c)
+					memcpy((*cloud)(c, r).data, row + c * channels, elem_size);
+			}
+
+			viewer->setBackgroundColor (0, 0, 0);
+			viewer->addPointCloud<pcl::PointXYZ>(cloud, "object cloud");
+			viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "object cloud");
+			viewer->addCoordinateSystem (1.0);
+			viewer->initCameraParameters ();
+
+			while (!viewer->wasStopped())
+			{
+				viewer->spinOnce(100);
+				boost::this_thread::sleep(boost::posix_time::microseconds (100000));
+			}
+		}
 		//// Step 5: Image rectification
 			//std::vector<cv::Mat> homography(2);
 			//cv::stereoRectifyUncalibrated(points[0], points[1], F, pairSize, homography[0], homography[1]);
@@ -355,12 +400,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			//images[1].copyTo(output(cv::Rect(images[0].cols, 0, images[1].cols, images[1].rows)));
 	}
 
-SHOW:
+
+EXIT:
 	HANDLE threadPresenter = CreateThread(NULL, 0, presenterThreadFunc, &output, 0x00, NULL);
 	WaitForSingleObject(threadPresenter, INFINITE);
 	CloseHandle(threadPresenter);
 
-EXIT:
+//EXIT:
 	std::cout << "Hit any key to exit...";
 	_gettchar();
 	return retResult;
