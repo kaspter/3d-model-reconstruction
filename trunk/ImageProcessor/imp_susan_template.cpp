@@ -322,4 +322,5 @@ namespace imp
 			}
 		}
 	}
-}
+
+} // namespace imp

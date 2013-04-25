@@ -2,5 +2,7 @@
 
 namespace imp 
 {
+
 	bool initModule ();
-}
+
+} // namespace imp

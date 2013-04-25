@@ -1,8 +1,7 @@
 
-#include "stdafx.h"
+#include "precomp.h"
 
 #include "imp_susan.h"
-#include "imp_extension.h"
 #include "imp_susan_template.cpp"
 
 namespace imp 
@@ -212,5 +211,6 @@ namespace imp
 			}
 		}
 		cv::KeyPointsFilter::runByPixelsMask(keypoints, mask);
-	}	
-}
+	}
+
+} // namespace imp

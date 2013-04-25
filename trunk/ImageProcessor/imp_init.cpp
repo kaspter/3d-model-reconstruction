@@ -1,5 +1,5 @@
 
-#include "stdafx.h"
+#include "precomp.h"
 
 #include "imp_init.h"
 #include "imp_susan.h"
@@ -7,6 +7,7 @@
 
 namespace imp
 {
+
 	typedef void (cv::Algorithm::*uint_setter) (unsigned);
 	typedef void (cv::Algorithm::*dbl_setter)  (double);
 
@@ -27,4 +28,5 @@ namespace imp
 	{
 		return !SUSAN_info_auto.name().empty();
 	}
-}
+
+} // namespace imp
