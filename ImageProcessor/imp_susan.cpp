@@ -188,28 +188,39 @@ namespace imp
 
 	void SUSAN::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
 	{	
-		CV_Assert(image.dims == 2);
+		CV_Assert(isBitmap(image));
 		
+		keypoints.clear();
+		if (image.channels() > 3) return;
+
 		cv::Mat dst, src;
-		if ( !isGraymap(image) ) cv::cvtColor(image, src, CV_BGR2GRAY); else image.copyTo(src);
+		if ( image.channels() == 3 )
+			cv::cvtColor(image, src, CV_BGR2GRAY); 
+		else image.copyTo(src);
 		
 		if (_prefilter) filterSusan(src, src, _radius, _radius / 3.0, _tparam * 2);
 		cornerSusan(src, dst, _radius, _tparam, _gparam);
-		nonMaxSuppression3x3(dst, dst);
+		size_t corner_count = nonMaxSuppression3x3(dst, dst);
 
-		keypoints.clear();
+		if (corner_count == 0) return;
+
+		keypoints.resize(corner_count);
+		cv::KeyPoint* keypoint = &keypoints[corner_count = 0];
+
+		float ksize = static_cast<float>(2 * _radius + 1);
 		for (int r=0; r<dst.rows; ++r)
 		{
 			uchar* row = dst.ptr<uchar>(r);
 			for (int c=0; c<dst.cols; ++c)
 			{
-				if (row[c] != 0x00) keypoints.push_back( cv::KeyPoint(
-					static_cast<float>(c), 
-					static_cast<float>(r),
-					static_cast<float>(2 * _radius + 1)
-				));
+				if (row[c] != 0x00) keypoint[corner_count++] = cv::KeyPoint(
+						static_cast<float>(c), 
+						static_cast<float>(r),
+						ksize
+					);
 			}
 		}
+
 		cv::KeyPointsFilter::runByPixelsMask(keypoints, mask);
 	}
 

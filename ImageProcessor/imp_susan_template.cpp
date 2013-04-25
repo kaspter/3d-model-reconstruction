@@ -305,7 +305,7 @@ namespace imp
 							int inc = sign(centroid.x), x = inc, xmax = inc * paramRadius;
 							for (; inc > 0 ? x <= xmax : (inc < 0 ? x >= xmax : false); x += inc) 	
 							{
-								if (usan.at<uchar>(static_cast<int>(ROUND_VAL(centroid.y * x / centroid.x)) + anchor.y, x + anchor.x) == 0x00) { isFeature = false; break; }
+								if (usan.at<uchar>(static_cast<int>(round(centroid.y * x / centroid.x)) + anchor.y, x + anchor.x) == 0x00) { isFeature = false; break; }
 							}
 						}
 						else
@@ -313,7 +313,7 @@ namespace imp
 							int inc = sign(centroid.y), y = inc, ymax = inc * paramRadius;
 							for (; inc > 0 ? y <= ymax : (inc < 0 ? y >= ymax : false); y += inc) 	
 							{
-								if (usan.at<uchar>(y + anchor.y, static_cast<int>(ROUND_VAL(centroid.x * y / centroid.y)) + anchor.x) == 0x00) { isFeature = false; break; }
+								if (usan.at<uchar>(y + anchor.y, static_cast<int>(round(centroid.x * y / centroid.y)) + anchor.x) == 0x00) { isFeature = false; break; }
 							}
 						}
 					}

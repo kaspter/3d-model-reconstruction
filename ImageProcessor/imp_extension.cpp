@@ -9,7 +9,7 @@ namespace imp
 	{
 		assert(radius > 0);
 
-		unsigned r  = static_cast<unsigned>(ROUND_VAL(radius)), d = 2 * r + 1;
+		unsigned r  = static_cast<unsigned>(round(radius)), d = 2 * r + 1;
 		double rpow = radius + 0.5; rpow *= rpow;
 		
 		cv::Mat res = cv::Mat(d, d, CV_8UC1);
@@ -22,12 +22,13 @@ namespace imp
 	}
 
 	template<typename _ElemT>
-	void nms_perform(const cv::Mat &src, cv::Mat &dst, _ElemT maxValue)
+	size_t nms_perform(const cv::Mat &src, cv::Mat &dst, _ElemT maxValue)
 	{
 		cv::Mat skip(cv::Size(src.cols, 2), CV_8UC1, cv::Scalar(0));
 		uchar *skip_cur = skip.ptr<uchar>(0), 
 			  *skip_nxt = skip.ptr<uchar>(1); 
 		
+		size_t maxima_count = 0;
 		for (int r = 0, rmax = src.rows - 2; r < rmax; )
 		{
 			const _ElemT *buf_row  = src.ptr<_ElemT>(++r);
@@ -56,13 +57,15 @@ namespace imp
 				if (buf_row[c] <= buf_row_temp[c + 1]) continue;
 
 				dst.at<_ElemT>(r, c) = maxValue != _ElemT(0) ? maxValue : buf_row[c];
+				++maxima_count;
 			}
 
 			swap(skip_cur, skip_nxt);
 			memset(skip_nxt, 0, src.step);
 		}
+		return maxima_count;
 	}
-	void nonMaxSuppression3x3(const cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues)
+	size_t nonMaxSuppression3x3(const cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues)
 	{
 		CV_Assert(!src.empty() && isGraymap(src));
 
@@ -86,17 +89,18 @@ namespace imp
 		switch(depth)
 		{
 		case CV_8U:
-			nms_perform(buf, dst, preserveMaximaValues ? 
+			return nms_perform(buf, dst, preserveMaximaValues ? 
 				std::numeric_limits<uchar>::max() : std::numeric_limits<uchar>::min());
 			break;
 		case CV_16U:
-			nms_perform(buf, dst, preserveMaximaValues ? 
+			return nms_perform(buf, dst, preserveMaximaValues ? 
 				std::numeric_limits<ushort>::max() : std::numeric_limits<ushort>::min());
 			break;
 		case CV_32F:
-			nms_perform(buf, dst, float(0));
+			return nms_perform(buf, dst, float(0));
 			break;
 		}
+		return 0;
 	}
 
 	template<typename _ElemT>
