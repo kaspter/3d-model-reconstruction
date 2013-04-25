@@ -76,8 +76,10 @@ TSTRING FileBrowserInit(HWND hwndOwner)
 	return filePath;
 }
 
-BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
+BOOL LoadImageSpecified(HWND hwnd, const TSTRING & imageFileName)
 {
+	_ASSERT (!imageFileName.empty());
+
 	LPTSTRING errMsg = NULL;
 
 #ifdef _UNICODE
@@ -103,7 +105,7 @@ BOOL LoadImageSpecified(HWND hwnd, TSTRING & imageFileName)
 
 		//if (!cornerMaskImage.empty()) { delete[] cornerMaskImage.data; cornerMaskImage.release(); }
 		//alignedRowSize =  ((rawImage.cols * CV_ELEM_SIZE(CV_8SC4) - 1) & (~sizeof(DWORD) + 1)) + sizeof(DWORD);
-		cornerMaskImage = cv::Mat(rawImage.size(), CV_8SC4);//, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
+		cornerMaskImage = cv::Mat(rawImage.size(), CV_8UC4);//, new BYTE[rawImage.rows * alignedRowSize], alignedRowSize);
 		//cornerMaskImage.setTo(cv::Scalar::all(0x00));
 			
 		bmi_disp.bmiHeader.biWidth  =  rawImage.cols;
@@ -153,7 +155,7 @@ VOID ImageProcessDector(unsigned radius, double t, double g)
 {
 	cv::Mat featureImage(filteredImage.size(), CV_8UC1);
 	imp::cornerSusan(filteredImage, featureImage, radius, t, g);	
-	imp::nonMaxSupp3x3_8uc1(featureImage, featureImage);
+	imp::nonMaxSuppression3x3(featureImage, featureImage);
 
 	double  _rad   = 1.0;
 	uchar trace[]  = { 1, 1, 1, 1, 0, 1, 1, 1, 1 };
@@ -265,6 +267,17 @@ BOOL OnCreateMain(HWND hwnd, LPCREATESTRUCT lpCreateStruct)
 
 	return TRUE;
 }
+inline BOOL ProcessImage(HWND hwnd, const TSTRING &path)
+{
+	BOOL success = !path.empty() && LoadImageSpecified(hwnd, path);
+	if (success)	
+	{		
+		// TODO: Check values here!
+		ImageProcessFilter(14, 89.00, 178.0);
+		ImageProcessDector(7, 33.52, 86.3);
+	}
+	return success;
+}
 VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 {
 	BOOL switchMenuViewGroup = FALSE;
@@ -272,17 +285,8 @@ VOID OnCommandMain(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	switch (id)
 	{
 	case ID_FILE_OPEN:
-		{
-			TSTRING imagePath = FileBrowserInit(hwnd);
-			if (!imagePath.empty())	
-			{
-				LoadImageSpecified(hwnd, imagePath);
-				
-				// Temporary code below!
-				ImageProcessFilter(3, 11.95, 22.24);
-				ImageProcessDector(3, 11.87, 17.89);
-			}
-		} break;
+		ProcessImage(hwnd, FileBrowserInit(hwnd));
+		break;
 	case IDM_EXIT:
 		DestroyWindow(hwnd);
 		break;
@@ -333,7 +337,7 @@ VOID OnDropFilesMain(HWND hwnd, HDROP hdrop)
 		{
 			TSTRING fileName = TSTRING(strLen, _T('\0'));
 			DragQueryFile(hdrop, f, const_cast<LPTSTR>(fileName.c_str()), fileName.length());
-			if (LoadImageSpecified(hwnd, fileName)) return;
+			if (ProcessImage(hwnd, fileName)) return;
 		}
 		else
 		{
