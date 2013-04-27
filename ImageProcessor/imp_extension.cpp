@@ -60,7 +60,7 @@ namespace imp
 				++maxima_count;
 			}
 
-			swap(skip_cur, skip_nxt);
+			std::swap(skip_cur, skip_nxt);
 			memset(skip_nxt, 0, src.step);
 		}
 		return maxima_count;

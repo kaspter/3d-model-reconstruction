@@ -57,9 +57,6 @@ namespace imp
 	// Gives graymap intensity occurence histogram for a grayscale image
 	void discreteGraymapHistogram(const cv::Mat &src, cv::OutputArray &dst);
 	
-	template<typename _St> 
-	inline void swap(_St &a, _St &b) { _St temp = a; a = b; b = temp; }
-
 	template<typename _Vt> 
 	inline int sign(_Vt val) { return val != 0 ? (val > 0 ? 1 : -1) : 0; }
 

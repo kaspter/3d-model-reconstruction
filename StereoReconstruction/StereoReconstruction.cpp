@@ -30,7 +30,7 @@ std::vector<std::vector<cv::Point_<_pointT>>> matchedKeypointsCoords(const std::
 	bool	 notFiltered	= match_status.empty() || match_status.size() != matches.size();
 	unsigned pointsCount	= 0;
 
-	std::vector<std::vector<cv::Point_<_pointT>>> points = std::vector<std::vector<cv::Point_<_pointT>>>(2, std::vector<cv::Point_<_pointT>>(matches.size()));
+	std::vector<std::vector<cv::Point_<_pointT>>> points(2, std::vector<cv::Point_<_pointT>>(matches.size()));
 	for (int i=0, imax = matches.size(); i<imax; ++i) 
 	{
 		if ( notFiltered || match_status[i] != 0x00 )
@@ -51,59 +51,14 @@ std::vector<std::vector<cv::Point_<_pointT>>> matchedKeypointsCoords(const std::
 	return points;
 }
 
-WNDPROC subclassWindowProc = NULL;
-LRESULT CALLBACK presenterWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+inline cv::Point3f& operator/=(cv::Point3f &pt, int d) 
 {
-	switch(message)
-	{
-	case WM_DESTROY:
-		if (subclassWindowProc != NULL) 
-			SetWindowLong(hWnd, GWL_WNDPROC, (LONG)subclassWindowProc);
-		PostQuitMessage(0);
-		return 0;
-	}
+	pt.x /= d;
+	pt.y /= d;
+	pt.z /= d;
 
-	return subclassWindowProc != NULL 
-		? subclassWindowProc(hWnd, message, wParam, lParam) 
-		: DefWindowProc(hWnd, message, wParam, lParam);
-}
-DWORD _stdcall presenterThreadFunc(LPVOID threadParameter)
-{
-	std::string windowName = "Keypoint presenter window";
-
-	cv::Mat *pmat = static_cast<cv::Mat*>(threadParameter);
-	cv::imshow(windowName, *pmat);
-
-	HWND hwnd			= static_cast<HWND>(cvGetWindowHandle(windowName.c_str()));
-	subclassWindowProc	= (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)presenterWindowProc);
-	
-	// Code should be run at window creation time, which is impossible at the current situation
-	//SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_MAXIMIZEBOX);
-	//SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_DRAWFRAME);
-
-	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
-	return msg.wParam;
-}
-
-//void SubPixelExtimation(const cv::Mat &src, std::vector<cv::KeyPoint> &keypoints, cv::Size winSize, cv::Size zeroSize = cv::Size(-1, -1), 
-//						cv::TermCriteria criteria = cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 1e-03))
-//{
-//	CV_Assert(imp::isGraymap(src));
-//
-//	if (keypoints.empty()) return;
-//
-//	std::vector<cv::Point2f> corners(keypoints.size());
-//
-//	cv::KeyPoint* keypoint = &keypoints[0];
-//	cv::Point2f*  corner   = &corners[0];
-//
-//
-//}
+	return pt;
+} 
 
 bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputArray R2, cv::OutputArray t1, cv::OutputArray t2)
 {
@@ -138,7 +93,43 @@ bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputA
 }
 inline bool isCoherent(const cv::Mat &R)
 {
-	return std::abs(cv::determinant(R)) - 1 < 1e-07;
+	return std::abs(cv::determinant(R)) - 1.0 < 1e-07;
+}
+
+// Some presenter window supporting code is below
+WNDPROC subclassWindowProc = NULL;
+LRESULT CALLBACK presenterWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch(message)
+	{
+	case WM_DESTROY:
+		if (subclassWindowProc != NULL) 
+			SetWindowLong(hWnd, GWL_WNDPROC, (LONG)subclassWindowProc);
+		PostQuitMessage(0);
+		return 0;
+	}
+
+	return subclassWindowProc != NULL 
+		? subclassWindowProc(hWnd, message, wParam, lParam) 
+		: DefWindowProc(hWnd, message, wParam, lParam);
+}
+DWORD _stdcall presenterThreadFunc(LPVOID threadParameter)
+{
+	std::string windowName = "Keypoint presenter window";
+
+	cv::Mat *pmat = static_cast<cv::Mat*>(threadParameter);
+	cv::imshow(windowName, *pmat);
+
+	HWND hwnd			= static_cast<HWND>(cvGetWindowHandle(windowName.c_str()));
+	subclassWindowProc	= (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)presenterWindowProc);
+	
+	MSG msg;
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	return msg.wParam;
 }
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -249,10 +240,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		//goto SHOW;
 		
 		//// Step 3: Essential matrix estimation (with intermediate data conversion)
-		std::vector<std::vector<cv::Point2d>> points = matchedKeypointsCoords<double>(_keypoints, _matches);
+		std::vector<std::vector<cv::Point2d>> points_matched = matchedKeypointsCoords<double>(_keypoints, _matches);
 
 		double _val_max;
-		cv::minMaxIdx(points[0], NULL, &_val_max);
+		cv::minMaxIdx(points_matched[0], NULL, &_val_max);
 
 		double fx = static_cast<double>(std::max(pairSize.width, pairSize.height));
 		intrinsics.at<double>(0,0) *= fx;
@@ -260,8 +251,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		intrinsics.at<double>(0,2) *= pairSize.width;
 		intrinsics.at<double>(1,2) *= pairSize.height;
 
+		intrinsics = cv::getOptimalNewCameraMatrix(intrinsics, distortion, pairSize, 0);
+		cv::undistortPoints(points_matched[0], points_matched[0], intrinsics, distortion, cv::noArray(), intrinsics);	
+		cv::undistortPoints(points_matched[1], points_matched[1], intrinsics, distortion, cv::noArray(), intrinsics);
+
 		std::vector<uchar> _match_status(_matches.size(), 0x00);
-		cv::Mat	essential = intrinsics.t() * cv::findFundamentalMat(points[0], points[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status) * intrinsics;
+		cv::Mat	essential = intrinsics.t() * cv::findFundamentalMat(points_matched[0], points_matched[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status) * intrinsics;
 
 		std::cout<<"Camera intrinsics are:"<<std::endl;
 		std::cout<<intrinsics<<std::endl<<std::endl;
@@ -275,11 +270,28 @@ int _tmain(int argc, _TCHAR* argv[])
 			retResult = -1; goto EXIT;
 		}
 
-		points = matchedKeypointsCoords<double>(_keypoints, _matches, _match_status);
-		_match_status.clear();
+		//////////////////////////////////////////////////////////////////////////////////////////////////////
+		// TODO: Filter points instead of the second matching alignment. Buggy behavior is HERE.
+		// This code part is considered to be concluded within a particular funcrion. 
+		std::vector<std::vector<cv::Point2d>> points_filtered(2, std::vector<cv::Point2d>(std::count_if(
+			_match_status.begin(), _match_status.end(), [] (uchar status) -> bool { return !!status; }))
+		);
 
-		cv::undistortPoints(points[0], points[0], intrinsics, distortion, cv::noArray(), intrinsics);	
-		cv::undistortPoints(points[1], points[1], intrinsics, distortion, cv::noArray(), intrinsics);
+		for (int v = 0; v < 2; ++v)
+		{
+			cv::Point2d *_points_src = &points_matched[v][0];
+			cv::Point2d *_points_dst = &points_filtered[v][0];
+			for (int i = 0, imax = points_matched[v].size(); i < imax; ++i)
+			{
+				if (_match_status[i]) *_points_dst++ = _points_src[i];
+			}
+		}
+		//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		// Considering the code above there is no need doing a point undistortion once more.
+		//cv::undistortPoints(points_matched[0], points_matched[0], intrinsics, distortion, cv::noArray(), intrinsics);	
+		//cv::undistortPoints(points_matched[1], points_matched[1], intrinsics, distortion, cv::noArray(), intrinsics);
+		_match_status.clear();
 
 		//// Step 4: Camera matrices estimation up to projection transformation
 		std::vector<cv::Mat_<double>> _R(2), _t(2);
@@ -293,10 +305,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		if (cv::determinant(_R[0]) + 1 < std::numeric_limits<float>::epsilon()) // det(R1) == -1
 			HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
 
+		double _ax = intrinsics.at<double>(0, 0);
+		double _ay = intrinsics.at<double>(1, 1);
 		std::vector<cv::Matx34d> camera(2, cv::Matx34d(
-				1, 0, 0, /*I|0*/ 0, 
-				0, 1, 0, /*I|0*/ 0, 
-				0, 0, 1, /*I|0*/ 0
+				_ax, 0.0, 0.0, /*I|0*/ 0.0, 
+				0.0, _ay, 0.0, /*I|0*/ 0.0, 
+				0.0, 0.0, 1.0, /*I|0*/ 0.0
 			));
 
 		cv::Mat opencvCloud;
@@ -309,18 +323,18 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			for (int t = 0; t < 2; ++t)
 			{
-				cv::Matx34d P_ = cv::Matx34d(
+				cv::Mat _P = intrinsics * cv::Mat(cv::Matx34d(
 						R(0,0), R(0,1), R(0,2), _t[t](0),
 						R(1,0), R(1,1), R(1,2), _t[t](1),
 						R(2,0), R(2,1), R(2,2), _t[t](2)
-					);
+					));
 
 				cv::Mat spaceHomogeneous;
-				cv::triangulatePoints(camera[0], P_, points[0], points[1], spaceHomogeneous);
+				cv::triangulatePoints(camera[0], _P, points_filtered[0], points_filtered[1], spaceHomogeneous);
 
-				spaceHomogeneous = spaceHomogeneous.reshape(4, points[0].size());
+				spaceHomogeneous = spaceHomogeneous.reshape(4, points_filtered[0].size());
 				cv::Mat spaceEuclidianProjected, spaceEuclidian(spaceHomogeneous.rows, 1, CV_64FC3);
-				for (int i = 0, imax = points[0].size(); i < imax; ++i)
+				for (int i = 0, imax = points_filtered[0].size(); i < imax; ++i)
 				{
 					cv::Vec4d point4d = spaceHomogeneous.at<cv::Vec4d>(i);
 					double scale = point4d[3] != 0 ? 1 / point4d[3] : std::numeric_limits<double>::infinity();
@@ -332,7 +346,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 
 				cv::Mat p(cv::Matx44d::eye());
-				cv::Mat(P_).copyTo(p(cv::Rect(0,0,4,3)));
+				cv::Mat(_P).copyTo(p(cv::Rect(0,0,4,3)));
 				cv::perspectiveTransform(spaceEuclidian, spaceEuclidianProjected, p);
 
 				unsigned frontalCount = 0;
@@ -345,7 +359,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				{
 					maxFrontalPercentage = frontalPercentage;
 					
-					camera[1] = P_;
+					camera[1] = _P;
 					spaceEuclidian.convertTo(opencvCloud, CV_32F);
 				}
 			}
@@ -356,28 +370,45 @@ int _tmain(int argc, _TCHAR* argv[])
 		// Step 6: Model graph visualization
 		if (!opencvCloud.empty())
 		{
-			boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D model vertex cloud"));
-			boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>	 cloud (new pcl::PointCloud<pcl::PointXYZ>(opencvCloud.cols, opencvCloud.rows, pcl::PointXYZ()));
+			boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>> cloud (
+					new pcl::PointCloud<pcl::PointXYZ>(opencvCloud.cols, opencvCloud.rows, pcl::PointXYZ())
+				);
 
-			size_t	channels  = opencvCloud.channels(), 
-					elem_size = opencvCloud.elemSize();
+			cv::Point3f average_point;
 			for (int r = 0; r < opencvCloud.rows; ++r)
 			{
-				float* row = opencvCloud.ptr<float>(r);
+				cv::Point3f* row = opencvCloud.ptr<cv::Point3f>(r);
 				for (int c = 0; c < opencvCloud.cols; ++c)
-					memcpy((*cloud)(c, r).data, row + c * channels, elem_size);
+				{
+					memcpy((*cloud)(c, r).data, row + c, sizeof(cv::Point3f));
+					average_point += *row;
+					// DEBUG
+					printf_s("{%3.2f;%3.2f;%3.2f} => {%3.2f;%3.2f;%3.2f}\n",
+							row[c].x, row[c].y, row[c].z, (*cloud)(c, r).x, (*cloud)(c, r).y, (*cloud)(c, r).z);
+					// DEBUG end
+				}
 			}
-
-			viewer->setBackgroundColor (0, 0, 0);
+			average_point /= opencvCloud.size().area();
+			
+			boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(
+					new pcl::visualization::PCLVisualizer("3D model vertex cloud")
+				);
+			
 			viewer->addPointCloud<pcl::PointXYZ>(cloud, "object cloud");
-			viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "object cloud");
-			viewer->addCoordinateSystem (1.0);
-			viewer->initCameraParameters ();
+			viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "object cloud");
+
+			viewer->setBackgroundColor(0.275, 0.431, 0.824);
+			viewer->addCoordinateSystem(std::min(
+					std::min(std::min(std::abs(average_point.x), std::abs(average_point.y)), std::abs(average_point.z)),
+				1.0F));
+
+			double cam_shift = std::max(std::max(average_point.x, average_point.y), average_point.z) * 0.3;
+			viewer->setCameraPosition(cam_shift, cam_shift, cam_shift, 0.0, 0.0, 0.0);
 
 			while (!viewer->wasStopped())
 			{
 				viewer->spinOnce(100);
-				boost::this_thread::sleep(boost::posix_time::microseconds (100000));
+				boost::this_thread::sleep(boost::posix_time::microseconds(100000));
 			}
 		}
 		//// Step 5: Image rectification
