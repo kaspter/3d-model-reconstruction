@@ -58,7 +58,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;opencv_core244d.lib;opencv_features2d244d.lib;opencv_calib3d244d.lib;opencv_nonfree244d.lib;opencv_flann244d.lib;opencv_imgproc244d.lib;opencv_highgui244d.lib;ImageProcessor.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;opencv_core244d.lib;opencv_features2d244d.lib;opencv_calib3d244d.lib;opencv_nonfree244d.lib;opencv_flann244d.lib;opencv_imgproc244d.lib;opencv_highgui244d.lib;ImageProcessor.lib;vtksys-gd.lib;vtkCommon-gd.lib;vtkFiltering-gd.lib;pcl_common_debug.lib;pcl_visualization_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc10\lib;$(PCL_ROOT)\lib;$(BOOST_ROOT)\lib;$(VTK_DIR)\lib\vtk-5.8;$(SolutionDir)$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
