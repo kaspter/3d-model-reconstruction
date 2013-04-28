@@ -18,7 +18,9 @@
 	OutputDebugString(_debugstr);															\
 	delete[] _debugstr;																		\
 }
+
 #else
+
 #include <iostream>
 
 #define IMP_END_TIMER_SECTION(tick_var, logtext)											\
@@ -26,6 +28,7 @@
 	double elapsed_time = (double(cv::getTickCount() - tick_var) / cv::getTickFrequency());	\
 	std::cout << logtext << ": " << elapsed_time << "s." std::endl;							\
 }
+
 #endif
 
 #else

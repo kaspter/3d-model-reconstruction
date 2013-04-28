@@ -152,7 +152,7 @@ inline bool isCoherent(const cv::Mat &R)
 }
 
 template <typename _ElemT>
-void pointsFromHomogeneous(cv::InputArray src, cv::OutputArray dst)
+void pointsFromHomogenous(cv::InputArray src, cv::OutputArray dst)
 {
 	if (src.empty()) return;
 
@@ -305,33 +305,34 @@ int _tmain(int argc, _TCHAR* argv[])
 			&& cv::initModule_features2d()))
 		{
 			std::cerr << "Failed to init Non-Free & Features2d modules" << std::endl; 
-			goto EXIT;
+			retResult = -1; goto EXIT;
 		}
 
 		if (!imp::initModule())
 		{
 			std::cerr << "Failed to init ImageProcessor module" << std::endl; 
-			goto EXIT;
+			retResult = -1; goto EXIT;
 		}
 
 		cv::Size pairSize = images[0].size();
 		if (pairSize != images[1].size())
 		{
-			std::cerr << "Stereopair images are not equal by size! Reconstruction is impossible.";
-			goto EXIT;
+			std::cerr << "Stereopair images are not equal by size!" << std::endl;
+			retResult = -1; goto EXIT;
 		}
 
 		// TODO: Test graymap histogram
 		//std::vector<unsigned> image_histogram;
 		//imp::discreteGraymapHistogram(images[0], image_histogram);
 
-		cv::Mat	essential;
-		std::vector<std::vector<cv::Point2d>> points_matched, fundamental_inliers;
-		//// Step 1: Image pair feature detection
-		{
-			std::string tracker_name = "SIFT";
-			cv::Ptr<cv::FeatureDetector>	 detector  = cv::FeatureDetector::create("PyramidSUSAN");
-			cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create(tracker_name);
+		size_t count_matches = 0;
+		std::vector<std::vector<cv::Point2d>> points_matched;
+		//// Step 1: Image pair feature matches processing
+		std::cout << "Image pair feature tracking..." << std::endl;
+		{	
+			std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
+
+			cv::Ptr<cv::FeatureDetector> detector  = cv::FeatureDetector::create("PyramidSUSAN");
 
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 5);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 10.89);
@@ -339,38 +340,47 @@ int _tmain(int argc, _TCHAR* argv[])
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 16;
 
-			std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
+			double process_time;
 			IMP_BEGIN_TIMER_SECTION(timer)
-				detector->detect(images, _keypoints);	
-			IMP_END_TIMER_SECTION(timer, "SUSAN coped in: ")
-			detector.release();
+			detector->detect(images, _keypoints);	
+			IMP_END_TIMER_SECTION(timer, process_time);
 
 			cv::KeyPointsFilter::removeDuplicated(_keypoints[0]);
 			cv::KeyPointsFilter::removeDuplicated(_keypoints[1]);
 
+
 			std::vector<cv::Mat> _descriptors(2);
+
+			cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create("SIFT");
 			extractor->compute(images, _keypoints, _descriptors);
 
-		//// Step 2: Image features correspondence tracking
-			std::string matcher_name = "FlannBased";
-			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(matcher_name);
-
 			std::vector<cv::DMatch> _matches;
+			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce");
 			matcher->match(_descriptors[0],_descriptors[1], _matches);
-			matcher.release();
 
-			/////////////////////////////////////////////////////////////////////////////////////////////////////
-			// Matched points visualization
-			{
-				cv::Mat output;
-				cv::drawMatches(*files[0],_keypoints[0], *files[1],_keypoints[1], _matches, output);
-				threadPresenter[0] = CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(output), 0x00, NULL);
-			}
-			/////////////////////////////////////////////////////////////////////////////////////////////////////
-		
-		//// Step 3: Essential matrix estimation (with intermediate data conversion)
+			count_matches  = _matches.size();
 			points_matched = matchedKeypointsCoords<double>(_keypoints, _matches);
 
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
+			std::cout << reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel 
+				<< "-layer pyramid adapted SUSAN coped in: " << process_time << "s." << std::endl;
+			std::cout << "Image " << files[0].name() << ": " << _keypoints[0].size() << " features." << std::endl;
+			std::cout << "Image " << files[1].name() << ": " << _keypoints[1].size() << " features." << std::endl;
+			std::cout << "With a total of " << _matches.size() << " matches" << std::endl;
+
+			// Matched points visualization
+			cv::Mat output;
+			cv::drawMatches(*files[0],_keypoints[0], *files[1],_keypoints[1], _matches, output);
+			threadPresenter[0] = CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(output), 0x00, NULL);
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
+		}
+		std::cout << std::endl; 
+
+		cv::Mat	essential;
+		std::vector<std::vector<cv::Point2d>> fundamental_inliers;
+		//// Step 2: Essential matrix estimation (with intermediate data conversion)
+		std::cout << "Essential matrix estimaiton..." << std::endl;
+		{
 			double _val_max;
 			cv::minMaxIdx(points_matched[0], NULL, &_val_max);
 
@@ -384,16 +394,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			cv::undistortPoints(points_matched[0], points_matched[0], intrinsics, distortion, cv::noArray(), intrinsics);	
 			cv::undistortPoints(points_matched[1], points_matched[1], intrinsics, distortion, cv::noArray(), intrinsics);
 
-			std::vector<uchar> _match_status(_matches.size(), 0x00);
+			std::vector<uchar> _match_status(count_matches, 0x00);
 			essential = intrinsics.t() * cv::findFundamentalMat(
 				points_matched[0], points_matched[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status
 			) * intrinsics;
-
-			std::cout<<"Camera intrinsics are:"<<std::endl;
-			std::cout<<intrinsics<<std::endl<<std::endl;
-
-			std::cout<<"Essential matrix:"<<std::endl;
-			std::cout<<essential<<std::endl;
 
 			if (!(std::abs(cv::determinant(essential)) < std::numeric_limits<float>::epsilon()))
 			{
@@ -401,10 +405,30 @@ int _tmain(int argc, _TCHAR* argv[])
 				retResult = -1; goto EXIT;
 			}
 			fundamental_inliers = filterPointsByStatus(points_matched, _match_status);
-		}
+			
+			double _inliers_percentage = 100.0 * fundamental_inliers[0].size() / count_matches;
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
+			std::cout<<"Camera intrinsics are:"<<std::endl;
+			std::cout<<intrinsics<<std::endl<<std::endl;
 
-		//// Step 4: Camera matrices estimation up to projection transformation
+			std::cout<<"Essential matrix:"<<std::endl;
+			std::cout<<essential<<std::endl;
+
+			std::cout << "A total number of matched inliers: " << fundamental_inliers[0].size() 
+				<< " (" << _inliers_percentage << "%)." << std::endl;
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if (_inliers_percentage < 65.0)
+			{
+				std::cerr << "Too big losses of points-data detected." << std::endl;
+				retResult = -1; goto EXIT;
+			}
+		}
+		std::cout << std::endl;
+
 		cv::Mat opencvCloud;
+		//// Step 4: Camera matrices estimation up to projection transformation
+		std::cout << "Camera matrices estimation..." << std::endl;
 		{
 			std::vector<cv::Mat_<double>> _R(2), _t(2);
 
@@ -421,8 +445,10 @@ int _tmain(int argc, _TCHAR* argv[])
 			intrinsics.copyTo(camera_canonical(cv::Rect(cv::Point(), intrinsics.size())));
 			std::vector<cv::Matx34d> camera(2, camera_canonical);
 		
-			cv::Mat spaceHomogeneous, spaceEuclidian;
+			std::cout << "Robust reconstruction estimation:" << std::endl;
+			cv::Mat spaceHomogenous, spaceEuclidian;
 
+			double minReprojectionError = std::numeric_limits<double>::max(); 
 			double maxFrontalPercentage = 0;
 			for (int r = 0; r < 2; ++r)
 			{
@@ -437,38 +463,62 @@ int _tmain(int argc, _TCHAR* argv[])
 							R(2,0), R(2,1), R(2,2), _t[t](2)
 						));
 
-					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
-					pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
+					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogenous);
+					pointsFromHomogenous<double>(spaceHomogenous, spaceEuclidian);
 
 					cv::Mat p(cv::Matx44d::eye());
 					cv::Mat(_P).copyTo(p(cv::Rect(cv::Point(), _P.size())));
 					cv::Mat spaceEuclidianProjected;
 					cv::perspectiveTransform(spaceEuclidian, spaceEuclidianProjected, p);
 
-					unsigned frontalCount = 0;
+					double errorReprojected	 = 0.0;
+					double frontalPercentage = 0.0;
 					for (int i = 0; i < spaceEuclidianProjected.rows; ++i)
 					{
-						if (spaceEuclidianProjected.at<cv::Point3d>(i).z > 0) frontalCount++;
+						cv::Point3d point_reprojected = spaceEuclidianProjected.at<cv::Point3d>(i);
+						if (point_reprojected.z > 0) frontalPercentage++;
+
+						errorReprojected += cv::norm(cv::Point2d(
+							point_reprojected.x / point_reprojected.z, 
+							point_reprojected.y / point_reprojected.z)
+						- fundamental_inliers[1][i]);
 					}
-					double frontalPercentage = 100.0 * frontalCount / spaceEuclidianProjected.rows;
-					if (frontalPercentage > maxFrontalPercentage)
+
+					errorReprojected /= spaceEuclidianProjected.rows;
+					frontalPercentage = 100.0 * frontalPercentage / spaceEuclidianProjected.rows;
+
+					std::cout << "Frontal percentage/Reprojection error: " 
+						<< frontalPercentage << "/" << errorReprojected << ". ";
+
+					if (errorReprojected < minReprojectionError 
+						&& (errorReprojected / minReprojectionError 
+							>= (maxFrontalPercentage - frontalPercentage) / frontalPercentage))
 					{
-						maxFrontalPercentage = frontalPercentage;	
-						camera[1] = _P; // "Precious" Camera
+						std::cout << (maxFrontalPercentage == 0.0 ? "Satisfy" : "Overrides") << "!";
+						maxFrontalPercentage = frontalPercentage;
+
+						spaceEuclidian.convertTo(opencvCloud, CV_32F);
+						camera[1] = _P; // "Precious" right Camera
 					}
+					std::cout << std::endl;
 				}
 			}
 
-			cv::triangulatePoints(camera[0], camera[1], points_matched[0], points_matched[1], spaceHomogeneous);
-			pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
-			spaceEuclidian.convertTo(opencvCloud, CV_32F);
+			if (opencvCloud.empty())
+			{
+				std::cerr << "Failed due to rotation matrices incoherence." << std::endl;
+				retResult = -1; goto EXIT;
+			}
 
-			std::cout << std::endl;
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
+			std::cout << "Left camera matrix:  " << camera[0] << std::endl;
+			std::cout << "Right camera matrix: " << camera[1] << std::endl;
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
+		std::cout << std::endl;
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Model graph visualization
-		if (!opencvCloud.empty())
 		{
 			_ASSERT( opencvCloud.size().area() == points_matched[0].size() 
 				&& opencvCloud.size().area() == points_matched[1].size() );
@@ -493,10 +543,10 @@ int _tmain(int argc, _TCHAR* argv[])
 					rgb_source[0] = files[0]->ptr<uchar>(imp::round(points[0][index_linear].y), imp::round(points[0][index_linear].x));
 					rgb_source[1] = files[1]->ptr<uchar>(imp::round(points[1][index_linear].y), imp::round(points[1][index_linear].x)); 
 
-					point.b = (rgb_source[0][0] + rgb_source[1][0]) >> 1;
-					point.g = (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
-					point.r = (rgb_source[0][2] + rgb_source[1][2]) >> 1;
-					point.a = 0xFF;
+					point.rgba	= 0xFF000000;
+					point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
+					point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
+					point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
 				}
 			}
 			threadPresenter[1] = CreateThread(NULL, 0, cloudPresenterThreadFunc, cloud, 0x00, NULL);
@@ -504,13 +554,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 
-	WaitForMultipleObjects(_countof(threadPresenter), threadPresenter, TRUE, INFINITE);
-
 EXIT:
+	WaitForMultipleObjects(_countof(threadPresenter), threadPresenter, TRUE, INFINITE);
 	for (int i = 0; i < _countof(threadPresenter); ++i) CloseHandle(threadPresenter[i]);
 
-	std::cout << "Hit any key to exit...";
+	std::cout << std::endl << "Reconstruction " << ((!!retResult) ? "is aborted" : "complete") << "! Hit any key to exit...";
 	_gettchar();
+
 	return retResult;
 }
 

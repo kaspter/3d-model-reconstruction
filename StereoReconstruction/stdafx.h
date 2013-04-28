@@ -37,5 +37,4 @@
 #include "imp_init.h"
 #include "imp_susan.h"
 
-#define  IMP_MACROS_EXTENDED
 #include "imp_extension.h"
