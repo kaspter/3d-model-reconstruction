@@ -5,12 +5,6 @@
 
 #pragma once
 
-#pragma comment(lib, "vtksys-gd.lib")
-#pragma comment(lib, "vtkCommon-gd.lib")
-#pragma comment(lib, "vtkFiltering-gd.lib")
-#pragma comment(lib, "pcl_common_debug.lib")
-#pragma comment(lib, "pcl_visualization_debug.lib")
-
 #include "targetver.h"
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
