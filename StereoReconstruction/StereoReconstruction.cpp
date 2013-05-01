@@ -152,7 +152,7 @@ inline bool isCoherent(const cv::Mat &R)
 }
 
 template <typename _ElemT>
-void pointsFromHomogenous(cv::InputArray src, cv::OutputArray dst)
+void pointsFromHomogeneous(cv::InputArray src, cv::OutputArray dst)
 {
 	if (src.empty()) return;
 
@@ -205,14 +205,40 @@ DWORD CALLBACK matchPresenterThreadFunc(LPVOID threadParameter)
 
 	std::string windowName = "Keypoint presenter window";
 
+	HWND hwnd = NULL;
 	{ // Delete image in memory as soon as possible
 		boost::shared_ptr<cv::Mat> image(static_cast<cv::Mat*>(threadParameter));
+
+		cv::namedWindow(windowName);
+
+		hwnd = static_cast<HWND>(cvGetWindowHandle(windowName.c_str()));
+		if (hwnd == NULL)
+		{
+			MessageBox(GetConsoleWindow(), _T("Cannot start presenter window!"), _T("Error"), MB_OK | MB_ICONWARNING);
+			return -1;
+		}
+
+		subclassWindowProc	= (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)matchPresenterWindowProc);
+
+		HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+		MONITORINFO mi; mi.cbSize = sizeof(mi);
+		if (GetMonitorInfo(monitor, &mi))
+		{
+			SIZE workAreaSize = { std::abs(mi.rcWork.right - mi.rcWork.left) * 0.8, std::abs(mi.rcWork.bottom - mi.rcWork.top) * 0.8 };
+			if (image->cols > workAreaSize.cx || image->rows > workAreaSize.cy)
+			{
+				cv::Size newImageSize = image->cols > image->rows 
+					? cv::Size(workAreaSize.cy * (image->cols / image->rows), workAreaSize.cy)
+					: cv::Size(workAreaSize.cx, workAreaSize.cx * (image->rows / image->cols));
+
+				cv::resize(*image, *image, newImageSize, 0, 0, cv::INTER_CUBIC);
+			}
+		}
+
 		cv::imshow(windowName, *image);
 	}
 
-	HWND hwnd			= static_cast<HWND>(cvGetWindowHandle(windowName.c_str()));
-	subclassWindowProc	= (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)matchPresenterWindowProc);
-	
+
 	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
@@ -236,8 +262,8 @@ DWORD CALLBACK cloudPresenterThreadFunc(LPVOID threadParameter)
 		viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2.3, "object cloud");
 	}
 
-	viewer->setBackgroundColor(0.275, 0.431, 0.824);
-	viewer->addCoordinateSystem(1.0F);
+	viewer->setBackgroundColor(0.231, 0.231, 0.231);
+	viewer->addCoordinateSystem(0.15F);
 	viewer->initCameraParameters();
 
 	while (!viewer->wasStopped())
@@ -334,11 +360,11 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			cv::Ptr<cv::FeatureDetector> detector  = cv::FeatureDetector::create("PyramidSUSAN");
 
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 5);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 10.89);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 55.50);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 6);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 33.75);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 112.50);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 16;
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 6;
 
 			double process_time;
 			IMP_BEGIN_TIMER_SECTION(timer)
@@ -348,14 +374,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			cv::KeyPointsFilter::removeDuplicated(_keypoints[0]);
 			cv::KeyPointsFilter::removeDuplicated(_keypoints[1]);
 
-
 			std::vector<cv::Mat> _descriptors(2);
 
 			cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create("SIFT");
 			extractor->compute(images, _keypoints, _descriptors);
 
 			std::vector<cv::DMatch> _matches;
-			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce");
+			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("FlannBased");
 			matcher->match(_descriptors[0],_descriptors[1], _matches);
 
 			count_matches  = _matches.size();
@@ -390,7 +415,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			intrinsics.at<double>(0,2) *= pairSize.width;
 			intrinsics.at<double>(1,2) *= pairSize.height;
 
-			intrinsics = cv::getOptimalNewCameraMatrix(intrinsics, distortion, pairSize, 0);
+			//intrinsics = cv::getOptimalNewCameraMatrix(intrinsics, distortion, pairSize, 0);
 			cv::undistortPoints(points_matched[0], points_matched[0], intrinsics, distortion, cv::noArray(), intrinsics);	
 			cv::undistortPoints(points_matched[1], points_matched[1], intrinsics, distortion, cv::noArray(), intrinsics);
 
@@ -406,6 +431,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			}
 			fundamental_inliers = filterPointsByStatus(points_matched, _match_status);
 			
+			//cv::correctMatches(essential, fundamental_inliers[0], fundamental_inliers[1], fundamental_inliers[0], fundamental_inliers[1]);
+
 			double _inliers_percentage = 100.0 * fundamental_inliers[0].size() / count_matches;
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 			std::cout<<"Camera intrinsics are:"<<std::endl;
@@ -417,12 +444,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			std::cout << "A total number of matched inliers: " << fundamental_inliers[0].size() 
 				<< " (" << _inliers_percentage << "%)." << std::endl;
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			if (_inliers_percentage < 65.0)
-			{
-				std::cerr << "Too big losses of points-data detected." << std::endl;
-				retResult = -1; goto EXIT;
-			}
 		}
 		std::cout << std::endl;
 
@@ -434,7 +455,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			if (!HZEssentialDecomposition(essential, _R[0], _R[1], _t[0], _t[1]))
 			{
-				std::cerr << "Singular values are too far apart." << std::endl;
+				std::cerr << "Essential matrix singular values are too far apart." << std::endl;
 				retResult = -1; goto EXIT;
 			}
 
@@ -446,7 +467,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			std::vector<cv::Matx34d> camera(2, camera_canonical);
 		
 			std::cout << "Robust reconstruction estimation:" << std::endl;
-			cv::Mat spaceHomogenous, spaceEuclidian;
+			cv::Mat spaceHomogeneous, spaceEuclidian;
 
 			double minReprojectionError = std::numeric_limits<double>::max(); 
 			double maxFrontalPercentage = 0;
@@ -463,19 +484,19 @@ int _tmain(int argc, _TCHAR* argv[])
 							R(2,0), R(2,1), R(2,2), _t[t](2)
 						));
 
-					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogenous);
-					pointsFromHomogenous<double>(spaceHomogenous, spaceEuclidian);
+					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
+					pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
 
 					cv::Mat p(cv::Matx44d::eye());
 					cv::Mat(_P).copyTo(p(cv::Rect(cv::Point(), _P.size())));
-					cv::Mat spaceEuclidianProjected;
-					cv::perspectiveTransform(spaceEuclidian, spaceEuclidianProjected, p);
+					cv::Mat spaceEuclidianReprojected;
+					cv::perspectiveTransform(spaceEuclidian, spaceEuclidianReprojected, p);
 
 					double errorReprojected	 = 0.0;
 					double frontalPercentage = 0.0;
-					for (int i = 0; i < spaceEuclidianProjected.rows; ++i)
+					for (int i = 0; i < spaceEuclidianReprojected.rows; ++i)
 					{
-						cv::Point3d point_reprojected = spaceEuclidianProjected.at<cv::Point3d>(i);
+						cv::Point3d point_reprojected = spaceEuclidianReprojected.at<cv::Point3d>(i);
 						if (point_reprojected.z > 0) frontalPercentage++;
 
 						errorReprojected += cv::norm(cv::Point2d(
@@ -484,8 +505,8 @@ int _tmain(int argc, _TCHAR* argv[])
 						- fundamental_inliers[1][i]);
 					}
 
-					errorReprojected /= spaceEuclidianProjected.rows;
-					frontalPercentage = 100.0 * frontalPercentage / spaceEuclidianProjected.rows;
+					errorReprojected /= spaceEuclidianReprojected.rows;
+					frontalPercentage = 100.0 * frontalPercentage / spaceEuclidianReprojected.rows;
 
 					std::cout << "Frontal percentage/Reprojection error: " 
 						<< frontalPercentage << "/" << errorReprojected << ". ";
@@ -499,17 +520,24 @@ int _tmain(int argc, _TCHAR* argv[])
 
 						spaceEuclidian.convertTo(opencvCloud, CV_32F);
 						camera[1] = _P; // "Precious" right Camera
+
+						if (frontalPercentage == 100.0) 
+						{
+							std::cout << " (Best fit break!)" << std::endl;
+							goto BEST_FIT_BREAK;
+						}
 					}
 					std::cout << std::endl;
 				}
 			}
-
+			
 			if (opencvCloud.empty())
 			{
 				std::cerr << "Failed due to rotation matrices incoherence." << std::endl;
 				retResult = -1; goto EXIT;
 			}
 
+			BEST_FIT_BREAK:
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 			std::cout << "Left camera matrix:  " << camera[0] << std::endl;
 			std::cout << "Right camera matrix: " << camera[1] << std::endl;
@@ -520,15 +548,15 @@ int _tmain(int argc, _TCHAR* argv[])
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Model graph visualization
 		{
-			_ASSERT( opencvCloud.size().area() == points_matched[0].size() 
-				&& opencvCloud.size().area() == points_matched[1].size() );
+			_ASSERT( opencvCloud.size().area() == fundamental_inliers[0].size() 
+				&& opencvCloud.size().area() == fundamental_inliers[1].size() );
 
 			pcl::PointCloud<pcl::PointXYZRGB> *cloud 
 				= new pcl::PointCloud<pcl::PointXYZRGB>(opencvCloud.cols, opencvCloud.rows, pcl::PointXYZRGB());
 
 			if (opencvCloud.rows > opencvCloud.cols) opencvCloud = opencvCloud.t();
 
-			cv::Point2d *points[] = { &points_matched[0][0], &points_matched[1][0] };
+			cv::Point2d *points[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
 			
 			const uchar *rgb_source[2] = { NULL }; 
 			for (int r = 0; r < opencvCloud.rows; ++r)
@@ -543,6 +571,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					rgb_source[0] = files[0]->ptr<uchar>(imp::round(points[0][index_linear].y), imp::round(points[0][index_linear].x));
 					rgb_source[1] = files[1]->ptr<uchar>(imp::round(points[1][index_linear].y), imp::round(points[1][index_linear].x)); 
 
+					// TODO: Fix color extraction, because it works improperly.
 					point.rgba	= 0xFF000000;
 					point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
 					point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
