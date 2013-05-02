@@ -63,24 +63,29 @@ std::vector<std::vector<cv::Point_<_Vt>>> matchedKeypointsCoords(const std::vect
 	CV_Assert( keypoints.size() == 2 && (_match_status == NULL || match_status.size() == matches.size()) );
 	const cv::KeyPoint *_points_src[] = { &keypoints[0][0], &keypoints[1][0] };
 	
-	std::vector<std::vector<cv::Point_<_Vt>>> fundamental_inliers(2, std::vector<cv::Point_<_Vt>>(_match_status == NULL 
-		? matches.size() : std::count_if(match_status.begin(), match_status.end(), validator<uchar, NOT_EQUAL>(0x00))));
-	cv::Point_<_Vt>	*_points_dst[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
+	size_t inliers_count = _match_status == NULL ? matches.size() 
+		: std::count_if(match_status.begin(), match_status.end(), validator<uchar, NOT_EQUAL>(0x00));
+	std::vector<std::vector<cv::Point_<_Vt>>> fundamental_inliers(2, std::vector<cv::Point_<_Vt>>(inliers_count));
 
-	size_t current = 0;
-	for (size_t i=0, imax = matches.size(); i<imax; ++i) 
+	if (inliers_count != 0)
 	{
-		if ( _match_status == NULL || _match_status[i] != 0x00 )
-		{
-			const cv::DMatch &match = matches[i];
-			_points_dst[0][current] = cv::Point_<_Vt>(_points_src[0][match.queryIdx].pt.x, _points_src[0][match.queryIdx].pt.y);
-			_points_dst[1][current] = cv::Point_<_Vt>(_points_src[1][match.trainIdx].pt.x, _points_src[1][match.trainIdx].pt.y);
-			++current;
-		}
-	}
+		cv::Point_<_Vt>	*_points_dst[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
 
-	fundamental_inliers[0].shrink_to_fit();
-	fundamental_inliers[1].shrink_to_fit();
+		size_t current = 0;
+		for (size_t i=0, imax = matches.size(); i<imax; ++i) 
+		{
+			if ( _match_status == NULL || _match_status[i] != 0x00 )
+			{
+				const cv::DMatch &match = matches[i];
+				_points_dst[0][current] = cv::Point_<_Vt>(_points_src[0][match.queryIdx].pt.x, _points_src[0][match.queryIdx].pt.y);
+				_points_dst[1][current] = cv::Point_<_Vt>(_points_src[1][match.trainIdx].pt.x, _points_src[1][match.trainIdx].pt.y);
+				++current;
+			}
+		}
+
+		fundamental_inliers[0].shrink_to_fit();
+		fundamental_inliers[1].shrink_to_fit();
+	}
 
 	return fundamental_inliers;
 }
@@ -94,23 +99,27 @@ std::vector<std::vector<cv::Point_<_Vt>>> filterPointsByStatus(
 	const uchar				*_status	   =   &status[0];
 	const cv::Point_<_Vt>	*_points_src[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
 
-	std::vector<std::vector<cv::Point_<_Vt>>> points_filtered(2, std::vector<cv::Point_<_Vt>>(
-		std::count_if(status.begin(), status.end(), validator<uchar, NOT_EQUAL>(0x00))));
-	cv::Point_<_Vt>	*_points_dst[] = { &points_filtered[0][0], &points_filtered[1][0] };
-
-	size_t current = 0;
-	for (int i = 0, imax = status.size(); i < imax; ++i)
+	size_t inliers_count = std::count_if(status.begin(), status.end(), validator<uchar, NOT_EQUAL>(0x00));
+	std::vector<std::vector<cv::Point_<_Vt>>> points_filtered(2, std::vector<cv::Point_<_Vt>>(inliers_count));
+	
+	if (inliers_count != 0)
 	{
-		if (_status[i]) 
-		{
-			_points_dst[0][current] = _points_src[0][i];
-			_points_dst[1][current] = _points_src[1][i];
-			++current;
-		}
-	}
+		cv::Point_<_Vt>	*_points_dst[] = { &points_filtered[0][0], &points_filtered[1][0] };
 
-	points_filtered[0].shrink_to_fit();
-	points_filtered[1].shrink_to_fit();
+		size_t current = 0;
+		for (int i = 0, imax = status.size(); i < imax; ++i)
+		{
+			if (_status[i]) 
+			{
+				_points_dst[0][current] = _points_src[0][i];
+				_points_dst[1][current] = _points_src[1][i];
+				++current;
+			}
+		}
+
+		points_filtered[0].shrink_to_fit();
+		points_filtered[1].shrink_to_fit();
+	}
 
 	return points_filtered;
 }
@@ -361,8 +370,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			cv::Ptr<cv::FeatureDetector> detector  = cv::FeatureDetector::create("PyramidSUSAN");
 
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 6);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 33.75);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 112.50);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 17.75);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 85.50);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 6;
 
@@ -530,7 +539,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					std::cout << std::endl;
 				}
 			}
-			
+
 			if (opencvCloud.empty())
 			{
 				std::cerr << "Failed due to rotation matrices incoherence." << std::endl;
@@ -567,15 +576,15 @@ int _tmain(int argc, _TCHAR* argv[])
 					pcl::PointXYZRGB &point = (*cloud)(c, r);
 					memcpy(point.data, row + c, sizeof(cv::Point3f));
 
-					size_t index_linear = r * opencvCloud.cols + c;
-					rgb_source[0] = files[0]->ptr<uchar>(imp::round(points[0][index_linear].y), imp::round(points[0][index_linear].x));
-					rgb_source[1] = files[1]->ptr<uchar>(imp::round(points[1][index_linear].y), imp::round(points[1][index_linear].x)); 
-
 					// TODO: Fix color extraction, because it works improperly.
-					point.rgba	= 0xFF000000;
-					point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
-					point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
-					point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
+					//size_t index_linear = r * opencvCloud.cols + c;
+					//rgb_source[0] = files[0]->ptr<uchar>(imp::round(points[0][index_linear].y), imp::round(points[0][index_linear].x));
+					//rgb_source[1] = files[1]->ptr<uchar>(imp::round(points[1][index_linear].y), imp::round(points[1][index_linear].x)); 
+
+					//point.rgba	= 0xFF000000;
+					//point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
+					//point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
+					//point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
 				}
 			}
 			threadPresenter[1] = CreateThread(NULL, 0, cloudPresenterThreadFunc, cloud, 0x00, NULL);
