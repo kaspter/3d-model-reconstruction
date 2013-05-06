@@ -237,8 +237,8 @@ DWORD CALLBACK matchPresenterThreadFunc(LPVOID threadParameter)
 			if (image->cols > workAreaSize.cx || image->rows > workAreaSize.cy)
 			{
 				cv::Size newImageSize = image->cols > image->rows 
-					? cv::Size(workAreaSize.cy * (image->cols / image->rows), workAreaSize.cy)
-					: cv::Size(workAreaSize.cx, workAreaSize.cx * (image->rows / image->cols));
+					? cv::Size(workAreaSize.cx, int(imp::round(workAreaSize.cx * (double(image->rows) / image->cols))))
+					: cv::Size(int(imp::round(workAreaSize.cy * (double(image->cols) / image->rows))), workAreaSize.cy);
 
 				cv::resize(*image, *image, newImageSize, 0, 0, cv::INTER_CUBIC);
 			}
@@ -267,17 +267,18 @@ DWORD CALLBACK cloudPresenterThreadFunc(LPVOID threadParameter)
 		boost::shared_ptr<pcl::PointCloud<pcl::PointXYZRGB>> cloud(
 			static_cast<pcl::PointCloud<pcl::PointXYZRGB>*>(threadParameter));
 
-		viewer->addPointCloud<pcl::PointXYZRGB>(cloud, "object cloud"); cloud->clear();
-		viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2.3, "object cloud");
+		pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+		viewer->addPointCloud<pcl::PointXYZRGB>(cloud, rgb, "object cloud"); cloud->clear();
+		viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "object cloud");
 	}
 
 	viewer->setBackgroundColor(0.231, 0.231, 0.231);
-	viewer->addCoordinateSystem(0.15F);
+	viewer->addCoordinateSystem(0.1);
 	viewer->initCameraParameters();
 
 	while (!viewer->wasStopped())
 	{
-		viewer->spinOnce(100);
+		viewer->spinOnce(1000);
 		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
 	}
 	return 0;
@@ -289,8 +290,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cv::CommandLineParser arguments(argc, argv, "{l|left||}{r|right||}{1|||}");
 
 	std::vector<ImageFileDescriptor> files;
-	std::vector<cv::Mat>			 images;
-	cv::Mat intrinsics, distortion;
+	cv::Mat intrinsics, intrinsics_optimal, distortion;
 
 	// Reading calibration data
 	std::string		storageName;
@@ -313,10 +313,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	// Image set preparation step
-	files.push_back(ImageFileDescriptor(arguments.get<std::string>("left")));
-	files.push_back(ImageFileDescriptor(arguments.get<std::string>("right")));
-
-	images.resize(files.size(), cv::Mat());
+	files.push_back(ImageFileDescriptor(arguments.get<std::string>("left"), cv::IMREAD_GRAYSCALE));
+	files.push_back(ImageFileDescriptor(arguments.get<std::string>("right"), cv::IMREAD_GRAYSCALE));
 
 	bool terminate = false;
 	for (int i = 0, imax = files.size(); i < imax; ++i)
@@ -328,7 +326,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			terminate = true;
 			continue;
 		}
-		cv::cvtColor(*files[i], images[i], CV_RGB2GRAY); //images.push_back(*files[i]);
 	}
 	if (terminate) { retResult = -1; goto EXIT; }
 
@@ -349,44 +346,35 @@ int _tmain(int argc, _TCHAR* argv[])
 			retResult = -1; goto EXIT;
 		}
 
-		cv::Size pairSize = images[0].size();
-		if (pairSize != images[1].size())
+		cv::Size pairSize = files[0]->size();
+		if (pairSize != files[1]->size())
 		{
-			std::cerr << "Stereopair images are not equal by size!" << std::endl;
+			std::cerr << "Stereopair *files are not equal by size!" << std::endl;
 			retResult = -1; goto EXIT;
 		}
 
 		// TODO: Test graymap histogram
 		//std::vector<unsigned> image_histogram;
-		//imp::discreteGraymapHistogram(images[0], image_histogram);
+		//imp::discreteGraymapHistogram(*files[0], image_histogram);
 
 		size_t count_matches = 0;
 		std::vector<std::vector<cv::Point2d>> points_matched;
 		//// Step 1: Image pair feature matches processing
 		std::cout << "Image pair feature tracking..." << std::endl;
 		{	
-			std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
+			std::vector<std::vector<cv::KeyPoint>>	_keypoints(2);
+			std::vector<cv::Mat>					_descriptors(2);
 
-			cv::Ptr<cv::FeatureDetector> detector  = cv::FeatureDetector::create("PyramidSUSAN");
+			cv::Ptr<cv::Feature2D> sift = cv::Feature2D::create("SIFT");
 
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 6);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 26.75);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 81.50);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 6;
+			sift->set("contrastThreshold", 0.018);
+			//sift->set("edgeThreshold", 105.6);
 
 			double process_time;
-			IMP_BEGIN_TIMER_SECTION(timer)
-			detector->detect(images, _keypoints);	
-			IMP_END_TIMER_SECTION(timer, process_time);
-
-			cv::KeyPointsFilter::removeDuplicated(_keypoints[0]);
-			cv::KeyPointsFilter::removeDuplicated(_keypoints[1]);
-
-			std::vector<cv::Mat> _descriptors(2);
-
-			cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create("SIFT");
-			extractor->compute(images, _keypoints, _descriptors);
+			IMP_BEGIN_TIMER_SECTION(tick_pin);
+			(*sift)(*files[0], cv::Mat(), _keypoints[0], _descriptors[0]);
+			(*sift)(*files[1], cv::Mat(), _keypoints[1], _descriptors[1]);
+			IMP_END_TIMER_SECTION(tick_pin, process_time);
 
 			std::vector<cv::DMatch> _matches;
 			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("FlannBased");
@@ -396,15 +384,14 @@ int _tmain(int argc, _TCHAR* argv[])
 			points_matched = matchedKeypointsCoords<double>(_keypoints, _matches);
 
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
-			std::cout << reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel 
-				<< "-layer pyramid adapted SUSAN coped in: " << process_time << "s." << std::endl;
+			std::cout << "SIFT coped in: " << process_time << "s." << std::endl;
 			std::cout << "Image " << files[0].name() << ": " << _keypoints[0].size() << " features." << std::endl;
 			std::cout << "Image " << files[1].name() << ": " << _keypoints[1].size() << " features." << std::endl;
 			std::cout << "With a total of " << _matches.size() << " matches" << std::endl;
 
 			// Matched points visualization
 			cv::Mat output;
-			cv::drawMatches(*files[0],_keypoints[0], *files[1],_keypoints[1], _matches, output);
+			cv::drawMatches(*files[0], _keypoints[0], *files[1], _keypoints[1], _matches, output);
 			threadPresenter[0] = CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(output), 0x00, NULL);
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
@@ -415,23 +402,23 @@ int _tmain(int argc, _TCHAR* argv[])
 		//// Step 2: Essential matrix estimation (with intermediate data conversion)
 		std::cout << "Essential matrix estimaiton..." << std::endl;
 		{
-			double _val_max;
-			cv::minMaxIdx(points_matched[0], NULL, &_val_max);
-
 			double fx = static_cast<double>(std::max(pairSize.width, pairSize.height));
 			intrinsics.at<double>(0,0) *= fx;
 			intrinsics.at<double>(1,1) *= fx;
 			intrinsics.at<double>(0,2) *= pairSize.width;
 			intrinsics.at<double>(1,2) *= pairSize.height;
 
-			//intrinsics = cv::getOptimalNewCameraMatrix(intrinsics, distortion, pairSize, 0);
-			cv::undistortPoints(points_matched[0], points_matched[0], intrinsics, distortion, cv::noArray(), intrinsics);	
-			cv::undistortPoints(points_matched[1], points_matched[1], intrinsics, distortion, cv::noArray(), intrinsics);
+			intrinsics_optimal = cv::getOptimalNewCameraMatrix(intrinsics, distortion, pairSize, 0);
+			cv::undistortPoints(points_matched[0], points_matched[0], intrinsics, distortion, cv::noArray(), intrinsics_optimal);	
+			cv::undistortPoints(points_matched[1], points_matched[1], intrinsics, distortion, cv::noArray(), intrinsics_optimal);
+
+			double _val_max;
+			cv::minMaxIdx(points_matched[0], NULL, &_val_max);
 
 			std::vector<uchar> _match_status(count_matches, 0x00);
-			essential = intrinsics.t() * cv::findFundamentalMat(
+			essential = intrinsics_optimal.t() * cv::findFundamentalMat(
 				points_matched[0], points_matched[1], cv::FM_RANSAC, 0.006 * _val_max, 0.99, _match_status
-			) * intrinsics;
+			) * intrinsics_optimal;
 
 			if (!(std::abs(cv::determinant(essential)) < std::numeric_limits<float>::epsilon()))
 			{
@@ -456,8 +443,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 		std::cout << std::endl;
 
-		cv::Mat opencvCloud;
-		//// Step 4: Camera matrices estimation up to projection transformation
+		cv::Mat rotation, translation;
+		//// Step 3: Camera matrices estimation up to projection transformation
 		std::cout << "Camera matrices estimation..." << std::endl;
 		{
 			std::vector<cv::Mat_<double>> _R(2), _t(2);
@@ -471,9 +458,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			if (cv::determinant(_R[0]) + 1 < std::numeric_limits<float>::epsilon()) // det(R1) == -1
 				HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
 
-			cv::Mat camera_canonical(cv::Matx34d::eye());
-			intrinsics.copyTo(camera_canonical(cv::Rect(cv::Point(), intrinsics.size())));
-			std::vector<cv::Matx34d> camera(2, camera_canonical);
+			cv::Mat _camera_right, _camera_left(cv::Matx34d::eye());
+			intrinsics_optimal.copyTo(_camera_left(cv::Rect(cv::Point(), intrinsics_optimal.size())));
 		
 			std::cout << "Robust reconstruction estimation:" << std::endl;
 			cv::Mat spaceHomogeneous, spaceEuclidian;
@@ -487,13 +473,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
 				for (int t = 0; t < 2; ++t)
 				{
-					cv::Mat _P = intrinsics * cv::Mat(cv::Matx34d(
+					cv::Mat _P = intrinsics_optimal * cv::Mat(cv::Matx34d(
 							R(0,0), R(0,1), R(0,2), _t[t](0),
 							R(1,0), R(1,1), R(1,2), _t[t](1),
 							R(2,0), R(2,1), R(2,2), _t[t](2)
 						));
 
-					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
+					cv::triangulatePoints(_camera_left, _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
 					pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
 
 					cv::Mat p(cv::Matx44d::eye());
@@ -527,8 +513,10 @@ int _tmain(int argc, _TCHAR* argv[])
 						std::cout << (maxFrontalPercentage == 0.0 ? "Satisfy" : "Overrides") << "!";
 						maxFrontalPercentage = frontalPercentage;
 
-						spaceEuclidian.convertTo(opencvCloud, CV_32F);
-						camera[1] = _P; // "Precious" right Camera
+						rotation	= R;
+						translation = _t[t];
+
+						_camera_right = _P;
 
 						if (frontalPercentage == 100.0) 
 						{
@@ -540,51 +528,64 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 
-			if (opencvCloud.empty())
-			{
-				std::cerr << "Failed due to rotation matrices incoherence." << std::endl;
-				retResult = -1; goto EXIT;
-			}
-
 			BEST_FIT_BREAK:
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
-			std::cout << "Left camera matrix:  " << camera[0] << std::endl;
-			std::cout << "Right camera matrix: " << camera[1] << std::endl;
+			std::cout << "Left camera matrix:  " << _camera_left  << std::endl;
+			std::cout << "Right camera matrix: " << _camera_right << std::endl;
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
 		std::cout << std::endl;
 
+		cv::Mat opencvCloud;
+		{
+			cv::Mat _depth_to_disparity;
+			std::vector<cv::Mat> _image_rotation(2), _new_camera(2);
+			cv::stereoRectify(intrinsics, distortion, intrinsics, distortion, pairSize, rotation, translation, 
+				_image_rotation[0], _image_rotation[1], _new_camera[0], _new_camera[1], _depth_to_disparity, cv::CALIB_ZERO_DISPARITY, 0.0);
+
+			std::vector<cv::Mat> _map(4);
+			cv::initUndistortRectifyMap(intrinsics, distortion, _image_rotation[0], _new_camera[0], pairSize, CV_16SC2, _map[0], _map[2]);
+			cv::initUndistortRectifyMap(intrinsics, distortion, _image_rotation[1], _new_camera[1], pairSize, CV_16SC2, _map[1], _map[3]);
+			_image_rotation.clear();
+
+			cv::remap(*files[0], *files[0], _map[0], _map[2], cv::INTER_CUBIC);
+			cv::remap(*files[1], *files[1], _map[1], _map[3], cv::INTER_CUBIC);
+			_map.clear();
+
+			cv::StereoSGBM _matcher(0, 16, 5, 600, 2400, -1, 128);
+
+			cv::Mat _disparity;
+			_matcher(*files[0], *files[1], _disparity);
+
+			cv::reprojectImageTo3D(_disparity, opencvCloud, _depth_to_disparity);
+		}
+
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Model graph visualization
+		if (!opencvCloud.empty())
 		{
-			_ASSERT( opencvCloud.size().area() == fundamental_inliers[0].size() 
-				&& opencvCloud.size().area() == fundamental_inliers[1].size() );
-
 			pcl::PointCloud<pcl::PointXYZRGB> *cloud 
 				= new pcl::PointCloud<pcl::PointXYZRGB>(opencvCloud.cols, opencvCloud.rows, pcl::PointXYZRGB());
-
-			if (opencvCloud.rows > opencvCloud.cols) opencvCloud = opencvCloud.t();
-
-			cv::Point2d *points[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
-			
-			const uchar *rgb_source[2] = { NULL }; 
+	
+			//const uchar *rgb_source[2] = { NULL }; 
 			for (int r = 0; r < opencvCloud.rows; ++r)
 			{
 				cv::Point3f* row = opencvCloud.ptr<cv::Point3f>(r);
+
+				//rgb_source[0] = files[0]->ptr<uchar>(r);
+				//rgb_source[1] = files[1]->ptr<uchar>(r); 
 				for (int c = 0; c < opencvCloud.cols; ++c)
 				{
 					pcl::PointXYZRGB &point = (*cloud)(c, r);
 					memcpy(point.data, row + c, sizeof(cv::Point3f));
 
-					// TODO: Fix color extraction, because it works improperly.
-					//size_t index_linear = r * opencvCloud.cols + c;
-					//rgb_source[0] = files[0]->ptr<uchar>(imp::round(points[0][index_linear].y), imp::round(points[0][index_linear].x));
-					//rgb_source[1] = files[1]->ptr<uchar>(imp::round(points[1][index_linear].y), imp::round(points[1][index_linear].x)); 
-
-					//point.rgba	= 0xFF000000;
+					point.rgba	= 0xFF00FF00;
 					//point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
 					//point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
 					//point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
+
+					//rgb_source[0] += files[0]->elemSize();
+					//rgb_source[1] += files[1]->elemSize();
 				}
 			}
 			threadPresenter[1] = CreateThread(NULL, 0, cloudPresenterThreadFunc, cloud, 0x00, NULL);
@@ -594,18 +595,18 @@ int _tmain(int argc, _TCHAR* argv[])
 
 EXIT:
 	{
-		size_t threadOffset = 0;
+		size_t threadOffset = -1;
 		DWORD  threadCount  = 0;
-		for (int i = 0; i < _countof(threadPresenter); ++i)
+		for (size_t i = 0; i < _countof(threadPresenter); ++i)
 		{
 			if (threadPresenter[i] != NULL)
 			{
-				if (threadOffset == 0) threadOffset = i;
+				if (threadOffset == -1) threadOffset = i;
 				++threadCount;
 			}
 		}
-		WaitForMultipleObjects(threadCount, threadPresenter + threadOffset, TRUE, INFINITE);
-		for (int i = 0; i < _countof(threadPresenter); ++i) CloseHandle(threadPresenter[i]);
+		WaitForMultipleObjects(threadCount, threadPresenter + std::max(threadOffset, size_t(0)), TRUE, INFINITE);
+		for (size_t i = 0; i < threadCount; ++i) CloseHandle(threadPresenter[i]);
 	}
 
 	std::cout << std::endl << "Reconstruction " << ((!!retResult) ? "is aborted" : "complete") << "! Hit any key to exit...";
