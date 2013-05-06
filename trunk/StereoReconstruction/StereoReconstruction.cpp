@@ -3,25 +3,7 @@
 
 #include "stdafx.h"
 
-class ImageFileDescriptor
-{
-private:
-	cv::Mat		_image;
-	std::string _imageFilePath;
-
-public:
-	ImageFileDescriptor(const std::string &imageFilePath, int flags = 1) 
-		: _imageFilePath(imageFilePath)
-	{
-		_image = cv::imread(_imageFilePath, flags);
-	}
-
-	const cv::Mat		*operator->()   const { return &_image; }
-	const cv::Mat		&operator*()	const { return _image; }
-	const std::string	&name()			const { return _imageFilePath; }
-};
-
-enum validator_mode {
+enum comparison_predicate_mode {
 	LESS_THAN	 = 0x01,
 	EQUAL		 = 0x02,
 	GREATER_THAN = 0x04,
@@ -32,27 +14,27 @@ enum validator_mode {
 };
 
 template<typename _Vt, int _mode>
-class validator
+class comparison_predicate
 {
 	_Vt _gauge;
 
 	template <int _mode>
-	bool validate(const _Vt &suspect) { throw std::exception("Bad validator mode", _mode); }
+	bool compare(const _Vt &suspect) { throw std::exception("Bad comparison_predicate mode", _mode); }
 
-	template<> bool validate< LESS_THAN             >(const _Vt &suspect) { return suspect <  _gauge; }
-	template<> bool validate< LESS_THAN_OR_EQUAL    >(const _Vt &suspect) { return suspect <= _gauge; }
-	template<> bool validate< EQUAL                 >(const _Vt &suspect) { return suspect == _gauge; }
-	template<> bool validate< GREATER_THAN_OR_EQUAL >(const _Vt &suspect) { return suspect >= _gauge; }
-	template<> bool validate< GREATER_THAN          >(const _Vt &suspect) { return suspect >  _gauge; }
-	template<> bool validate< NOT_EQUAL             >(const _Vt &suspect) { return suspect != _gauge; }
+	template<> bool compare< LESS_THAN             >(const _Vt &suspect) { return suspect <  _gauge; }
+	template<> bool compare< LESS_THAN_OR_EQUAL    >(const _Vt &suspect) { return suspect <= _gauge; }
+	template<> bool compare< EQUAL                 >(const _Vt &suspect) { return suspect == _gauge; }
+	template<> bool compare< GREATER_THAN_OR_EQUAL >(const _Vt &suspect) { return suspect >= _gauge; }
+	template<> bool compare< GREATER_THAN          >(const _Vt &suspect) { return suspect >  _gauge; }
+	template<> bool compare< NOT_EQUAL             >(const _Vt &suspect) { return suspect != _gauge; }
 
 public:
-	validator(_Vt  &gauge) : _gauge(gauge)	{ }
-	validator(_Vt &&gauge) : _gauge(std::forward<_Vt>(gauge)) { }
+	comparison_predicate(_Vt  &gauge) : _gauge(gauge)	{ }
+	comparison_predicate(_Vt &&gauge) : _gauge(std::forward<_Vt>(gauge)) { }
 
-	validator &operator=(_Vt &&gauge) { _gauge = std::move<_Vt>(gauge); }
+	comparison_predicate &operator=(_Vt &&gauge) { _gauge = std::move<_Vt>(gauge); }
 
-	bool operator() (const _Vt &suspect) { return validate<_mode>(suspect); }
+	bool operator() (const _Vt &suspect) { return compare<_mode>(suspect); }
 };
 
 template <typename _Vt>
@@ -64,7 +46,7 @@ std::vector<std::vector<cv::Point_<_Vt>>> matchedKeypointsCoords(const std::vect
 	const cv::KeyPoint *_points_src[] = { &keypoints[0][0], &keypoints[1][0] };
 	
 	size_t inliers_count = _match_status == NULL ? matches.size() 
-		: std::count_if(match_status.begin(), match_status.end(), validator<uchar, NOT_EQUAL>(0x00));
+		: std::count_if(match_status.begin(), match_status.end(), comparison_predicate<uchar, NOT_EQUAL>(0x00));
 	std::vector<std::vector<cv::Point_<_Vt>>> fundamental_inliers(2, std::vector<cv::Point_<_Vt>>(inliers_count));
 
 	if (inliers_count != 0)
@@ -99,7 +81,7 @@ std::vector<std::vector<cv::Point_<_Vt>>> filterPointsByStatus(
 	const uchar				*_status	   =   &status[0];
 	const cv::Point_<_Vt>	*_points_src[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
 
-	size_t inliers_count = std::count_if(status.begin(), status.end(), validator<uchar, NOT_EQUAL>(0x00));
+	size_t inliers_count = std::count_if(status.begin(), status.end(), comparison_predicate<uchar, NOT_EQUAL>(0x00));
 	std::vector<std::vector<cv::Point_<_Vt>>> points_filtered(2, std::vector<cv::Point_<_Vt>>(inliers_count));
 	
 	if (inliers_count != 0)
@@ -189,6 +171,24 @@ void pointsFromHomogeneous(cv::InputArray src, cv::OutputArray dst)
 			);
 	}
 }
+
+class ImageFileDescriptor
+{
+private:
+	cv::Mat		_image;
+	std::string _imageFilePath;
+
+public:
+	ImageFileDescriptor(const std::string &imageFilePath, int flags = 1) 
+		: _imageFilePath(imageFilePath)
+	{
+		_image = cv::imread(_imageFilePath, flags);
+	}
+
+	const cv::Mat		*operator->()   const { return &_image; }
+	const cv::Mat		&operator*()	const { return _image; }
+	const std::string	&name()			const { return _imageFilePath; }
+};
 
 // Some presenter window supporting code is below
 HANDLE	threadPresenter[2]	= { NULL };
@@ -370,8 +370,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			cv::Ptr<cv::FeatureDetector> detector  = cv::FeatureDetector::create("PyramidSUSAN");
 
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 6);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 17.75);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 85.50);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 26.75);
+			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 81.50);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
 			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 6;
 
@@ -593,8 +593,20 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 EXIT:
-	WaitForMultipleObjects(_countof(threadPresenter), threadPresenter, TRUE, INFINITE);
-	for (int i = 0; i < _countof(threadPresenter); ++i) CloseHandle(threadPresenter[i]);
+	{
+		size_t threadOffset = 0;
+		DWORD  threadCount  = 0;
+		for (int i = 0; i < _countof(threadPresenter); ++i)
+		{
+			if (threadPresenter[i] != NULL)
+			{
+				if (threadOffset == 0) threadOffset = i;
+				++threadCount;
+			}
+		}
+		WaitForMultipleObjects(threadCount, threadPresenter + threadOffset, TRUE, INFINITE);
+		for (int i = 0; i < _countof(threadPresenter); ++i) CloseHandle(threadPresenter[i]);
+	}
 
 	std::cout << std::endl << "Reconstruction " << ((!!retResult) ? "is aborted" : "complete") << "! Hit any key to exit...";
 	_gettchar();
