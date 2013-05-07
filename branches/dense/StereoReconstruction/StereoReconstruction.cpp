@@ -392,7 +392,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			// Matched points visualization
 			cv::Mat output;
 			cv::drawMatches(*files[0], _keypoints[0], *files[1], _keypoints[1], _matches, output);
-			threadPresenter[0] = CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(output), 0x00, NULL);
+			//threadPresenter[0] = CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(output), 0x00, NULL);
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
 		std::cout << std::endl; 
@@ -552,10 +552,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			cv::remap(*files[1], *files[1], _map[1], _map[3], cv::INTER_CUBIC);
 			_map.clear();
 
-			cv::StereoSGBM _matcher(0, 16, 5, 600, 2400, -1, 128);
+			cv::StereoSGBM _matcher(-256, 256, 3, 24*9, 24*4*9, -1, 128, 1, 100, 20, true);
 
 			cv::Mat _disparity;
 			_matcher(*files[0], *files[1], _disparity);
+
+			CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(_disparity), 0x00, NULL);
 
 			cv::reprojectImageTo3D(_disparity, opencvCloud, _depth_to_disparity);
 		}
@@ -567,25 +569,28 @@ int _tmain(int argc, _TCHAR* argv[])
 			pcl::PointCloud<pcl::PointXYZRGB> *cloud 
 				= new pcl::PointCloud<pcl::PointXYZRGB>(opencvCloud.cols, opencvCloud.rows, pcl::PointXYZRGB());
 	
-			//const uchar *rgb_source[2] = { NULL }; 
+			//cv::cvtColor(*files[0], *files[0], cv::COLOR_GRAY2RGB);
+			//cv::cvtColor(*files[1], *files[1], cv::COLOR_GRAY2RGB);
+
+			const uchar *rgb_source[2] = { NULL }; 
 			for (int r = 0; r < opencvCloud.rows; ++r)
 			{
 				cv::Point3f* row = opencvCloud.ptr<cv::Point3f>(r);
 
-				//rgb_source[0] = files[0]->ptr<uchar>(r);
-				//rgb_source[1] = files[1]->ptr<uchar>(r); 
+				rgb_source[0] = files[0]->ptr<uchar>(r);
+				rgb_source[1] = files[1]->ptr<uchar>(r); 
 				for (int c = 0; c < opencvCloud.cols; ++c)
 				{
 					pcl::PointXYZRGB &point = (*cloud)(c, r);
 					memcpy(point.data, row + c, sizeof(cv::Point3f));
 
 					point.rgba	= 0xFF00FF00;
-					//point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
-					//point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
-					//point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
+					point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
+					point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
+					point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
 
-					//rgb_source[0] += files[0]->elemSize();
-					//rgb_source[1] += files[1]->elemSize();
+					rgb_source[0] += files[0]->elemSize();
+					rgb_source[1] += files[1]->elemSize();
 				}
 			}
 			threadPresenter[1] = CreateThread(NULL, 0, cloudPresenterThreadFunc, cloud, 0x00, NULL);
