@@ -21,7 +21,10 @@
 // TODO: reference additional headers your program requires here
 #include <iostream>
 #include <algorithm>
+#include <vector>
+#include <list>
 #include <string>
+#include <map>
 #include <cmath>
 
 #include "opencv2\core\core.hpp"
