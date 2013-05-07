@@ -81,15 +81,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="comparison_predicate.h" />
+    <ClInclude Include="main_task_atomic_funcs.h" />
+    <ClInclude Include="OrphanTask.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cloudPresenterThreadFunc.cpp" />
+    <ClCompile Include="main_task_atomic_funcs.cpp" />
+    <ClCompile Include="OrphanTask.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="StereoReconstruction.cpp" />
+    <ClCompile Include="imagePresenterThreadFunc.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -3,174 +3,7 @@
 
 #include "stdafx.h"
 
-enum comparison_predicate_mode {
-	LESS_THAN	 = 0x01,
-	EQUAL		 = 0x02,
-	GREATER_THAN = 0x04,
-
-	LESS_THAN_OR_EQUAL	  = EQUAL | LESS_THAN,
-	NOT_EQUAL			  = LESS_THAN | GREATER_THAN,
-	GREATER_THAN_OR_EQUAL = GREATER_THAN | EQUAL
-};
-
-template<typename _Vt, int _mode>
-class comparison_predicate
-{
-	_Vt _gauge;
-
-	template <int _mode>
-	bool compare(const _Vt &suspect) { throw std::exception("Bad comparison_predicate mode", _mode); }
-
-	template<> bool compare< LESS_THAN             >(const _Vt &suspect) { return suspect <  _gauge; }
-	template<> bool compare< LESS_THAN_OR_EQUAL    >(const _Vt &suspect) { return suspect <= _gauge; }
-	template<> bool compare< EQUAL                 >(const _Vt &suspect) { return suspect == _gauge; }
-	template<> bool compare< GREATER_THAN_OR_EQUAL >(const _Vt &suspect) { return suspect >= _gauge; }
-	template<> bool compare< GREATER_THAN          >(const _Vt &suspect) { return suspect >  _gauge; }
-	template<> bool compare< NOT_EQUAL             >(const _Vt &suspect) { return suspect != _gauge; }
-
-public:
-	comparison_predicate(_Vt  &gauge) : _gauge(gauge)	{ }
-	comparison_predicate(_Vt &&gauge) : _gauge(std::forward<_Vt>(gauge)) { }
-
-	comparison_predicate &operator=(_Vt &&gauge) { _gauge = std::move<_Vt>(gauge); }
-
-	bool operator() (const _Vt &suspect) { return compare<_mode>(suspect); }
-};
-
-template <typename _Vt>
-std::vector<std::vector<cv::Point_<_Vt>>> matchedKeypointsCoords(const std::vector<std::vector<cv::KeyPoint>> &keypoints, 
-	const std::vector<cv::DMatch> &matches, const std::vector<uchar> &match_status = std::vector<uchar>())
-{
-	const uchar	*_match_status = match_status.empty() ? NULL : &match_status[0];
-	CV_Assert( keypoints.size() == 2 && (_match_status == NULL || match_status.size() == matches.size()) );
-	const cv::KeyPoint *_points_src[] = { &keypoints[0][0], &keypoints[1][0] };
-	
-	size_t inliers_count = _match_status == NULL ? matches.size() 
-		: std::count_if(match_status.begin(), match_status.end(), comparison_predicate<uchar, NOT_EQUAL>(0x00));
-	std::vector<std::vector<cv::Point_<_Vt>>> fundamental_inliers(2, std::vector<cv::Point_<_Vt>>(inliers_count));
-
-	if (inliers_count != 0)
-	{
-		cv::Point_<_Vt>	*_points_dst[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
-
-		size_t current = 0;
-		for (size_t i=0, imax = matches.size(); i<imax; ++i) 
-		{
-			if ( _match_status == NULL || _match_status[i] != 0x00 )
-			{
-				const cv::DMatch &match = matches[i];
-				_points_dst[0][current] = cv::Point_<_Vt>(_points_src[0][match.queryIdx].pt.x, _points_src[0][match.queryIdx].pt.y);
-				_points_dst[1][current] = cv::Point_<_Vt>(_points_src[1][match.trainIdx].pt.x, _points_src[1][match.trainIdx].pt.y);
-				++current;
-			}
-		}
-
-		fundamental_inliers[0].shrink_to_fit();
-		fundamental_inliers[1].shrink_to_fit();
-	}
-
-	return fundamental_inliers;
-}
-
-template <typename _Vt>
-std::vector<std::vector<cv::Point_<_Vt>>> filterPointsByStatus(
-	const std::vector<std::vector<cv::Point_<_Vt>>> &fundamental_inliers, const std::vector<uchar> &status)
-{
-	CV_Assert( fundamental_inliers.size() == 2 && (fundamental_inliers[0].size() == status.size() && fundamental_inliers[1].size() == status.size()) );
-
-	const uchar				*_status	   =   &status[0];
-	const cv::Point_<_Vt>	*_points_src[] = { &fundamental_inliers[0][0], &fundamental_inliers[1][0] };
-
-	size_t inliers_count = std::count_if(status.begin(), status.end(), comparison_predicate<uchar, NOT_EQUAL>(0x00));
-	std::vector<std::vector<cv::Point_<_Vt>>> points_filtered(2, std::vector<cv::Point_<_Vt>>(inliers_count));
-	
-	if (inliers_count != 0)
-	{
-		cv::Point_<_Vt>	*_points_dst[] = { &points_filtered[0][0], &points_filtered[1][0] };
-
-		size_t current = 0;
-		for (int i = 0, imax = status.size(); i < imax; ++i)
-		{
-			if (_status[i]) 
-			{
-				_points_dst[0][current] = _points_src[0][i];
-				_points_dst[1][current] = _points_src[1][i];
-				++current;
-			}
-		}
-
-		points_filtered[0].shrink_to_fit();
-		points_filtered[1].shrink_to_fit();
-	}
-
-	return points_filtered;
-}
-
-bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputArray R2, cv::OutputArray t1, cv::OutputArray t2)
-{
-	cv::Mat E = _E.getMat();
-
-	CV_Assert(E.depth() == CV_64F);
-
-	int new_sz[] = { 3, 3 };
-	cv::SVD _fm_svd(E.reshape(1, _countof(new_sz), new_sz));
-
-	R1.create(E.size(), CV_64FC1);
-	R2.create(E.size(), CV_64FC1);
-
-	t1.create(3, 1, CV_64FC1);
-	t2.create(3, 1, CV_64FC1);
-
-	double _singular_ratio = std::abs(_fm_svd.w.at<double>(0) / _fm_svd.w.at<double>(1));
-	if (_singular_ratio > 1.0) _singular_ratio = 1.0 / _singular_ratio; // flip ratio to keep it [0,1]
-	if (_singular_ratio < 0.7) return false;
-
-	cv::Matx33d W(0,-1, 0,	//HZ 9.13
-				  1, 0, 0,
-				  0, 0, 1);
-
-	R1.getMat() = _fm_svd.u * cv::Mat(W)	 * _fm_svd.vt;	//HZ 9.19
-	R2.getMat() = _fm_svd.u * cv::Mat(W.t()) * _fm_svd.vt;	//HZ 9.19
-	
-	_fm_svd.u.col(2).copyTo(t1.getMat());	//u3
-	t2.getMat() = -_fm_svd.u.col(2);		//u3
-
-	return true;
-}
-inline bool isCoherent(const cv::Mat &R)
-{
-	return std::abs(cv::determinant(R)) - 1.0 < 1e-07;
-}
-
-template <typename _ElemT>
-void pointsFromHomogeneous(cv::InputArray src, cv::OutputArray dst)
-{
-	if (src.empty()) return;
-
-	cv::Mat _dst, _src = src.getMat();
-	CV_Assert( _src.rows == 4 && _src.channels() == 1 && _src.elemSize1() == sizeof(_ElemT) );
-
-	dst.create(_src.cols, 1, CV_MAKETYPE(_src.depth(), 3));
-	_dst = dst.getMat();
-
-	_ElemT *point_cliche[] = { 
-		_src.ptr<_ElemT>(0),
-		_src.ptr<_ElemT>(1),
-		_src.ptr<_ElemT>(2),
-		_src.ptr<_ElemT>(3)
-	};
-
-	for (int i = 0; i < _src.cols; ++i)
-	{
-		_ElemT scale = point_cliche[3][i] != _ElemT(0)
-			? _ElemT(1) / point_cliche[3][i] : std::numeric_limits<_ElemT>::infinity();
-		_dst.at<cv::Point3_<_ElemT>>(i) = cv::Point3_<_ElemT>(
-				point_cliche[0][i] * scale,
-				point_cliche[1][i] * scale,
-				point_cliche[2][i] * scale
-			);
-	}
-}
+#include "main_task_atomic_funcs.h"
 
 class ImageFileDescriptor
 {
@@ -190,99 +23,9 @@ public:
 	const std::string	&name()			const { return _imageFilePath; }
 };
 
-// Some presenter window supporting code is below
-HANDLE	threadPresenter[2]	= { NULL };
-WNDPROC subclassWindowProc	=	NULL;   // Such approach is not considered to be used simultaneously with multiple image-presenter windows
-LRESULT CALLBACK matchPresenterWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch(message)
-	{
-	case WM_DESTROY:
-		if (subclassWindowProc != NULL) 
-			SetWindowLong(hWnd, GWL_WNDPROC, (LONG)subclassWindowProc);
-		PostQuitMessage(0);
-		return 0;
-	}
-
-	return subclassWindowProc != NULL 
-		? subclassWindowProc(hWnd, message, wParam, lParam) 
-		: DefWindowProc(hWnd, message, wParam, lParam);
-}
-DWORD CALLBACK matchPresenterThreadFunc(LPVOID threadParameter)
-{
-	_ASSERT(threadParameter != NULL);
-
-	std::string windowName = "Keypoint presenter window";
-
-	HWND hwnd = NULL;
-	{ // Delete image in memory as soon as possible
-		boost::shared_ptr<cv::Mat> image(static_cast<cv::Mat*>(threadParameter));
-
-		cv::namedWindow(windowName);
-
-		hwnd = static_cast<HWND>(cvGetWindowHandle(windowName.c_str()));
-		if (hwnd == NULL)
-		{
-			MessageBox(GetConsoleWindow(), _T("Cannot start presenter window!"), _T("Error"), MB_OK | MB_ICONWARNING);
-			return -1;
-		}
-
-		subclassWindowProc	= (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)matchPresenterWindowProc);
-
-		HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
-		MONITORINFO mi; mi.cbSize = sizeof(mi);
-		if (GetMonitorInfo(monitor, &mi))
-		{
-			SIZE workAreaSize = { std::abs(mi.rcWork.right - mi.rcWork.left) * 0.8, std::abs(mi.rcWork.bottom - mi.rcWork.top) * 0.8 };
-			if (image->cols > workAreaSize.cx || image->rows > workAreaSize.cy)
-			{
-				cv::Size newImageSize = image->cols > image->rows 
-					? cv::Size(workAreaSize.cx, int(imp::round(workAreaSize.cx * (double(image->rows) / image->cols))))
-					: cv::Size(int(imp::round(workAreaSize.cy * (double(image->cols) / image->rows))), workAreaSize.cy);
-
-				cv::resize(*image, *image, newImageSize, 0, 0, cv::INTER_CUBIC);
-			}
-		}
-
-		cv::imshow(windowName, *image);
-	}
-
-
-	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
-	return msg.wParam;
-}
-DWORD CALLBACK cloudPresenterThreadFunc(LPVOID threadParameter)
-{
-	_ASSERT(threadParameter != NULL);
-
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(
-			new pcl::visualization::PCLVisualizer("3D model vertex cloud"));
-
-	{ // Delete cloud-in-memory as soon as possible
-		boost::shared_ptr<pcl::PointCloud<pcl::PointXYZRGB>> cloud(
-			static_cast<pcl::PointCloud<pcl::PointXYZRGB>*>(threadParameter));
-
-		pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
-		viewer->addPointCloud<pcl::PointXYZRGB>(cloud, rgb, "object cloud"); cloud->clear();
-		viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "object cloud");
-	}
-
-	viewer->setBackgroundColor(0.231, 0.231, 0.231);
-	viewer->addCoordinateSystem(0.1);
-	viewer->initCameraParameters();
-
-	while (!viewer->wasStopped())
-	{
-		viewer->spinOnce(1000);
-		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
-	}
-	return 0;
-}
+#include "OrphanTask.h"
+extern DWORD CALLBACK imagePresenterThreadFunc(LPVOID);
+extern DWORD CALLBACK cloudPresenterThreadFunc(LPVOID);
 int _tmain(int argc, _TCHAR* argv[])
 {
 	int retResult = 0;
@@ -405,7 +148,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			// Matched points visualization
 			cv::Mat output;
 			cv::drawMatches(*files[0],_keypoints[0], *files[1],_keypoints[1], _matches, output);
-			threadPresenter[0] = CreateThread(NULL, 0, matchPresenterThreadFunc, new cv::Mat(output), 0x00, NULL);
+			OrphanTask::submit(imagePresenterThreadFunc, new cv::Mat(output));
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
 		std::cout << std::endl; 
@@ -587,26 +330,13 @@ int _tmain(int argc, _TCHAR* argv[])
 					//rgb_source[1] += files[1]->elemSize();
 				}
 			}
-			threadPresenter[1] = CreateThread(NULL, 0, cloudPresenterThreadFunc, cloud, 0x00, NULL);
+			OrphanTask::submit(cloudPresenterThreadFunc, cloud);
 		}
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 
 EXIT:
-	{
-		size_t threadOffset = -1;
-		DWORD  threadCount  = 0;
-		for (size_t i = 0; i < _countof(threadPresenter); ++i)
-		{
-			if (threadPresenter[i] != NULL)
-			{
-				if (threadOffset == -1) threadOffset = i;
-				++threadCount;
-			}
-		}
-		WaitForMultipleObjects(threadCount, threadPresenter + std::max(threadOffset, size_t(0)), TRUE, INFINITE);
-		for (size_t i = 0; i < threadCount; ++i) CloseHandle(threadPresenter[i]);
-	}
+	OrphanTask::join(TRUE);
 
 	std::cout << std::endl << "Reconstruction " << ((!!retResult) ? "is aborted" : "complete") << "! Hit any key to exit...";
 	_gettch();
