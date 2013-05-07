@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
+#include <conio.h>
 #include <tchar.h>
 
 // TODO: reference additional headers your program requires here
