@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CloudData.h" />
     <ClInclude Include="comparison_predicate.h" />
     <ClInclude Include="main_task_atomic_funcs.h" />
     <ClInclude Include="OrphanTask.h" />

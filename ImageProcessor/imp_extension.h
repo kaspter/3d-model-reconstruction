@@ -49,6 +49,9 @@ namespace imp
 	class PyramidAdapterHack : public cv::PyramidAdaptedFeatureDetector
 	{
 	public:
+		PyramidAdapterHack( const cv::Ptr<cv::FeatureDetector>& detector, int maxLevel=2 )
+			: PyramidAdaptedFeatureDetector(detector, maxLevel) { }
+
 		using cv::PyramidAdaptedFeatureDetector::maxLevel;
 		using cv::PyramidAdaptedFeatureDetector::detector;
 	};

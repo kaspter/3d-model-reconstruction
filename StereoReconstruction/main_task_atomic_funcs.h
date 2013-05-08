@@ -102,4 +102,4 @@ void pointsFromHomogeneous(cv::InputArray src, cv::OutputArray dst)
 }
 
 bool HZEssentialDecomposition(cv::InputArray _E, cv::OutputArray R1, cv::OutputArray R2, cv::OutputArray t1, cv::OutputArray t2);
-inline bool isCoherent(const cv::Mat &R) { return std::abs(cv::determinant(R)) - 1.0 < 1e-07; }
+inline bool isCoherent(const cv::Mat &R) { return std::abs(cv::determinant(R)) - 1.0 < std::numeric_limits<float>::epsilon(); }

@@ -26,6 +26,8 @@ public:
 #include "OrphanTask.h"
 extern DWORD CALLBACK imagePresenterThreadFunc(LPVOID);
 extern DWORD CALLBACK cloudPresenterThreadFunc(LPVOID);
+
+#include "CloudData.h"
 int _tmain(int argc, _TCHAR* argv[])
 {
 	int retResult = 0;
@@ -110,13 +112,24 @@ int _tmain(int argc, _TCHAR* argv[])
 		{	
 			std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
 
-			cv::Ptr<cv::FeatureDetector> detector  = cv::FeatureDetector::create("PyramidSUSAN");
+			cv::Ptr<cv::FeatureDetector> detector	= cv::FeatureDetector::create("PyramidSUSAN");
+			imp::PyramidAdapterHack*	 pyramid	= reinterpret_cast<imp::PyramidAdapterHack*>(
+				dynamic_cast<cv::PyramidAdaptedFeatureDetector*>(detector.obj));
 
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("radius", 6);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("tparam", 26.75);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("gparam", 81.50);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->detector->set("prefilter", true);
-			reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel = 6;
+			if (!!pyramid)
+			{
+				pyramid->maxLevel = 6;
+				pyramid->detector->set("radius", 6);
+				pyramid->detector->set("tparam", 26.75);
+				pyramid->detector->set("gparam", 81.50);
+				pyramid->detector->set("prefilter", true);
+			}
+			else
+			{
+				std::cerr << "SUSAN is not pyramid adapted" << std::endl;
+				retResult = -1; goto EXIT;
+			}
+
 
 			double process_time;
 			IMP_BEGIN_TIMER_SECTION(timer)
@@ -139,8 +152,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			points_matched = matchedKeypointsCoords<double>(_keypoints, _matches);
 
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
-			std::cout << reinterpret_cast<imp::PyramidAdapterHack*>(detector.obj)->maxLevel 
-				<< "-layer pyramid adapted SUSAN coped in: " << process_time << "s." << std::endl;
+			std::cout << pyramid->maxLevel << "-layer pyramid adapted SUSAN coped in: " << process_time << "s." << std::endl;
 			std::cout << "Image " << files[0].name() << ": " << _keypoints[0].size() << " features." << std::endl;
 			std::cout << "Image " << files[1].name() << ": " << _keypoints[1].size() << " features." << std::endl;
 			std::cout << "With a total of " << _matches.size() << " matches" << std::endl;
@@ -200,6 +212,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout << std::endl;
 
 		cv::Mat opencvCloud;
+		std::vector<cv::Matx34d> camera(2);
 		//// Step 3: Camera matrices estimation up to projection transformation
 		std::cout << "Camera matrices estimation..." << std::endl;
 		{
@@ -213,13 +226,15 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			if (cv::determinant(_R[0]) + 1 < std::numeric_limits<float>::epsilon()) // det(R1) == -1
 				HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
-
-			cv::Mat _camera_canonical(cv::Matx34d::eye());
-			intrinsics_optimal.copyTo(_camera_canonical(cv::Rect(cv::Point(), intrinsics_optimal.size())));
-			std::vector<cv::Matx34d> _camera(2, _camera_canonical);
-		
+	
 			std::cout << "Robust reconstruction estimation:" << std::endl;
 			cv::Mat spaceHomogeneous, spaceEuclidian;
+
+			{ // Canonical left camera estimation
+				cv::Mat _camera_canonical(cv::Matx34d::eye());
+				intrinsics_optimal.copyTo(_camera_canonical(cv::Rect(cv::Point(), intrinsics_optimal.size())));
+				camera[0] = _camera_canonical;
+			}
 
 			double minReprojectionError = std::numeric_limits<double>::max(); 
 			double maxFrontalPercentage = 0;
@@ -236,7 +251,7 @@ int _tmain(int argc, _TCHAR* argv[])
 							R(2,0), R(2,1), R(2,2), _t[t](2)
 						));
 
-					cv::triangulatePoints(_camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
+					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
 					pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
 
 					cv::Mat p(cv::Matx44d::eye());
@@ -271,7 +286,7 @@ int _tmain(int argc, _TCHAR* argv[])
 						maxFrontalPercentage = frontalPercentage;
 
 						spaceEuclidian.convertTo(opencvCloud, CV_32F);
-						_camera[1] = _P; // "Precious" right Camera
+						camera[1] = _P; // "Precious" right Camera
 
 						if (frontalPercentage == 100.0) 
 						{
@@ -291,8 +306,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			BEST_FIT_BREAK:
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
-			std::cout << "Left camera matrix:  " << _camera[0] << std::endl;
-			std::cout << "Right camera matrix: " << _camera[1] << std::endl;
+			std::cout << "Left camera matrix:  " << camera[0] << std::endl;
+			std::cout << "Right camera matrix: " << camera[1] << std::endl;
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
 		std::cout << std::endl;
@@ -309,28 +324,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			if (opencvCloud.rows > opencvCloud.cols) opencvCloud = opencvCloud.t();
 
-			//const uchar *rgb_source[2] = { NULL }; 
 			for (int r = 0; r < opencvCloud.rows; ++r)
 			{
 				cv::Point3f* row = opencvCloud.ptr<cv::Point3f>(r);
 
-				//rgb_source[0] = files[0]->ptr<uchar>(r);
-				//rgb_source[1] = files[1]->ptr<uchar>(r); 
 				for (int c = 0; c < opencvCloud.cols; ++c)
 				{
 					pcl::PointXYZRGB &point = (*cloud)(c, r);
 					memcpy(point.data, row + c, sizeof(cv::Point3f));
 
 					point.rgba	= 0xFF00FF00;
-					//point.b		= (rgb_source[0][0] + rgb_source[1][0]) >> 1;
-					//point.g		= (rgb_source[0][1] + rgb_source[1][1]) >> 1; 
-					//point.r		= (rgb_source[0][2] + rgb_source[1][2]) >> 1;
-
-					//rgb_source[0] += files[0]->elemSize();
-					//rgb_source[1] += files[1]->elemSize();
 				}
 			}
-			OrphanTask::submit(cloudPresenterThreadFunc, cloud);
+			OrphanTask::submit(cloudPresenterThreadFunc, new CloudData(cloud, camera));
 		}
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
