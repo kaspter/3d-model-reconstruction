@@ -205,8 +205,8 @@ namespace imp
 		}
 
 		int G[] = {
-			3 * (w[0][0] - w[0][2] + w[2][0] - w[2][2]) + 10 * (w[1][0] - w[1][2]),
-			3 * (w[0][0] + w[0][2] - w[2][0] - w[2][2]) + 10 * (w[0][1] - w[2][1])
+			3 * (w[2][0] - w[2][2] + w[0][0] - w[0][2]) + 10 * (w[1][0] - w[1][2]),
+			3 * (w[2][0] + w[2][2] - w[0][0] - w[0][2]) + 10 * (w[0][1] - w[2][1])
 		};
 
 		return (G[0] == 0 && G[1] == 0) ? std::numeric_limits<float>::quiet_NaN()
@@ -251,7 +251,7 @@ namespace imp
 						static_cast<float>(r)
 					);
 					new (response + corner_count) cv::Vec2f(
-						 _gradientAngle3x3(image, r, c), row[c]);
+						 _gradientAngle3x3(src, r, c), row[c]);
 					++corner_count;
 				}
 
@@ -281,7 +281,7 @@ namespace imp
 		for (size_t i = 0; i < corner_count; ++i)
 		{
 			new (keypoint + i) cv::KeyPoint(
-				corner[i], static_cast<float>(ksize), -1.0/*response[i].val[0]*/, response[i].val[1], _pass_counter, -1);
+				corner[i], static_cast<float>(ksize), response[i].val[0], response[i].val[1], _pass_counter, -1);
 		}
 
 		cv::KeyPointsFilter::runByPixelsMask(keypoints, mask);

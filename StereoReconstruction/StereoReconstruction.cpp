@@ -122,8 +122,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			{
 				pyramid->maxLevel = 6;
 				pyramid->detector->set("radius", 6);
-				pyramid->detector->set("tparam", 26.75);
-				pyramid->detector->set("gparam", 81.50);
+				pyramid->detector->set("tparam", 34.50);
+				//pyramid->detector->set("gparam", 84.50);
 				pyramid->detector->set("prefilter", true);
 				pyramid->detector->set("subpixel", true);
 			}
