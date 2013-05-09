@@ -12,7 +12,7 @@ namespace imp
 	{
 		int sdepth = CV_MAT_DEPTH(srcType), ddepth = CV_MAT_DEPTH(dstType);
 
-		CV_Assert( CV_MAT_CN(srcType) == CV_MAT_CN(dstType) && sdepth >= ddepth );
+		CV_Assert( CV_MAT_CN(srcType) == CV_MAT_CN(dstType) && sdepth <= ddepth );
 
 		if( sdepth == CV_8U && ddepth == CV_8U )
 			return cv::Ptr<cv::BaseFilter>(
@@ -95,7 +95,7 @@ namespace imp
 	{
 		int cn = CV_MAT_CN(srcType), sdepth = CV_MAT_DEPTH(srcType), ddepth = CV_MAT_DEPTH(dstType);
 
-		CV_Assert( cn == 1 && cn == CV_MAT_CN(dstType) && sdepth >= ddepth );
+		CV_Assert( cn == 1 && cn == CV_MAT_CN(dstType) && sdepth <= ddepth );
 
 		if( sdepth == CV_8U && ddepth == CV_8U )
 			return cv::Ptr<cv::BaseFilter>(
@@ -178,12 +178,16 @@ namespace imp
 	inline void SUSAN::set_tparam(double   t) { _tparam = std::max(t, 1.0); }
 	inline void SUSAN::set_gparam(double   g) { _gparam = g == -1.0 ? g : std::max(g, 0.0); }
 
-	SUSAN::SUSAN (unsigned radius, double t, double g, bool prefilter)
-		: _prefilter(prefilter)
+	inline int SUSAN::reset_pass_counter() const { int rvalue = _pass_counter; _pass_counter = -1; return rvalue; }
+
+	SUSAN::SUSAN (unsigned radius, double t, double g, bool prefilter, bool subpix)
+		: _prefilter(prefilter), _subpix(subpix)
 	{
 		set_radius(radius);
 		set_tparam(t);
 		set_gparam(g);
+
+		reset_pass_counter();
 	}
 
 	void SUSAN::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
@@ -193,32 +197,68 @@ namespace imp
 		keypoints.clear();
 		if (image.channels() > 3) return;
 
-		cv::Mat dst, src;
+		cv::Mat src;
 		if ( image.channels() == 3 )
-			cv::cvtColor(image, src, CV_BGR2GRAY); 
+			cv::cvtColor(image, src, cv::COLOR_BGR2GRAY); 
 		else image.copyTo(src);
 		
 		if (_prefilter) filterSusan(src, src, _radius, _radius / 3.0, _tparam * 2);
+		
+		cv::Mat dst(src.size(), CV_32FC1);
 		cornerSusan(src, dst, _radius, _tparam, _gparam);
+
 		size_t corner_count = nonMaxSuppression3x3(dst, dst);
-
 		if (corner_count == 0) return;
+		
+		++_pass_counter;
+		
+		cv::Mat corners(3, corner_count, CV_32FC1);
+		cv::Point2f *corner		= reinterpret_cast<cv::Point2f*>(corners.ptr<float>(0));
+		float		*response	= corners.ptr<float>(2);
 
-		keypoints.resize(corner_count);
-		cv::KeyPoint* keypoint = &keypoints[corner_count = 0];
-
-		float ksize = static_cast<float>(2 * _radius + 1);
+		corner_count = 0;
 		for (int r=0; r<dst.rows; ++r)
 		{
-			uchar* row = dst.ptr<uchar>(r);
+			float* row = dst.ptr<float>(r);
 			for (int c=0; c<dst.cols; ++c)
 			{
-				if (row[c] != 0x00) keypoint[corner_count++] = cv::KeyPoint(
+				if (row[c] > 0.0F)
+				{
+					new (corner + corner_count) cv::Point2f(
 						static_cast<float>(c), 
-						static_cast<float>(r),
-						ksize
+						static_cast<float>(r)
 					);
+					response[corner_count++] = row[c];
+				}
+
 			}
+		}
+		dst.release();
+
+		int ksize = 2 * _radius + 1;
+		if (_subpix) 
+		{
+			int win_radius = ksize + 4;
+			win_radius = (src.rows < win_radius || src.cols < win_radius) 
+				? std::max((std::min(src.rows, src.cols) - 5) / 2, 0) : _radius;
+
+			if (!!win_radius)
+			{
+				cv::Point win_size(win_radius, win_radius);
+				cv::Mat points(corner_count, 1, CV_32FC2, corners.data);
+				cv::cornerSubPix(src, points, win_size, win_size / 2, cv::TermCriteria(
+					cv::TermCriteria::COUNT + cv::TermCriteria::EPS, _radius * 10, std::numeric_limits<float>::epsilon()
+					));
+			}
+		}
+
+		keypoints.resize(corner_count);
+		cv::KeyPoint* keypoint = &keypoints.front();
+		for (size_t i = 0; i < corner_count; ++i)
+		{
+			new (keypoint + i) cv::KeyPoint(
+				corner[i], static_cast<float>(ksize), -1.0F, response[i], _pass_counter, -1
+				);
 		}
 
 		cv::KeyPointsFilter::runByPixelsMask(keypoints, mask);

@@ -62,6 +62,9 @@ namespace imp
 	size_t nonMaxSuppression3x3(const cv::Mat &src, cv::Mat &dst, bool preserveMaximaValues = false);
 	// Gives graymap intensity occurence histogram for a grayscale image
 	void discreteGraymapHistogram(const cv::Mat &src, cv::OutputArray &dst);
+
+	template<typename _Vt>
+	inline cv::Point_<_Vt> operator/(const cv::Point_<_Vt> &pt, _Vt scalar) { return cv::Point_<_Vt>(pt.x / scalar, pt.y / scalar); }
 	
 	template<typename _Vt> 
 	inline int sign(_Vt val) { return val != 0 ? (val > 0 ? 1 : -1) : 0; }

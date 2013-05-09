@@ -32,6 +32,9 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	int retResult = 0;
 
+	//cv::SparseMat test;
+	//test.ptr(0, 0);
+
 	cv::CommandLineParser arguments(argc, argv, "{l|left||}{r|right||}{1|||}");
 
 	std::vector<cv::Mat>			 images;
@@ -123,6 +126,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				pyramid->detector->set("tparam", 26.75);
 				pyramid->detector->set("gparam", 81.50);
 				pyramid->detector->set("prefilter", true);
+				pyramid->detector->set("subpix", true);
 			}
 			else
 			{
