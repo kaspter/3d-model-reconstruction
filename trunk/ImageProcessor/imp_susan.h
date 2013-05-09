@@ -23,18 +23,23 @@ namespace imp
 
 	class SUSAN : public cv::FeatureDetector
 	{
+		mutable int _pass_counter;
 		void detectImpl( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask=cv::Mat() ) const;
-	
+
 		unsigned _radius;		
 		double	 _gparam, _tparam;
+
 		bool	 _prefilter;
+		bool	 _subpix;
 
 	public:
 		void set_radius(unsigned r);
 		void set_tparam(double   t);
 		void set_gparam(double   g);
 
-		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool prefilter = false );
+		int reset_pass_counter() const;
+
+		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool prefilter = false, bool subpix = false );
 		cv::AlgorithmInfo* info() const;
 	};
 

@@ -21,7 +21,8 @@ namespace imp
 		obj.info()->addParam(obj, "radius",		obj._radius, false, NULL, (uint_setter)&SUSANManager::set_radius);
 		obj.info()->addParam(obj, "tparam",		obj._tparam, false, NULL,  (dbl_setter)&SUSANManager::set_tparam);
 		obj.info()->addParam(obj, "gparam",		obj._gparam, false, NULL,  (dbl_setter)&SUSANManager::set_gparam);
-		obj.info()->addParam(obj, "prefilter",	obj._prefilter)
+		obj.info()->addParam(obj, "prefilter",	obj._prefilter);
+		obj.info()->addParam(obj, "subpix",		obj._subpix)
 	);
 
 	bool initModule ()

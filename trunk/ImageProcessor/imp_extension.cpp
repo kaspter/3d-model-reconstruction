@@ -61,7 +61,7 @@ namespace imp
 			}
 
 			std::swap(skip_cur, skip_nxt);
-			memset(skip_nxt, 0, src.step);
+			memset(skip_nxt, 0, skip.step);
 		}
 		return maxima_count;
 	}
@@ -70,9 +70,7 @@ namespace imp
 		CV_Assert(!src.empty() && isGraymap(src));
 
 		cv::Mat buf;
-
-		bool inPlace;
-		if (inPlace = src.data == dst.data)
+		if (src.data == dst.data)
 		{
 			buf = src.clone();
 		}
