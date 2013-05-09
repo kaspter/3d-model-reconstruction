@@ -30,7 +30,7 @@ namespace imp
 		double	 _gparam, _tparam;
 
 		bool	 _prefilter;
-		bool	 _subpix;
+		bool	 _subpixel;
 
 	public:
 		void set_radius(unsigned r);
@@ -39,7 +39,7 @@ namespace imp
 
 		int reset_pass_counter() const;
 
-		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool prefilter = false, bool subpix = false );
+		SUSAN ( unsigned radius = 3, double t = 27.0, double g = -1.0, bool prefilter = false, bool subpixels = false );
 		cv::AlgorithmInfo* info() const;
 	};
 

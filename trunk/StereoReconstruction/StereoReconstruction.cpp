@@ -114,7 +114,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		std::cout << "Image pair feature tracking..." << std::endl;
 		{	
 			std::vector<std::vector<cv::KeyPoint>> _keypoints(2);
-
 			cv::Ptr<cv::FeatureDetector> detector	= cv::FeatureDetector::create("PyramidSUSAN");
 			imp::PyramidAdapterHack*	 pyramid	= reinterpret_cast<imp::PyramidAdapterHack*>(
 				dynamic_cast<cv::PyramidAdaptedFeatureDetector*>(detector.obj));
@@ -126,7 +125,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				pyramid->detector->set("tparam", 26.75);
 				pyramid->detector->set("gparam", 81.50);
 				pyramid->detector->set("prefilter", true);
-				pyramid->detector->set("subpix", true);
+				pyramid->detector->set("subpixel", true);
 			}
 			else
 			{
@@ -144,7 +143,6 @@ int _tmain(int argc, _TCHAR* argv[])
 			cv::KeyPointsFilter::removeDuplicated(_keypoints[1]);
 
 			std::vector<cv::Mat> _descriptors(2);
-
 			cv::Ptr<cv::DescriptorExtractor> extractor = cv::DescriptorExtractor::create("SIFT");
 			extractor->compute(images, _keypoints, _descriptors);
 

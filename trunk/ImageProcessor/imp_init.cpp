@@ -22,7 +22,7 @@ namespace imp
 		obj.info()->addParam(obj, "tparam",		obj._tparam, false, NULL,  (dbl_setter)&SUSANManager::set_tparam);
 		obj.info()->addParam(obj, "gparam",		obj._gparam, false, NULL,  (dbl_setter)&SUSANManager::set_gparam);
 		obj.info()->addParam(obj, "prefilter",	obj._prefilter);
-		obj.info()->addParam(obj, "subpix",		obj._subpix)
+		obj.info()->addParam(obj, "subpixel",	obj._subpixel)
 	);
 
 	bool initModule ()

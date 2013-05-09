@@ -180,8 +180,8 @@ namespace imp
 
 	inline int SUSAN::reset_pass_counter() const { int rvalue = _pass_counter; _pass_counter = -1; return rvalue; }
 
-	SUSAN::SUSAN (unsigned radius, double t, double g, bool prefilter, bool subpix)
-		: _prefilter(prefilter), _subpix(subpix)
+	SUSAN::SUSAN (unsigned radius, double t, double g, bool prefilter, bool subpixel)
+		: _prefilter(prefilter), _subpixel(subpixel)
 	{
 		set_radius(radius);
 		set_tparam(t);
@@ -190,6 +190,28 @@ namespace imp
 		reset_pass_counter();
 	}
 
+
+	float _gradientAngle3x3(const cv::Mat& image, int row, int col)
+	{
+		uchar w[3][3] = { 0x00 };
+		for (int r = 0; r < 3; ++r)
+		{
+			int i = std::abs(row + r - 1); if (i >= image.rows) i -= image.rows;
+			for (int c = 0; c < 3; ++c)
+			{
+				int j = std::abs(col + c - 1); if (j >= image.cols) j -= image.cols;
+				w[r][c] = image.at<uchar>(i, j);
+			}
+		}
+
+		int G[] = {
+			3 * (w[0][0] - w[0][2] + w[2][0] - w[2][2]) + 10 * (w[1][0] - w[1][2]),
+			3 * (w[0][0] + w[0][2] - w[2][0] - w[2][2]) + 10 * (w[0][1] - w[2][1])
+		};
+
+		return (G[0] == 0 && G[1] == 0) ? std::numeric_limits<float>::quiet_NaN()
+			: static_cast<float>(180.0 * std::atan2(double(G[1]), double(G[0])) / CV_PI + (G[1] > 0 ? 0.0 : 360.0));		
+	}
 	void SUSAN::detectImpl ( const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints, const cv::Mat& mask ) const
 	{	
 		CV_Assert(isBitmap(image));
@@ -212,9 +234,9 @@ namespace imp
 		
 		++_pass_counter;
 		
-		cv::Mat corners(3, corner_count, CV_32FC1);
+		cv::Mat corners(4, corner_count, CV_32FC1);
 		cv::Point2f *corner		= reinterpret_cast<cv::Point2f*>(corners.ptr<float>(0));
-		float		*response	= corners.ptr<float>(2);
+		cv::Vec2f	*response	= reinterpret_cast<cv::Vec2f*>(corners.ptr<float>(2));
 
 		corner_count = 0;
 		for (int r=0; r<dst.rows; ++r)
@@ -228,7 +250,9 @@ namespace imp
 						static_cast<float>(c), 
 						static_cast<float>(r)
 					);
-					response[corner_count++] = row[c];
+					new (response + corner_count) cv::Vec2f(
+						 _gradientAngle3x3(image, r, c), row[c]);
+					++corner_count;
 				}
 
 			}
@@ -236,7 +260,7 @@ namespace imp
 		dst.release();
 
 		int ksize = 2 * _radius + 1;
-		if (_subpix) 
+		if (_subpixel) 
 		{
 			int win_radius = ksize + 4;
 			win_radius = (src.rows < win_radius || src.cols < win_radius) 
@@ -246,7 +270,7 @@ namespace imp
 			{
 				cv::Point win_size(win_radius, win_radius);
 				cv::Mat points(corner_count, 1, CV_32FC2, corners.data);
-				cv::cornerSubPix(src, points, win_size, win_size / 2, cv::TermCriteria(
+				cv::cornerSubPix(src, points, win_size, win_size / 3, cv::TermCriteria(
 					cv::TermCriteria::COUNT + cv::TermCriteria::EPS, _radius * 10, std::numeric_limits<float>::epsilon()
 					));
 			}
@@ -257,8 +281,7 @@ namespace imp
 		for (size_t i = 0; i < corner_count; ++i)
 		{
 			new (keypoint + i) cv::KeyPoint(
-				corner[i], static_cast<float>(ksize), -1.0F, response[i], _pass_counter, -1
-				);
+				corner[i], static_cast<float>(ksize), -1.0/*response[i].val[0]*/, response[i].val[1], _pass_counter, -1);
 		}
 
 		cv::KeyPointsFilter::runByPixelsMask(keypoints, mask);
