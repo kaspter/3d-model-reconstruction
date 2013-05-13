@@ -229,95 +229,81 @@ int _tmain(int argc, _TCHAR* argv[])
 			if (cv::determinant(_R[0]) + 1 < std::numeric_limits<float>::epsilon()) // det(R1) == -1
 				HZEssentialDecomposition(-essential, _R[0], _R[1], _t[0], _t[1]);
 	
-			std::cout << "Robust reconstruction estimation:" << std::endl;
-			cv::Mat spaceHomogeneous, spaceEuclidian;
+			cv::Mat _camera_canonical(cv::Matx34d::eye());
+			intrinsics_optimal.copyTo(_camera_canonical(cv::Rect(cv::Point(), intrinsics_optimal.size())));
+			camera[0] = _camera_canonical;
 
-			{ // Canonical left camera estimation
-				cv::Mat _camera_canonical(cv::Matx34d::eye());
-				intrinsics_optimal.copyTo(_camera_canonical(cv::Rect(cv::Point(), intrinsics_optimal.size())));
-				camera[0] = _camera_canonical;
-			}
-
-			double minReprojectionError = std::numeric_limits<double>::max(); 
-			double maxFrontalPercentage = 0;
+			double _sine_max = 0.0;
 			for (int r = 0; r < 2; ++r)
 			{
-				cv::Mat_<double> R = _R[r];
-				if (!isCoherent(R)) continue;
+				if (!isCoherent(_R[r])) continue;
 
 				for (int t = 0; t < 2; ++t)
 				{
-					cv::Mat _P = intrinsics_optimal * cv::Mat(cv::Matx34d(
-							R(0,0), R(0,1), R(0,2), _t[t](0),
-							R(1,0), R(1,1), R(1,2), _t[t](1),
-							R(2,0), R(2,1), R(2,2), _t[t](2)
-						));
+					cv::Matx34d P = cv::Mat(intrinsics_optimal * cv::Mat(cv::Matx34d(
+						_R[r](0,0), _R[r](0,1), _R[r](0,2), _t[t](0),
+						_R[r](1,0), _R[r](1,1), _R[r](1,2), _t[t](1),
+						_R[r](2,0), _R[r](2,1), _R[r](2,2), _t[t](2)
+					)));
 
-					cv::triangulatePoints(camera[0], _P, fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
-					pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
+					cv::Point3d v(
+						P(2,1) * P(2,3) - P(2,2) * P(1,3),
+						P(2,2) * P(0,3) - P(2,0) * P(2,3),
+						P(2,0) * P(1,3) - P(2,1) * P(0,3)
+					);
 
-					cv::Mat p(cv::Matx44d::eye());
-					cv::Mat(_P).copyTo(p(cv::Rect(cv::Point(), _P.size())));
-					cv::Mat spaceEuclidianReprojected;
-					cv::perspectiveTransform(spaceEuclidian, spaceEuclidianReprojected, p);
-
-					double errorReprojected	 = 0.0;
-					double frontalPercentage = 0.0;
-					for (int i = 0; i < spaceEuclidianReprojected.rows; ++i)
+					if (imp::sign(v.y) > 0)
 					{
-						cv::Point3d point_reprojected = spaceEuclidianReprojected.at<cv::Point3d>(i);
-						if (point_reprojected.z > 0) frontalPercentage++;
-
-						errorReprojected += cv::norm(cv::Point2d(
-							point_reprojected.x / point_reprojected.z, 
-							point_reprojected.y / point_reprojected.z)
-						- fundamental_inliers[1][i]);
-					}
-
-					errorReprojected /= spaceEuclidianReprojected.rows;
-					frontalPercentage = 100.0 * frontalPercentage / spaceEuclidianReprojected.rows;
-
-					std::cout << "Frontal percentage/Reprojection error: " 
-						<< frontalPercentage << "/" << errorReprojected << ". ";
-
-					if (errorReprojected < minReprojectionError 
-						&& (errorReprojected / minReprojectionError 
-							>= (maxFrontalPercentage - frontalPercentage) / frontalPercentage))
-					{
-						std::cout << (maxFrontalPercentage == 0.0 ? "Satisfy" : "Overrides") << "!";
-						maxFrontalPercentage = frontalPercentage;
-
-						spaceEuclidian.convertTo(opencvCloud, CV_32F);
-						camera[1] = _P; // "Precious" right Camera
-
-						if (frontalPercentage == 100.0) 
+						double sine = (v.x*v.x + v.z*v.z) / (v.x*v.x + v.y*v.y + v.z*v.z);
+						if (sine > _sine_max) 
 						{
-							std::cout << " (Best fit break!)" << std::endl;
-							goto BEST_FIT_BREAK;
+							_sine_max = sine;
+							camera[1] = P;
 						}
 					}
-					std::cout << std::endl;
 				}
 			}
 
-			if (opencvCloud.empty())
-			{
-				std::cerr << "Failed due to rotation matrices incoherence." << std::endl;
-				retResult = -1; goto EXIT;
-			}
-
-			BEST_FIT_BREAK:
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
 			std::cout << "Left camera matrix:  " << camera[0] << std::endl;
 			std::cout << "Right camera matrix: " << camera[1] << std::endl;
 			/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			cv::Mat spaceHomogeneous, spaceEuclidian, spaceEuclidianReprojected;
+			cv::triangulatePoints(camera[0], camera[1], fundamental_inliers[0], fundamental_inliers[1], spaceHomogeneous);
+			pointsFromHomogeneous<double>(spaceHomogeneous, spaceEuclidian);
+
+			cv::Mat _p(cv::Matx44d::eye());
+			cv::Mat(camera[1]).copyTo(_p(cv::Rect(cv::Point(), cv::Size(camera[1].cols, camera[1].rows))));
+			cv::perspectiveTransform(spaceEuclidian, spaceEuclidianReprojected, _p);
+
+			double errorReprojected	 = 0.0;
+			double frontalPercentage = 0.0;
+			for (int i = 0; i < spaceEuclidianReprojected.rows; ++i)
+			{
+				cv::Point3d point_reprojected = spaceEuclidianReprojected.at<cv::Point3d>(i);
+				if (point_reprojected.z > 0) frontalPercentage++;
+
+				errorReprojected += cv::norm(cv::Point2d(
+					point_reprojected.x / point_reprojected.z, 
+					point_reprojected.y / point_reprojected.z)
+				- fundamental_inliers[1][i]);
+			}
+
+			errorReprojected /= spaceEuclidianReprojected.rows;
+			frontalPercentage = 100.0 * frontalPercentage / spaceEuclidianReprojected.rows;
+
+			std::cout << "Frontal percentage/Reprojection error: " 
+				<< frontalPercentage << "/" << errorReprojected << ". ";
+
+			spaceEuclidian.convertTo(opencvCloud, CV_32F);
 		}
 		std::cout << std::endl;
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		// Model graph visualization
 		if (!opencvCloud.empty())
 		{
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
+			// Model graph visualization
 			_ASSERT( opencvCloud.size().area() == fundamental_inliers[0].size() 
 				&& opencvCloud.size().area() == fundamental_inliers[1].size() );
 
@@ -339,8 +325,13 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 			OrphanTask::submit(cloudPresenterThreadFunc, new CloudData(cloud, camera));
+			/////////////////////////////////////////////////////////////////////////////////////////////////////
 		}
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
+		else
+		{
+			std::cerr << "Failed due to rotation matrices incoherence." << std::endl;
+			retResult = -1; goto EXIT;
+		}
 	}
 
 EXIT:
