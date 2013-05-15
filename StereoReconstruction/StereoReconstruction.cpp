@@ -239,12 +239,13 @@ int _tmain(int argc, _TCHAR* argv[])
 				if (!isCoherent(_R[r])) continue;
 
 				for (int t = 0; t < 2; ++t)
-				{
-					cv::Matx34d P = cv::Mat(intrinsics_optimal * cv::Mat(cv::Matx34d(
-						_R[r](0,0), _R[r](0,1), _R[r](0,2), _t[t](0),
-						_R[r](1,0), _R[r](1,1), _R[r](1,2), _t[t](1),
-						_R[r](2,0), _R[r](2,1), _R[r](2,2), _t[t](2)
-					)));
+				{	
+					cv::Matx34d P(0.0);
+
+					cv::Mat_<double> alias(3,4, P.val);	
+					_R[r].copyTo(alias(cv::Rect(cv::Point(0,0), _R[r].size()))); 
+					_t[t].copyTo(alias(cv::Rect(cv::Point(3,0), _t[t].size())));
+					alias = intrinsics_optimal * alias;
 
 					cv::Point3d v(
 						P(2,1) * P(2,3) - P(2,2) * P(1,3),
