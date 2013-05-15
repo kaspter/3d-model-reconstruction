@@ -114,7 +114,7 @@ namespace imp
 			}
 		}
 	}
-	void discreteGraymapHistogram(const cv::Mat &src, cv::OutputArray &dst)
+	void discreteGraymapHistogram(const cv::Mat &src, cv::OutputArray dst)
 	{
 		int sdepth = src.depth();
 		CV_Assert( isGraymap(src) && sdepth != CV_32F );
