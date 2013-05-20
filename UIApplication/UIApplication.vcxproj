@@ -1,0 +1,321 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{772E1F09-4BC2-4513-8951-02A39E7B641F}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.60315.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>bin\</OutDir>
+    <IntDir>$(ProjectDir)int.dir\$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>sfm</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>sfm</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>bin\</OutDir>
+    <IntDir>$(ProjectDir)int.dir\$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>sfm</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>sfm</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\include\opencv;$(EIGEN_ROOT)\include;$(OPEN_NI_INCLUDE);$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(VTK_DIR)\include\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\include;$(SolutionDir)\StructureFromMotion\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>Debug</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)\$(TargetName).pdb</ProgramDataBaseFileName>
+      <ForcedIncludeFiles>boost_link.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName />
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <Link>
+      <AdditionalOptions> /STACK:10000000 /machine:X86 /debug %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>comctl32.lib;opengl32.lib;vfw32.lib;wsock32.lib;ws2_32.lib;opencv_calib3d244d.lib;opencv_contrib244d.lib;opencv_core244d.lib;opencv_features2d244d.lib;opencv_flann244d.lib;opencv_gpu244d.lib;opencv_highgui244d.lib;opencv_imgproc244d.lib;opencv_legacy244d.lib;opencv_ml244d.lib;opencv_nonfree244d.lib;opencv_objdetect244d.lib;opencv_photo244d.lib;opencv_stitching244d.lib;opencv_ts244d.lib;opencv_video244d.lib;opencv_videostab244d.lib;openNI.lib;flann_cpp_s-gd.lib;vtkCommon-gd.lib;vtkRendering-gd.lib;vtkHybrid-gd.lib;vtkGraphics-gd.lib;vtkverdict-gd.lib;vtkImaging-gd.lib;vtkIO-gd.lib;vtkFiltering-gd.lib;vtkDICOMParser-gd.lib;vtkNetCDF_cxx-gd.lib;vtkmetaio-gd.lib;vtksys-gd.lib;vtksqlite-gd.lib;vtkpng-gd.lib;vtktiff-gd.lib;vtkzlib-gd.lib;vtkjpeg-gd.lib;vtkexpat-gd.lib;vtkftgl-gd.lib;vtkfreetype-gd.lib;vtkexoIIc-gd.lib;vtkNetCDF-gd.lib;pcl_common_debug.lib;pcl_octree_debug.lib;pcl_io_debug.lib;pcl_kdtree_debug.lib;pcl_search_debug.lib;pcl_sample_consensus_debug.lib;pcl_filters_debug.lib;pcl_segmentation_debug.lib;pcl_visualization_debug.lib;pcl_features_debug.lib;pcl_surface_debug.lib;pcl_registration_debug.lib;pcl_keypoints_debug.lib;pcl_tracking_debug.lib;pcl_apps_debug.lib;COLAMD$(PlatformTarget)-msvc$(PlatformToolsetVersion)-md-$(Configuration).lib;V3D$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;vcomp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <Version>0.1.0</Version>
+      <AdditionalLibraryDirectories>$(BOOST_ROOT)\boost_1_53_0\stage\lib;$(OPENCV_DIR)\opencv-2.4.4\build\$(PlatformTarget)\$(PlatformToolset)\lib;$(OPEN_NI_LIB);$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\Lib;$(VTK_DIR)\lib\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\lib;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\Lib;$(SSBA_ROOT)\SSBA-3.0\Lib;$(SolutionDir)StructureFromMotion\lib</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>E:\In-OUT\SFMProject\Debug/ExploringSfMExec.pdb</ProgramDatabaseFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>E:\In-OUT\SFMProject\Debug\ExploringSfMExec.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+      <IgnoreSpecificDefaultLibraries>vcompd.lib</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\include\opencv;$(EIGEN_ROOT)\include;$(OPEN_NI_INCLUDE);$(FLANN_ROOT)\flann-1.7.1 (x86)\include;$(VTK_DIR)\include\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 (x86)\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>Debug</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)\$(TargetName).pdb</ProgramDataBaseFileName>
+      <ForcedIncludeFiles>boost_link.h</ForcedIncludeFiles>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName>
+      </DllDataFileName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <Link>
+      <AdditionalOptions> /STACK:10000000 /machine:X86 /debug %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>comctl32.lib;opengl32.lib;vfw32.lib;wsock32.lib;ws2_32.lib;opencv_calib3d244d.lib;opencv_contrib244d.lib;opencv_core244d.lib;opencv_features2d244d.lib;opencv_flann244d.lib;opencv_gpu244d.lib;opencv_highgui244d.lib;opencv_imgproc244d.lib;opencv_legacy244d.lib;opencv_ml244d.lib;opencv_nonfree244d.lib;opencv_objdetect244d.lib;opencv_photo244d.lib;opencv_stitching244d.lib;opencv_ts244d.lib;opencv_video244d.lib;opencv_videostab244d.lib;openNI.lib;flann_cpp_s-gd.lib;vtkCommon-gd.lib;vtkRendering-gd.lib;vtkHybrid-gd.lib;vtkGraphics-gd.lib;vtkverdict-gd.lib;vtkImaging-gd.lib;vtkIO-gd.lib;vtkFiltering-gd.lib;vtkDICOMParser-gd.lib;vtkNetCDF_cxx-gd.lib;vtkmetaio-gd.lib;vtksys-gd.lib;vtksqlite-gd.lib;vtkpng-gd.lib;vtktiff-gd.lib;vtkzlib-gd.lib;vtkjpeg-gd.lib;vtkexpat-gd.lib;vtkftgl-gd.lib;vtkfreetype-gd.lib;vtkexoIIc-gd.lib;vtkNetCDF-gd.lib;pcl_common_debug.lib;pcl_octree_debug.lib;pcl_io_debug.lib;pcl_kdtree_debug.lib;pcl_search_debug.lib;pcl_sample_consensus_debug.lib;pcl_filters_debug.lib;pcl_segmentation_debug.lib;pcl_visualization_debug.lib;pcl_features_debug.lib;pcl_surface_debug.lib;pcl_registration_debug.lib;pcl_keypoints_debug.lib;pcl_tracking_debug.lib;pcl_apps_debug.lib;COLAMD$(PlatformTarget)-msvc$(PlatformToolsetVersion)-md-$(Configuration).lib;V3D$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <Version>0.1.0</Version>
+      <AdditionalLibraryDirectories>$(BOOST_ROOT)\boost_1_53_0\stage\lib;$(OPENCV_DIR)\opencv-2.4.4\build\$(PlatformTarget)\$(PlatformToolset)\lib;$(OPEN_NI_LIB);$(FLANN_ROOT)\flann-1.7.1 (x86)\Lib;$(VTK_DIR)\lib\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 (x86)\lib;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\Lib;$(SSBA_ROOT)\SSBA-3.0\Lib;$(SolutionDir)structure_from_motion\lib</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>E:\In-OUT\SFMProject\Debug/ExploringSfMExec.pdb</ProgramDatabaseFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>E:\In-OUT\SFMProject\Debug\ExploringSfMExec.lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\include\opencv;$(EIGEN_ROOT)\include;$(OPEN_NI_INCLUDE);$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(VTK_DIR)\include\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\include;$(SolutionDir)\StructureFromMotion\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>Release</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>
+      </ProgramDataBaseFileName>
+      <DebugInformationFormat />
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName />
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <Link>
+      <AdditionalOptions> /STACK:10000000 /machine:X86 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>comctl32.lib;opengl32.lib;vfw32.lib;wsock32.lib;ws2_32.lib;opencv_calib3d244.lib;opencv_contrib244.lib;opencv_core244.lib;opencv_features2d244.lib;opencv_flann244.lib;opencv_gpu244.lib;opencv_highgui244.lib;opencv_imgproc244.lib;opencv_legacy244.lib;opencv_ml244.lib;opencv_nonfree244.lib;opencv_objdetect244.lib;opencv_photo244.lib;opencv_stitching244.lib;opencv_ts244.lib;opencv_video244.lib;opencv_videostab244.lib;openNI.lib;flann_cpp_s.lib;vtkCommon.lib;vtkRendering.lib;vtkHybrid.lib;vtkGraphics.lib;vtkverdict.lib;vtkImaging.lib;vtkIO.lib;vtkFiltering.lib;vtkDICOMParser.lib;vtkNetCDF_cxx.lib;vtkmetaio.lib;vtksys.lib;vtksqlite.lib;vtkpng.lib;vtktiff.lib;vtkzlib.lib;vtkjpeg.lib;vtkexpat.lib;vtkftgl.lib;vtkfreetype.lib;vtkexoIIc.lib;vtkNetCDF.lib;pcl_common.lib;pcl_octree.lib;pcl_io.lib;pcl_kdtree.lib;pcl_search.lib;pcl_sample_consensus.lib;pcl_filters.lib;pcl_segmentation.lib;pcl_visualization.lib;pcl_features.lib;pcl_surface.lib;pcl_registration.lib;pcl_keypoints.lib;pcl_tracking.lib;pcl_apps.lib;COLAMD$(PlatformTarget)-msvc$(PlatformToolsetVersion)-md-$(Configuration).lib;V3D$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <Version>0.1.0</Version>
+      <AdditionalLibraryDirectories>$(BOOST_ROOT)\boost_1_53_0\stage\lib;$(OPENCV_DIR)\opencv-2.4.4\build\$(PlatformTarget)\$(PlatformToolset)\lib;$(OPEN_NI_LIB);$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\Lib;$(VTK_DIR)\lib\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\lib;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\Lib;$(SSBA_ROOT)\SSBA-3.0\Lib;$(SolutionDir)StructureFromMotion\lib</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>E:\In-OUT\SFMProject\Release/ExploringSfMExec.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>E:\In-OUT\SFMProject\Release\ExploringSfMExec.lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\include\opencv;$(EIGEN_ROOT)\include;$(OPEN_NI_INCLUDE);$(FLANN_ROOT)\flann-1.7.1 (x86)\include;$(VTK_DIR)\include\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 (x86)\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>Release</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>
+      </ProgramDataBaseFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName>
+      </DllDataFileName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <Link>
+      <AdditionalOptions> /STACK:10000000 /machine:X86 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>comctl32.lib;opengl32.lib;vfw32.lib;wsock32.lib;ws2_32.lib;opencv_calib3d244.lib;opencv_contrib244.lib;opencv_core244.lib;opencv_features2d244.lib;opencv_flann244.lib;opencv_gpu244.lib;opencv_highgui244.lib;opencv_imgproc244.lib;opencv_legacy244.lib;opencv_ml244.lib;opencv_nonfree244.lib;opencv_objdetect244.lib;opencv_photo244.lib;opencv_stitching244.lib;opencv_ts244.lib;opencv_video244.lib;opencv_videostab244.lib;openNI.lib;flann_cpp_s.lib;vtkCommon.lib;vtkRendering.lib;vtkHybrid.lib;vtkGraphics.lib;vtkverdict.lib;vtkImaging.lib;vtkIO.lib;vtkFiltering.lib;vtkDICOMParser.lib;vtkNetCDF_cxx.lib;vtkmetaio.lib;vtksys.lib;vtksqlite.lib;vtkpng.lib;vtktiff.lib;vtkzlib.lib;vtkjpeg.lib;vtkexpat.lib;vtkftgl.lib;vtkfreetype.lib;vtkexoIIc.lib;vtkNetCDF.lib;pcl_common.lib;pcl_octree.lib;pcl_io.lib;pcl_kdtree.lib;pcl_search.lib;pcl_sample_consensus.lib;pcl_filters.lib;pcl_segmentation.lib;pcl_visualization.lib;pcl_features.lib;pcl_surface.lib;pcl_registration.lib;pcl_keypoints.lib;pcl_tracking.lib;pcl_apps.lib;COLAMD$(PlatformTarget)-msvc$(PlatformToolsetVersion)-md-$(Configuration).lib;V3D$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <Version>0.1.0</Version>
+      <AdditionalLibraryDirectories>$(BOOST_ROOT)\boost_1_53_0\stage\lib;$(OPENCV_DIR)\opencv-2.4.4\build\$(PlatformTarget)\$(PlatformToolset)\lib;$(OPEN_NI_LIB);$(FLANN_ROOT)\flann-1.7.1 (x86)\Lib;$(VTK_DIR)\lib\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 (x86)\lib;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\Lib;$(SSBA_ROOT)\SSBA-3.0\Lib;$(SolutionDir)structure_from_motion\lib</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>E:\In-OUT\SFMProject\Release/ExploringSfMExec.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>E:\In-OUT\SFMProject\Release\ExploringSfMExec.lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Visualization.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="boost_link.h" />
+    <ClInclude Include="Visualization.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StructureFromMotion\StructureFromMotion.vcxproj">
+      <Project>{5ae4f77f-abdc-4361-a258-9cdbd5ff0063}</Project>
+      <Private>true</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
