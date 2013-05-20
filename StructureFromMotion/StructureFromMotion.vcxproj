@@ -169,6 +169,8 @@
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <AdditionalOptions>
+      </AdditionalOptions>
     </Lib>
     <ProjectReference />
     <BuildLog>
@@ -264,6 +266,8 @@
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <AdditionalOptions>
+      </AdditionalOptions>
     </Lib>
     <BuildLog>
       <Path>$(IntDir)\$(TargetName).log</Path>
