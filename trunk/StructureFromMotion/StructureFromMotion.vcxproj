@@ -1,0 +1,321 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\AbstractFeatureMatcher.h" />
+    <ClInclude Include="include\BundleAdjuster.h" />
+    <ClInclude Include="include\Common.h" />
+    <ClInclude Include="include\Distance.h" />
+    <ClInclude Include="include\FindCameraMatrices.h" />
+    <ClInclude Include="include\GPUSURFFeatureMatcher.h" />
+    <ClInclude Include="include\IDistance.h" />
+    <ClInclude Include="include\IFeatureMatcher.h" />
+    <ClInclude Include="include\MultiCameraDistance.h" />
+    <ClInclude Include="include\MultiCameraPnP.h" />
+    <ClInclude Include="include\OFFeatureMatcher.h" />
+    <ClInclude Include="include\RichFeatureMatcher.h" />
+    <ClInclude Include="include\SfMUpdateListener.h" />
+    <ClInclude Include="include\Triangulation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AbstractFeatureMatcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\BundleAdjuster.cpp" />
+    <ClCompile Include="src\Common.cpp" />
+    <ClCompile Include="src\Distance.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\FindCameraMatrices.cpp" />
+    <ClCompile Include="src\GPUSURFFeatureMatcher.cpp" />
+    <ClCompile Include="src\MultiCameraDistance.cpp" />
+    <ClCompile Include="src\MultiCameraPnP.cpp" />
+    <ClCompile Include="src\OFFeatureMatcher.cpp" />
+    <ClCompile Include="src\RichFeatureMatcher.cpp" />
+    <ClCompile Include="src\SfMUpdateListener.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\Triangulation.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5AE4F77F-ABDC-4361-A258-9CDBD5FF0063}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v100</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.60315.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>lib\</OutDir>
+    <IntDir>$(ProjectDir)int.dir\$(Configuration)\</IntDir>
+    <TargetName>SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>lib\</OutDir>
+    <IntDir>$(ProjectDir)int.dir\$(Configuration)\</IntDir>
+    <TargetName>SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>SFM$(PlatformTarget)-msvc$(PlatformToolsetVersion)-$(Configuration)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>Default</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
+      <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+      <ForcedIncludeFiles>Windows.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName />
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Lib>
+    <ProjectReference />
+    <BuildLog>
+      <Path>$(IntDir)\$(TargetName).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\include;$(OPENCV_DIR)\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <CompileAs>Default</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
+      <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+      <ForcedIncludeFiles>Windows.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName>
+      </DllDataFileName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc10\lib</AdditionalLibraryDirectories>
+    </Lib>
+    <ProjectReference />
+    <BuildLog>
+      <Path>$(IntDir)\$(TargetName).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>Default</CompileAs>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
+      <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+      <ForcedIncludeFiles>Windows.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName />
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Lib>
+    <BuildLog>
+      <Path>$(IntDir)\$(TargetName).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(BOOST_ROOT)\boost_1_53_0;$(OPENCV_DIR)\include;$(OPENCV_DIR)\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>Default</CompileAs>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
+      <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <DisableSpecificWarnings>4018;4172;4244;4800;4996</DisableSpecificWarnings>
+      <ForcedIncludeFiles>Windows.h</ForcedIncludeFiles>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Soft\Dev\VTK 5.8.0\include\vtk-5.8;D:\Soft\Dev\eigen\include;D:\Soft\Dev\opencv\build\include;D:\Soft\Dev\opencv\build\include\opencv;D:\Soft\Dev\PCL 1.6.0 (x86)\include\pcl-1.6;D:\Soft\Dev\boost\boost_1_53_0;D:\Soft\Dev\openni\Include;D:\Soft\Dev\flann\include;E:\In-OUT\Chapter4_StructureFromMotion\3rdparty\SSBA-3.0\build\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <GenerateStublessProxies>true</GenerateStublessProxies>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <DllDataFileName>
+      </DllDataFileName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(OPENCV_DIR)\x86\vc10\lib</AdditionalLibraryDirectories>
+    </Lib>
+    <BuildLog>
+      <Path>$(IntDir)\$(TargetName).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
