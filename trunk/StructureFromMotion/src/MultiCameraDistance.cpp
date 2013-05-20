@@ -46,7 +46,7 @@ imgs_names(imgs_names_),features_matched(false),use_rich_features(true),use_gpu(
 		
 	//load calibration matrix
 	cv::FileStorage fs;
-	if(fs.open(imgs_path_+ "\\out_camera_data.yml",cv::FileStorage::READ)) {
+	if(fs.open(imgs_path_+ "\\out_camera_data.xml", cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8")) {
 		fs["camera_matrix"]>>cam_matrix;
 		fs["distortion_coefficients"]>>distortion_coeff;
 	} else {
