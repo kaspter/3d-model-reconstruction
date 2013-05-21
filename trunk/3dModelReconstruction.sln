@@ -4,11 +4,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CameraCalibration", "CameraCalibration\CameraCalibration.vcxproj", "{ED1A2893-0096-4880-97FB-4F961C37A81F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StructureFromMotion", "StructureFromMotion\StructureFromMotion.vcxproj", "{5AE4F77F-ABDC-4361-A258-9CDBD5FF0063}"
+	ProjectSection(ProjectDependencies) = postProject
+		{05F49655-83EB-434B-9848-D93CA1696937} = {05F49655-83EB-434B-9848-D93CA1696937}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UIApplication", "UIApplication\UIApplication.vcxproj", "{772E1F09-4BC2-4513-8951-02A39E7B641F}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5AE4F77F-ABDC-4361-A258-9CDBD5FF0063} = {5AE4F77F-ABDC-4361-A258-9CDBD5FF0063}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImageProcessor", "ImageProcessor\ImageProcessor.vcxproj", "{05F49655-83EB-434B-9848-D93CA1696937}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +45,12 @@ Global
 		{772E1F09-4BC2-4513-8951-02A39E7B641F}.Release|Win32.Build.0 = Release|Win32
 		{772E1F09-4BC2-4513-8951-02A39E7B641F}.Release|x64.ActiveCfg = Release|x64
 		{772E1F09-4BC2-4513-8951-02A39E7B641F}.Release|x64.Build.0 = Release|x64
+		{05F49655-83EB-434B-9848-D93CA1696937}.Debug|Win32.ActiveCfg = Debug|Win32
+		{05F49655-83EB-434B-9848-D93CA1696937}.Debug|Win32.Build.0 = Debug|Win32
+		{05F49655-83EB-434B-9848-D93CA1696937}.Debug|x64.ActiveCfg = Debug|Win32
+		{05F49655-83EB-434B-9848-D93CA1696937}.Release|Win32.ActiveCfg = Release|Win32
+		{05F49655-83EB-434B-9848-D93CA1696937}.Release|Win32.Build.0 = Release|Win32
+		{05F49655-83EB-434B-9848-D93CA1696937}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

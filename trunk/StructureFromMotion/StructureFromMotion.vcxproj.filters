@@ -7,87 +7,105 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{02b0c5c4-23ad-43ff-9d64-e2a3085759a5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Feature matching">
+      <UniqueIdentifier>{1292b45c-859e-4b0f-b739-70161af4f7d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Structure extraction">
+      <UniqueIdentifier>{c340968d-0881-47ea-ade1-ced7386a22d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Structure extraction\low-level math">
+      <UniqueIdentifier>{5b4227f9-5883-4ba0-a5e8-0b2f18e20823}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Feature matching">
+      <UniqueIdentifier>{2d160336-bfca-4481-bdbc-8aebfa9b68a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Structure extraction">
+      <UniqueIdentifier>{bb79f07b-8ae7-425c-a7b6-494b083248ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Structure extraction\low-level math">
+      <UniqueIdentifier>{de5f96d8-f74a-44bd-b349-b82fe05d44f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\AbstractFeatureMatcher.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\BundleAdjuster.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Distance.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\FindCameraMatrices.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\GPUSURFFeatureMatcher.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\IDistance.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\IFeatureMatcher.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\MultiCameraDistance.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\MultiCameraPnP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\OFFeatureMatcher.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
     <ClInclude Include="include\RichFeatureMatcher.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
-    <ClInclude Include="include\SfMUpdateListener.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\GPUSURFFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AbstractFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
+    </ClInclude>
+    <ClInclude Include="include\IFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
     <ClInclude Include="include\Triangulation.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Structure extraction\low-level math</Filter>
+    </ClInclude>
+    <ClInclude Include="include\FindCameraMatrices.h">
+      <Filter>Header Files\Structure extraction\low-level math</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Distance.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\IDistance.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MultiCameraDistance.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MultiCameraPnP.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\SfMUpdateListener.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\BundleAdjuster.h">
+      <Filter>Header Files\Structure extraction</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\AbstractFeatureMatcher.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\BundleAdjuster.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Common.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Distance.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\FindCameraMatrices.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\GPUSURFFeatureMatcher.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\MultiCameraDistance.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\MultiCameraPnP.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Feature matching</Filter>
     </ClCompile>
     <ClCompile Include="src\OFFeatureMatcher.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Feature matching</Filter>
     </ClCompile>
     <ClCompile Include="src\RichFeatureMatcher.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\SfMUpdateListener.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Feature matching</Filter>
     </ClCompile>
     <ClCompile Include="src\Triangulation.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Structure extraction\low-level math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FindCameraMatrices.cpp">
+      <Filter>Source Files\Structure extraction\low-level math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\BundleAdjuster.cpp">
+      <Filter>Source Files\Structure extraction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AbstractFeatureMatcher.cpp">
+      <Filter>Source Files\Structure extraction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Distance.cpp">
+      <Filter>Source Files\Structure extraction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MultiCameraDistance.cpp">
+      <Filter>Source Files\Structure extraction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MultiCameraPnP.cpp">
+      <Filter>Source Files\Structure extraction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SfMUpdateListener.cpp">
+      <Filter>Source Files\Structure extraction</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
