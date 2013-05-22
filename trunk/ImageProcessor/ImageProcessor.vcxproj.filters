@@ -17,13 +17,13 @@
     <ClInclude Include="include\imp_susan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\module\imp_extension.h">
+    <ClInclude Include="include\internal\imp_private.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\module\imp_private.h">
+    <ClInclude Include="include\imp_extension.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\module\precomp.h">
+    <ClInclude Include="include\imp_precomp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

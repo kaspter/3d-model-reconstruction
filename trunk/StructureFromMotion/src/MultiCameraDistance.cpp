@@ -14,50 +14,63 @@
 #include "OFFeatureMatcher.h"
 #include "GPUSURFFeatureMatcher.h"
 
-//c'tor
 MultiCameraDistance::MultiCameraDistance(
 	const std::vector<cv::Mat>& imgs_, 
 	const std::vector<std::string>& imgs_names_, 
 	const std::string& imgs_path_):
 imgs_names(imgs_names_),features_matched(false),use_rich_features(true),use_gpu(true)
-{		
-	std::cout << "=========================== Load Images ===========================\n";
+{
+	cv::Size min_size;
+	for (unsigned i = 0, imax = imgs_.size(); i < imax; ++i)
+		if (min_size.area() == 0 || imgs_[i].size() < min_size) min_size = imgs_[i].size();
+	if (min_size.height > min_size.width) std::swap(min_size.width, min_size.height);
+
 	//ensure images are CV_8UC3
 	for (unsigned int i=0; i<imgs_.size(); i++) {
+		if (imgs_[i].empty()) continue;
+
 		imgs_orig.push_back(cv::Mat_<cv::Vec3b>());
-		if (!imgs_[i].empty()) {
-			if (imgs_[i].type() == CV_8UC1) {
-				cvtColor(imgs_[i], imgs_orig[i], CV_GRAY2BGR);
-			} else if (imgs_[i].type() == CV_32FC3 || imgs_[i].type() == CV_64FC3) {
-				imgs_[i].convertTo(imgs_orig[i],CV_8UC3,255.0);
-			} else {
-				imgs_[i].copyTo(imgs_orig[i]);
-			}
+		if (imgs_[i].type() == CV_8UC1) {
+			cvtColor(imgs_[i], imgs_orig[i], CV_GRAY2BGR);
+		} else if (imgs_[i].type() == CV_32FC3 || imgs_[i].type() == CV_64FC3) {
+			imgs_[i].convertTo(imgs_orig[i],CV_8UC3,255.0);
+		} else {
+			imgs_[i].copyTo(imgs_orig[i]);
 		}
-		
+				
+		if (imgs_orig[i].size() != min_size)
+		{
+			cv::Size new_size(min_size);
+			if (imgs_orig[i].size().height > imgs_orig[i].size().width) std::swap(new_size.width, new_size.height);
+			cv::resize(imgs_orig[i], imgs_orig[i], new_size, 0.0, 0.0, cv::INTER_LANCZOS4);
+		}
+
 		imgs.push_back(cv::Mat());
 		cvtColor(imgs_orig[i],imgs[i], CV_BGR2GRAY);
 		
 		imgpts.push_back(std::vector<cv::KeyPoint>());
 		imgpts_good.push_back(std::vector<cv::KeyPoint>());
-		std::cout << ".";
 	}
-	std::cout << std::endl;
 		
 	//load calibration matrix
 	cv::FileStorage fs;
+	double max_w_h = std::max(min_size.height,min_size.width);
 	if(fs.open(imgs_path_+ "\\out_camera_data.xml", cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8")) {
-		fs["camera_intrinsics"]>>cam_matrix;
 		fs["camera_distortion"]>>distortion_coeff;
+		fs["camera_intrinsics"]>>cam_matrix;
+		fs.release();
 	} else {
-		//no calibration matrix file - mockup calibration
-		cv::Size imgs_size = imgs_[0].size();
-		double max_w_h = MAX(imgs_size.height,imgs_size.width);
-		cam_matrix = (cv::Mat_<double>(3,3) <<	max_w_h ,	0	,		imgs_size.width/2.0,
-												0,			max_w_h,	imgs_size.height/2.0,
-												0,			0,			1);
-		distortion_coeff = cv::Mat_<double>::zeros(1,4);
+		//no calibration matrix file - mockup calibration	
+		distortion_coeff	= cv::Mat_<double>::zeros(1,4);
+		cam_matrix			= cv::Mat_<double>(3,3) <<	1.0,	0.0,	0.5, 
+														0.0,	1.0,	0.5, 
+														0.0,	0.0,	1.0;
 	}
+	
+	cam_matrix.at<double>(0,0) *= max_w_h;
+	cam_matrix.at<double>(1,1) *= max_w_h;
+	cam_matrix.at<double>(0,2) *= min_size.width;
+	cam_matrix.at<double>(1,2) *= min_size.height;
 	
 	K = cam_matrix;
 	invert(K, Kinv); //get inverse of camera matrix
@@ -110,10 +123,11 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 				std::cout << "------------ Match " << imgs_names[frame_num_i] << ","<<imgs_names[frame_num_j]<<" ------------\n";
 				std::vector<cv::DMatch> matches_tmp;
 				feature_matcher->MatchFeatures(frame_num_i,frame_num_j,&matches_tmp);
-				matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
+				if (matches_tmp.size() == 0) continue; // No matches. Do not add to matches matrix
 
 				std::vector<cv::DMatch> matches_tmp_flip = FlipMatches(matches_tmp);
 				matches_matrix[std::make_pair(frame_num_j,frame_num_i)] = matches_tmp_flip;
+				matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
 			}
 		}
 	//}

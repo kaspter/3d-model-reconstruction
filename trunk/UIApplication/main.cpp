@@ -62,20 +62,11 @@ int main(int argc, char** argv) {
 	}
 
 	cv::Ptr<MultiCameraPnP> distance = new MultiCameraPnP(images,images_names,string(argv[1]));
-	if(argc < 3)
-		distance->use_rich_features = true;
-	else
-		distance->use_rich_features = (strcmp(argv[2], "RICH") == 0);
-	
-	if(argc < 4)
-		distance->use_gpu = (cv::gpu::getCudaEnabledDeviceCount() > 0);
-	else
-		distance->use_gpu = (strcmp(argv[3], "GPU") == 0);
+	distance->use_rich_features = argc < 3 || (strcmp(argv[2], "RICH") == 0);
+	distance->use_gpu			= argc < 4 ? (cv::gpu::getCudaEnabledDeviceCount() > 0) : (strcmp(argv[3], "GPU") == 0);
 	
 	cv::Ptr<VisualizerListener> visualizerListener = new VisualizerListener; //with ref-count
 	distance->attach(visualizerListener);
-	RunVisualizationThread();
-
 	distance->RecoverDepthFromImages();
 
 	//get the scale of the result cloud using PCA
@@ -97,6 +88,7 @@ int main(int argc, char** argv) {
 		//}
 	}
 	
+	RunVisualizationThread();
 	visualizerListener->update(distance->getPointCloud(),
 							   distance->getPointCloudRGB(),
 							   distance->getPointCloudBeforeBA(),
@@ -110,10 +102,10 @@ int main(int argc, char** argv) {
 	//WaitForVisualizationThread();
 	//return 1;
 	
-//	ShowClouds(distance->getPointCloud(), 
-//			   distance->getPointCloudRGB(),
-//			   distance->getPointCloudBeforeBA(),
-//			   distance->getPointCloudRGBBeforeBA()
-//			   );
+	//ShowClouds(distance->getPointCloud(), 
+	//		   distance->getPointCloudRGB(),
+	//		   distance->getPointCloudBeforeBA(),
+	//		   distance->getPointCloudRGBBeforeBA()
+	//		   );
 	WaitForVisualizationThread();
 }

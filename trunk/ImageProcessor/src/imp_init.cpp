@@ -1,7 +1,7 @@
 
 #include "imp_init.h"
 #include "imp_susan.h"
-#include "module/imp_private.h"
+#include "internal/imp_private.h"
 
 namespace imp
 {

@@ -1,7 +1,7 @@
 // CameraCalibration.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+#include "precomp.h"
 
 bool PatternSize(const std::string &param_val, const std::string &delim_val, cv::Size &pattern_size)
 {

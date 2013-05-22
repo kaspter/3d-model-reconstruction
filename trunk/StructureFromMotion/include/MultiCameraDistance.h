@@ -27,7 +27,7 @@ protected:
 	std::vector<std::vector<cv::KeyPoint> > fullpts;
 	std::vector<std::vector<cv::KeyPoint> > imgpts_good;
 
-	std::map<std::pair<int,int> ,std::vector<cv::DMatch> > matches_matrix;
+	std::map<std::pair<int,int> ,std::vector<cv::DMatch>> matches_matrix;
 	
 	std::vector<cv::Mat_<cv::Vec3b> > imgs_orig;
 	std::vector<cv::Mat> imgs;

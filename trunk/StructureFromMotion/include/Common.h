@@ -51,3 +51,8 @@ void drawArrows(cv::Mat& frame, const std::vector<cv::Point2f>& prevPts, const s
 
 void open_imgs_dir(char* dir_name, std::vector<cv::Mat>& images, std::vector<std::string>& images_names, double downscale_factor);
 void imshow_250x250(const std::string& name_, const cv::Mat& patch);
+
+inline bool operator < (const cv::Size &a, const cv::Size &b) { return a.area() < b.area(); }
+inline bool operator > (const cv::Size &a, const cv::Size &b) { return a.area() > b.area(); }
+inline bool operator == (const cv::Size &a, const cv::Size &b) { return a.area() == b.area(); }
+inline bool operator != (const cv::Size &a, const cv::Size &b) { return a.area() != b.area(); }

@@ -98,13 +98,13 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\imp_extension.h" />
     <ClInclude Include="include\imp_init.h" />
-    <ClInclude Include="include\imp_susan.h" />
-    <ClInclude Include="include\module\imp_extension.h" />
-    <ClInclude Include="include\module\imp_private.h" />
-    <ClInclude Include="include\module\precomp.h">
+    <ClInclude Include="include\imp_precomp.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="include\imp_susan.h" />
+    <ClInclude Include="include\internal\imp_private.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\imp_extension.cpp" />

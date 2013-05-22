@@ -134,7 +134,8 @@
       <ProgramDatabaseFile>$(OutDir)$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <ImportLibrary>E:\In-OUT\SFMProject\Debug\ExploringSfMExec.lib</ImportLibrary>
+      <ImportLibrary>
+      </ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <IgnoreSpecificDefaultLibraries>vcompd.lib</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -238,7 +239,8 @@
       <AdditionalLibraryDirectories>$(BOOST_ROOT)\boost_1_53_0\stage\lib;$(OPENCV_DIR)\opencv-2.4.4\build\$(PlatformTarget)\$(PlatformToolset)\lib;$(OPEN_NI_LIB);$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\Lib;$(VTK_DIR)\lib\vtk-5.8;$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\lib;$(SSPARSE_ROOT)\COLAMD\COLAMD-2.8.0\Lib;$(SSBA_ROOT)\SSBA-3.0\Lib;$(SolutionDir)StructureFromMotion\lib</AdditionalLibraryDirectories>
       <ProgramDatabaseFile>E:\In-OUT\SFMProject\Release/ExploringSfMExec.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
-      <ImportLibrary>E:\In-OUT\SFMProject\Release\ExploringSfMExec.lib</ImportLibrary>
+      <ImportLibrary>
+      </ImportLibrary>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

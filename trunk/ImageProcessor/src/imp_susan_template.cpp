@@ -1,7 +1,7 @@
 #pragma once // Despite the extension, this file, actually, plays a header role 
 			 // because of templated classes member definition within.
 
-#include "module/imp_extension.h"
+#include "imp_extension.h"
 
 namespace imp 
 {
