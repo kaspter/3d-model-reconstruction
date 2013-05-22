@@ -455,10 +455,6 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 	if(!features_matched) 
 		OnlyMatchFeatures();
 	
-	std::cout << "======================================================================\n";
-	std::cout << "======================== Depth Recovery Start ========================\n";
-	std::cout << "======================================================================\n";
-	
 	PruneMatchesBasedOnF();
 	GetBaseLineTriangulation();
 	AdjustCurrentBundle();
