@@ -202,7 +202,7 @@ namespace imp
 			}
 		}
 
-		int G[] = {
+		int G[] = { // Scharr kernel convolution expanded
 			3 * (w[2][0] - w[2][2] + w[0][0] - w[0][2]) + 10 * (w[1][0] - w[1][2]),
 			3 * (w[2][0] + w[2][2] - w[0][0] - w[0][2]) + 10 * (w[0][1] - w[2][1])
 		};

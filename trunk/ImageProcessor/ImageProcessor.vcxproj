@@ -110,7 +110,7 @@
     <ClCompile Include="src\imp_extension.cpp" />
     <ClCompile Include="src\imp_init.cpp" />
     <ClCompile Include="src\imp_susan.cpp" />
-    <ClCompile Include="src\imp_susan_template.cpp" />
+    <ClInclude Include="src\imp_susan_template.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Snippets.txt" />
