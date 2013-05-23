@@ -91,7 +91,7 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 		}
 	} else {
 		feature_matcher = new OFFeatureMatcher(use_gpu,imgs,imgpts);
-	}	
+	}
 
 	if(strategy & STRATEGY_USE_OPTICAL_FLOW)
 		use_rich_features = false;
@@ -117,53 +117,54 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 	//	}
 	//} else {
 #pragma omp parallel for
-		for (frame_num_i = 0; frame_num_i < loop1_top; frame_num_i++) {
-			for (int frame_num_j = frame_num_i + 1; frame_num_j < loop2_top; frame_num_j++)
-			{
-				std::cout << "------------ Match " << imgs_names[frame_num_i] << ","<<imgs_names[frame_num_j]<<" ------------\n";
-				std::vector<cv::DMatch> matches_tmp;
-				feature_matcher->MatchFeatures(frame_num_i,frame_num_j,&matches_tmp);
-				if (matches_tmp.size() == 0) continue; // No matches. Do not add to matches matrix
+	for (frame_num_i = 0; frame_num_i < loop1_top; frame_num_i++) {
+		for (int frame_num_j = frame_num_i + 1; frame_num_j < loop2_top; frame_num_j++)
+		{
+			std::cout << "------------ Match " << imgs_names[frame_num_i] << ","<<imgs_names[frame_num_j]<<" ------------\n";
+			std::vector<cv::DMatch> matches_tmp;
+			feature_matcher->MatchFeatures(frame_num_i,frame_num_j,&matches_tmp);
+			if (matches_tmp.size() == 0) continue; // No matches. Do not add to matches matrix
 
-				std::vector<cv::DMatch> matches_tmp_flip = FlipMatches(matches_tmp);
-				matches_matrix[std::make_pair(frame_num_j,frame_num_i)] = matches_tmp_flip;
-				matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
-			}
+			std::vector<cv::DMatch> matches_tmp_flip = FlipMatches(matches_tmp);
+			matches_matrix[std::make_pair(frame_num_j,frame_num_i)] = matches_tmp_flip;
+			matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
 		}
+	}
 	//}
+
+	for (unsigned i = 0, imax = imgpts.size(); i < imax; ++i)
+	{
+		std::vector<cv::KeyPoint> &_keypoints = imgpts[i];
+		if (_keypoints.size() == 0) continue;
+		
+		std::vector<cv::Point2f> _2d_points;
+		KeyPointsToPoints(_keypoints, _2d_points);
+		cv::undistortPoints(_2d_points, _2d_points, K, distortion_coeff);
+		for (unsigned j = 0, jmax = _keypoints.size(); j < jmax; ++j) _keypoints[j].pt = _2d_points[j];
+	}
 
 	features_matched = true;
 }
 
-void MultiCameraDistance::GetRGBForPointCloud(
-	const std::vector<struct CloudPoint>& _pcloud,
-	std::vector<cv::Vec3b>& RGBforCloud
-	) 
+void MultiCameraDistance::GetRGBForPointCloud(const std::vector<struct CloudPoint>& _pcloud, std::vector<cv::Vec3b>& RGBforCloud) 
 {
 	RGBforCloud.resize(_pcloud.size());
-	for (unsigned int i=0; i<_pcloud.size(); i++) {
-		unsigned int good_view = 0;
+	for (unsigned i=0; i<_pcloud.size(); ++i) 
+	{
 		std::vector<cv::Vec3b> point_colors;
-		for(; good_view < imgs_orig.size(); good_view++) {
-			if(_pcloud[i].imgpt_for_img[good_view] != -1) {
-				int pt_idx = _pcloud[i].imgpt_for_img[good_view];
-				if(pt_idx >= imgpts[good_view].size()) {
-					std::cerr << "BUG: point id:" << pt_idx << " should not exist for img #" << good_view << " which has only " << imgpts[good_view].size() << std::endl;
-					continue;
-				}
-				cv::Point _pt = imgpts[good_view][pt_idx].pt;
-				assert(good_view < imgs_orig.size() && _pt.x < imgs_orig[good_view].cols && _pt.y < imgs_orig[good_view].rows);
-				
-				point_colors.push_back(imgs_orig[good_view].at<cv::Vec3b>(_pt));
-				
-//				std::stringstream ss; ss << "patch " << good_view;
-//				imshow_250x250(ss.str(), imgs_orig[good_view](cv::Range(_pt.y-10,_pt.y+10),cv::Range(_pt.x-10,_pt.x+10)));
-			}
+		for(unsigned good_view = 0; good_view < imgs_orig.size(); ++good_view) 
+		{
+			int pt_idx = _pcloud[i].imgpt_for_img[good_view];
+			if(pt_idx != -1) point_colors.push_back(imgs_orig[good_view].at<cv::Vec3b>(imgpts[good_view][pt_idx].pt));
+
+/*			if(pt_idx >= imgpts[good_view].size()) 
+			{
+				std::cerr << "BUG: point id:" << pt_idx << " should not exist for img #" << good_view << " which has only " << imgpts[good_view].size() << std::endl;
+				continue;
+			}	*/		
 		}
-//		cv::waitKey(0);
-		cv::Scalar res_color = cv::mean(point_colors);
-		RGBforCloud[i] = (cv::Vec3b(res_color[0],res_color[1],res_color[2])); //bgr2rgb
-		if(good_view == imgs.size()) //nothing found.. put red dot
-			RGBforCloud.push_back(cv::Vec3b(255,0,0));
+
+		cv::Scalar res_color	= !point_colors.empty() ? cv::mean(point_colors) : cv::Scalar(255,0,0);
+		RGBforCloud[i]			= cv::Vec3b(res_color[0],res_color[1],res_color[2]);
 	}
 }

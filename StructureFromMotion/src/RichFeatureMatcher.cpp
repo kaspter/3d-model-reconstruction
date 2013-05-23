@@ -26,6 +26,7 @@
 using namespace std;
 using namespace cv;
 
+//#define LN_2 0.69314718055994530941723212145818
 RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, std::vector<std::vector<cv::KeyPoint> >& imgpts_) 
 	: imgpts(imgpts_), imgs(imgs_)
 {
@@ -34,20 +35,21 @@ RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, std::vector<
 	imp::initModule();
 	detector = FeatureDetector::create("PyramidSUSAN");
 	imp::PyramidAdapterHack* pyramid = static_cast<imp::PyramidAdapterHack*>(
-			dynamic_cast<PyramidAdaptedFeatureDetector*>(detector.obj)
-		);
+			dynamic_cast<PyramidAdaptedFeatureDetector*>(detector.obj));
 
 	assert(pyramid);
+
 	imp::SUSAN* susan = static_cast<imp::SUSAN*>(pyramid->detector.obj);
-	susan->set("radius", 6);
-	susan->set("tparam", 16.17);
-	susan->set("gparam", 96.50);
-	susan->set("prefilter", true);
-	susan->set("subpixel", true);
+	susan->set("radius",	7);
+	susan->set("tparam",	17.50);
+	//susan->set("gparam",	120.00);
+	//susan->set("prefilter", true);
+	//susan->set("subpixel",	true);
 
 	for (unsigned i = 0, imax = imgs.size(); i < imax; ++i)
 	{
-		pyramid->maxLevel = std::min(imgs[i].cols, imgs[i].rows) / (10 * susan->get<int>("radius"));
+		double levelCoeff = std::log(std::min(imgs[i].cols, imgs[i].rows) / (2.0 * susan->get<int>("radius") + 1));
+		pyramid->maxLevel = std::max(static_cast<int>(levelCoeff), 2);
 		pyramid->detect(imgs[i], imgpts[i]);
 		susan->reset_pass_counter();
 	}
@@ -57,7 +59,7 @@ RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, std::vector<
 	extractor->compute(imgs, imgpts, descriptors);
 }	
 
-void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* matches) {
+void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch> *matches) {
     
 #ifdef __SFM__DEBUG__
     const Mat& img_1 = imgs[idx_i];
@@ -83,20 +85,18 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* mat
     if(descriptors_2.empty()) CV_Error(0,"descriptors_2 is empty");
     
     //matching descriptor vectors using Flann Based matcher
-    std::vector< DMatch > matches_;
-    if (matches == NULL) matches = &matches_;
-    if (matches->size() == 0)
-	{
-		cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("FlannBased");
-		assert(!matcher.empty()); matcher->match( descriptors_1, descriptors_2, *matches );
-	}
+	vector<DMatch> _null_matches;
+	if (matches == NULL) matches = &_null_matches;
+    matches->clear();
+	cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("FlannBased");
+	assert(!matcher.empty()); matcher->match(descriptors_1, descriptors_2, *matches);
 	assert(matches->size() > 0);
 	
 //    double max_dist = 0; double min_dist = 1000.0;
 //    //-- Quick calculation of max and min distances between keypoints
 //    for(unsigned int i = 0; i < matches->size(); i++ )
 //    { 
-//        double dist = (*matches)[i].distance;
+//        double dist = matches[i].distance;
 //		if (dist>1000.0) { dist = 1000.0; }
 //        if( dist < min_dist ) min_dist = dist;
 //        if( dist > max_dist ) max_dist = dist;
@@ -125,9 +125,9 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* mat
         
         if( existing_trainIdx.find((*matches)[i].trainIdx) == existing_trainIdx.end() && 
            (*matches)[i].trainIdx >= 0 && (*matches)[i].trainIdx < (int)(keypoints_2.size()) /*&&
-           (*matches)[i].distance > 0.0 && (*matches)[i].distance < cutoff*/ ) 
+           matches[i].distance > 0.0 && matches[i].distance < cutoff*/ ) 
         {
-            good_matches_.push_back( (*matches)[i]);
+            good_matches_.push_back((*matches)[i]);
             imgpts1_good.push_back(keypoints_1[(*matches)[i].queryIdx]);
             imgpts2_good.push_back(keypoints_2[(*matches)[i].trainIdx]);
             existing_trainIdx.insert((*matches)[i].trainIdx);

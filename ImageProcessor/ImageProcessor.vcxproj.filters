@@ -26,6 +26,9 @@
     <ClInclude Include="include\imp_precomp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\imp_susan_template.cpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\imp_extension.cpp">
@@ -35,9 +38,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\imp_susan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\imp_susan_template.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
