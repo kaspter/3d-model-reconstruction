@@ -132,16 +132,16 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 	}
 	//}
 
-	for (unsigned i = 0, imax = imgpts.size(); i < imax; ++i)
-	{
-		std::vector<cv::KeyPoint> &_keypoints = imgpts[i];
-		if (_keypoints.size() == 0) continue;
-		
-		std::vector<cv::Point2f> _2d_points;
-		KeyPointsToPoints(_keypoints, _2d_points);
-		cv::undistortPoints(_2d_points, _2d_points, K, distortion_coeff);
-		for (unsigned j = 0, jmax = _keypoints.size(); j < jmax; ++j) _keypoints[j].pt = _2d_points[j];
-	}
+	//for (unsigned i = 0, imax = imgpts.size(); i < imax; ++i)
+	//{
+	//	std::vector<cv::KeyPoint> &_keypoints = imgpts[i];
+	//	if (_keypoints.size() == 0) continue;
+	//	
+	//	std::vector<cv::Point2f> _2d_points;
+	//	KeyPointsToPoints(_keypoints, _2d_points);
+	//	cv::undistortPoints(_2d_points, _2d_points, K, distortion_coeff);
+	//	for (unsigned j = 0, jmax = _keypoints.size(); j < jmax; ++j) _keypoints[j].pt = _2d_points[j];
+	//}
 
 	features_matched = true;
 }

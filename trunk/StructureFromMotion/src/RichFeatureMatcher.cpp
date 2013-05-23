@@ -88,8 +88,11 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch> *mat
 	vector<DMatch> _null_matches;
 	if (matches == NULL) matches = &_null_matches;
     matches->clear();
+
 	cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("FlannBased");
-	assert(!matcher.empty()); matcher->match(descriptors_1, descriptors_2, *matches);
+	assert(!matcher.empty());
+	
+	matcher->match(descriptors_1, descriptors_2, *matches);
 	assert(matches->size() > 0);
 	
 //    double max_dist = 0; double min_dist = 1000.0;

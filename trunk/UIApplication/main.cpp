@@ -46,6 +46,8 @@ std::vector<cv::Mat> images;
 std::vector<std::string> images_names;
 
 int main(int argc, char** argv) {
+	RunVisualizationThread();
+
 	if (argc < 2) {
 		cerr << "USAGE: " << argv[0] << " <path_to_images> [use rich features (RICH/OF) = RICH] [use GPU (GPU/CPU) = GPU] [downscale factor = 1.0]" << endl;
 		return 0;
@@ -88,7 +90,6 @@ int main(int argc, char** argv) {
 		//}
 	}
 	
-	RunVisualizationThread();
 	visualizerListener->update(distance->getPointCloud(),
 							   distance->getPointCloudRGB(),
 							   distance->getPointCloudBeforeBA(),

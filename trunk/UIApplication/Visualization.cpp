@@ -44,13 +44,13 @@ void PopulatePCLPointCloud(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& mycloud
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,cloud1,cloud_no_floor,orig_cloud;
 std::string cloud_to_show_name = "";
-bool show_cloud = false;
-bool sor_applied = false;
-bool show_cloud_A = true;
+volatile bool show_cloud = false;
+volatile bool sor_applied = false;
+volatile bool show_cloud_A = true;
 
 ////////////////////////////////// Show Camera ////////////////////////////////////
-std::deque<std::pair<std::string,pcl::PolygonMesh> >					cam_meshes;
-std::deque<std::pair<std::string,std::vector<Matrix<float,6,1> > > >	linesToShow;
+std::deque<std::pair<std::string,pcl::PolygonMesh>>					cam_meshes;
+std::deque<std::pair<std::string,std::vector<Matrix<float,6,1>>>>	linesToShow;
 //TODO define mutex
 bool							bShowCam;
 int								iCamCounter = 0;
@@ -62,7 +62,7 @@ inline pcl::PointXYZRGB Eigen2PointXYZRGB(Eigen::Vector3f v, Eigen::Vector3f rgb
 inline pcl::PointNormal Eigen2PointNormal(Eigen::Vector3f v, Eigen::Vector3f n) { pcl::PointNormal p; p.x=v[0];p.y=v[1];p.z=v[2];p.normal_x=n[0];p.normal_y=n[1];p.normal_z=n[2]; return p;}
 inline float* Eigen2float6(Eigen::Vector3f v, Eigen::Vector3f rgb) { static float buf[6]; buf[0]=v[0];buf[1]=v[1];buf[2]=v[2];buf[3]=rgb[0];buf[4]=rgb[1];buf[5]=rgb[2]; return buf; }
 inline Matrix<float,6,1> Eigen2Eigen(Vector3f v, Vector3f rgb) { return (Matrix<float,6,1>() << v[0],v[1],v[2],rgb[0],rgb[1],rgb[2]).finished(); }
-inline std::vector<Matrix<float,6,1> > AsVector(const Matrix<float,6,1>& p1, const Matrix<float,6,1>& p2) { 	std::vector<Matrix<float,6,1> > v(2); v[0] = p1; v[1] = p2; return v; }
+inline std::vector<Matrix<float,6,1> > AsVector(const Matrix<float,6,1>& p1, const Matrix<float,6,1>& p2) { std::vector<Matrix<float,6,1> > v(2); v[0] = p1; v[1] = p2; return v; }
 
 void visualizerShowCamera(const Matrix3f& R, const Vector3f& _t, float r, float g, float b, double s = 0.01 /*downscale factor*/, const std::string& name = "") {
 	std::string name_ = name,line_name = name + "line";
@@ -239,28 +239,22 @@ void ShowCloud(const vector<cv::Point3d>& pointcloud,
 }
 
 void RunVisualizationOnly() {
-	pcl::visualization::PCLVisualizer viewer("SfMToyLibrary Viewer");
+	pcl::visualization::PCLVisualizer viewer("Model point cloud Viewer");
     	
-	viewer.registerKeyboardCallback (keyboardEventOccurred, (void*)&viewer);
+	viewer.registerKeyboardCallback(keyboardEventOccurred, (void*)&viewer);
 	
     while (!viewer.wasStopped ())
     {
 		if (show_cloud) {
-			cout << "Show cloud: ";
+			cout << "cloud shown: ";
 			if(cloud_to_show_name != "") {
-				cout << "show named cloud " << cloud_to_show_name << endl;
 				viewer.removePointCloud(cloud_to_show_name);
 				viewer.addPointCloud(cloud,cloud_to_show_name);
+				cout << "show named cloud " << cloud_to_show_name << endl;
 			} else {
-				if(show_cloud_A) {
-					cout << "show cloud A" << endl;
-					viewer.removePointCloud("orig");
-					viewer.addPointCloud(cloud,"orig");
-				} else {
-					cout << "show cloud B" << endl;
-					viewer.removePointCloud("orig");
-					viewer.addPointCloud(cloud1,"orig");
-				}
+				viewer.removePointCloud("orig");
+				viewer.addPointCloud(show_cloud_A ? cloud : cloud1,"orig");
+				cout << "cloud" << (show_cloud_A ? "A" : "B") << endl;
 			}
 			show_cloud = false;
 		}
@@ -307,6 +301,13 @@ void PopulatePCLPointCloud(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& mycloud
 	//Populate point cloud
 {
 	cout << "Creating point cloud...";
+
+	if (pointcloud.empty())
+	{
+		cout << "Point vector is empty...Aborted.";
+		return;
+	}
+
 	double t = cv::getTickCount();
 
 	for (unsigned int i=0; i<pointcloud.size(); i++) {
