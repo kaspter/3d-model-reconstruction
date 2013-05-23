@@ -26,10 +26,8 @@ int MultiCameraPnP::FindHomographyInliers2Views(int vi, int vj)
 	GetAlignedPointsFromMatch(imgpts[vi],imgpts[vj],matches_matrix[make_pair(vi,vj)],ikpts,jkpts);
 	KeyPointsToPoints(ikpts,ipts); KeyPointsToPoints(jkpts,jpts);
 
-	double minVal,maxVal; cv::minMaxIdx(ipts,&minVal,&maxVal); //TODO flatten point2d?? or it takes max of width and height
-
-	vector<uchar> status;
-	cv::Mat H = cv::findHomography(ipts,jpts,status,CV_RANSAC, 0.004 * maxVal); //threshold from Snavely07
+	double			maxVal;	cv::minMaxIdx(ipts,NULL,&maxVal); //TODO flatten point2d?? or it takes max of width and height
+	vector<uchar>	status;	cv::findHomography(ipts,jpts,status,CV_RANSAC, 0.004 * maxVal); //threshold from Snavely07
 	return cv::countNonZero(status); //number of inliers
 }
 
@@ -39,86 +37,67 @@ int MultiCameraPnP::FindHomographyInliers2Views(int vi, int vj)
 void MultiCameraPnP::GetBaseLineTriangulation() {
 	std::cout << "=========================== Baseline triangulation ===========================\n";
 
-	cv::Matx34d P(1,0,0,0,
-				  0,1,0,0,
-				  0,0,1,0),
-				P1(1,0,0,0,
-				   0,1,0,0,
-				   0,0,1,0);
+	cv::Matx34d P(cv::Matx34d::eye()), P1(P);
 	
 	std::vector<CloudPoint> tmp_pcloud;
 
 	//sort pairwise matches to find the lowest Homography inliers [Snavely07 4.2]
-	cout << "Find highest match...";
+	cout << "Find highest match..." << endl;
 	list<pair<int,pair<int,int> > > matches_sizes;
 	//TODO: parallelize!
 	for(std::map<std::pair<int,int> ,std::vector<cv::DMatch> >::iterator i = matches_matrix.begin(); i != matches_matrix.end(); ++i) {
-		if((*i).second.size() < 100)
+		if((*i).second.size() < 100) {
 			matches_sizes.push_back(make_pair(100,(*i).first));
-		else {
+		} else {
 			int Hinliers = FindHomographyInliers2Views((*i).first.first,(*i).first.second);
 			int percent = (int)(((double)Hinliers) / ((double)(*i).second.size()) * 100.0);
-			cout << "[" << (*i).first.first << "," << (*i).first.second << " = "<<percent<<"] ";
 			matches_sizes.push_back(make_pair((int)percent,(*i).first));
+			cout << "Pair [" << (*i).first.first << "," << (*i).first.second << "] yields " << percent << "% inliers." << endl;
 		}
 	}
-	cout << endl;
 	matches_sizes.sort(sort_by_first);
-
 	//Reconstruct from two views
-	bool goodF = false;
-	int highest_pair = 0;
 	m_first_view = m_second_view = 0;
-	//reverse iterate by number of matches
-	for(list<pair<int,pair<int,int> > >::iterator highest_pair = matches_sizes.begin(); 
-		highest_pair != matches_sizes.end() && !goodF; 
-		++highest_pair) 
-	{
-		m_second_view = (*highest_pair).second.second;
-		m_first_view  = (*highest_pair).second.first;
 
+	bool success = false;
+	for(list<pair<int,pair<int,int>>>::iterator current_pair = matches_sizes.begin(); current_pair != matches_sizes.end(); ++current_pair) 
+	{
 		std::cout << " -------- " << imgs_names[m_first_view] << " and " << imgs_names[m_second_view] << " -------- " <<std::endl;
+		m_first_view = (*current_pair).second.first; m_second_view = (*current_pair).second.second; 
 		//what if reconstrcution of first two views is bad? fallback to another pair
 		//See if the Fundamental Matrix between these two views is good
-		goodF = FindCameraMatrices(K, Kinv, distortion_coeff,
-			imgpts[m_first_view], 
-			imgpts[m_second_view], 
-			imgpts_good[m_first_view],
-			imgpts_good[m_second_view], 
-			P, 
-			P1,
-			matches_matrix[std::make_pair(m_first_view,m_second_view)],
+		success = FindCameraMatrices(K, Kinv, distortion_coeff,
+			imgpts[m_first_view], imgpts[m_second_view], 
+			imgpts_good[m_first_view], imgpts_good[m_second_view], 
+			P, P1, matches_matrix[std::make_pair(m_first_view,m_second_view)],	
 			tmp_pcloud
 #ifdef __SFM__DEBUG__
 			,imgs[m_first_view],imgs[m_second_view]
 #endif
 		);
-		if (goodF) {
-			vector<CloudPoint> new_triangulated;
-			vector<int> add_to_cloud;
+		if (success) {
+			vector<CloudPoint>	new_triangulated;
+			vector<int>			add_to_cloud;
 
-			Pmats[m_first_view] = P;
-			Pmats[m_second_view] = P1;
-
-			bool good_triangulation = TriangulatePointsBetweenViews(m_second_view,m_first_view,new_triangulated,add_to_cloud);
-			if(!good_triangulation || cv::countNonZero(add_to_cloud) < 10) {
-				std::cout << "triangulation failed" << std::endl;
-				goodF = false;
-				Pmats[m_first_view] = 0;
-				Pmats[m_second_view] = 0;
-				m_second_view++;
-			} else {
+			Pmats[m_first_view] = P; Pmats[m_second_view] = P1;
+			success = !TriangulatePointsBetweenViews(m_second_view,m_first_view,new_triangulated,add_to_cloud)
+				|| cv::countNonZero(add_to_cloud) < 10;
+			if(success) {
 				std::cout << "before triangulation: " << pcloud.size();
 				for (unsigned int j=0; j<add_to_cloud.size(); j++) {
-					if(add_to_cloud[j] == 1)
-						pcloud.push_back(new_triangulated[j]);
+					if(add_to_cloud[j] == 1) pcloud.push_back(new_triangulated[j]);
 				}
 				std::cout << " after " << pcloud.size() << std::endl;
-			}				
+			} else {
+				std::cout << "triangulation failed" << std::endl;
+				Pmats[m_first_view] = 0; Pmats[m_second_view] = 0;
+				++m_second_view;
+			}
+			break;
 		}
 	}
 		
-	if (!goodF) {
+	if (!success) {
 		cerr << "Cannot find a good pair of images to obtain a baseline triangulation" << endl;
 		exit(0);
 	}
@@ -477,7 +456,7 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 	while (done_views.size() != imgs.size())
 	{
 		//find image with highest 2d-3d correspondance [Snavely07 4.2]
-		unsigned int max_2d3d_view = -1, max_2d3d_count = 0;
+		unsigned max_2d3d_view = -1, max_2d3d_count = 0;
 		vector<cv::Point3f> max_3d; vector<cv::Point2f> max_2d;
 		for (unsigned int _i=0; _i < imgs.size(); _i++) {
 			if(done_views.find(_i) != done_views.end()) continue; //already done with this view
@@ -486,12 +465,18 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 			cout << imgs_names[_i] << ": ";
 			Find2D3DCorrespondences(_i,tmp3d,tmp2d);
 			if(tmp3d.size() > max_2d3d_count) {
-				max_2d3d_count = tmp3d.size();
 				max_2d3d_view = _i;
 				max_3d = tmp3d; max_2d = tmp2d;
+				max_2d3d_count = tmp3d.size();
 			}
 		}
 		int i = max_2d3d_view; //highest 2d3d matching view
+
+		if (i < 0)
+		{
+			for (unsigned int _i=0; _i < imgs.size(); _i++)
+				if(done_views.find(_i) == done_views.end()) i = _i;
+		}
 
 		std::cout << "-------------------------- " << imgs_names[i] << " --------------------------\n";
 		done_views.insert(i); // don't repeat it for now
