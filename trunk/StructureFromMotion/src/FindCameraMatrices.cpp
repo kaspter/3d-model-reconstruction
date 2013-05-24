@@ -146,8 +146,8 @@ Mat GetFundamentalMat(const vector<KeyPoint>& imgpts1,
 		KeyPointsToPoints(imgpts1_tmp, pts1);
 		KeyPointsToPoints(imgpts2_tmp, pts2);
 #ifdef __SFM__DEBUG__
-		std::cout << "pts1 " << pts1.size() << " (orig pts " << imgpts1_tmp.size() << ")" << endl;
-		std::cout << "pts2 " << pts2.size() << " (orig pts " << imgpts2_tmp.size() << ")" << endl;
+		std::cout << "pts1 " << pts1.size() << " (orig pts " << imgpts1_tmp.size() 
+			<< ") pts2" << pts2.size() << " (orig pts " << imgpts2_tmp.size() << ")" << endl;
 #endif
 		double minVal,maxVal;
 		cv::minMaxIdx(pts1,&minVal,&maxVal);

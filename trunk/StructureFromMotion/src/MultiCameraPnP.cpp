@@ -45,7 +45,7 @@ void MultiCameraPnP::GetBaseLineTriangulation() {
 	cout << "Find highest match..." << endl;
 	list<pair<int,pair<int,int> > > matches_sizes;
 	//TODO: parallelize!
-	for(std::map<std::pair<int,int> ,std::vector<cv::DMatch> >::iterator i = matches_matrix.begin(); i != matches_matrix.end(); ++i) {
+	for(std::map<std::pair<int,int> ,std::vector<cv::DMatch>>::iterator i = matches_matrix.begin(); i != matches_matrix.end(); ++i) {
 		if((*i).second.size() < 100) {
 			matches_sizes.push_back(make_pair(100,(*i).first));
 		} else {
@@ -62,8 +62,9 @@ void MultiCameraPnP::GetBaseLineTriangulation() {
 	bool success = false;
 	for(list<pair<int,pair<int,int>>>::iterator current_pair = matches_sizes.begin(); current_pair != matches_sizes.end(); ++current_pair) 
 	{
-		std::cout << " -------- " << imgs_names[m_first_view] << " and " << imgs_names[m_second_view] << " -------- " <<std::endl;
 		m_first_view = (*current_pair).second.first; m_second_view = (*current_pair).second.second; 
+
+		std::cout << " -------- " << imgs_names[m_first_view] << " and " << imgs_names[m_second_view] << " -------- " <<std::endl;
 		//what if reconstrcution of first two views is bad? fallback to another pair
 		//See if the Fundamental Matrix between these two views is good
 		success = FindCameraMatrices(K, Kinv, distortion_coeff,
@@ -80,8 +81,8 @@ void MultiCameraPnP::GetBaseLineTriangulation() {
 			vector<int>			add_to_cloud;
 
 			Pmats[m_first_view] = P; Pmats[m_second_view] = P1;
-			success = !TriangulatePointsBetweenViews(m_second_view,m_first_view,new_triangulated,add_to_cloud)
-				|| cv::countNonZero(add_to_cloud) < 10;
+			success = TriangulatePointsBetweenViews(m_second_view,m_first_view,new_triangulated,add_to_cloud) 
+				&& cv::countNonZero(add_to_cloud) >= 10;
 			if(success) {
 				std::cout << "before triangulation: " << pcloud.size();
 				for (unsigned int j=0; j<add_to_cloud.size(); j++) {
@@ -282,7 +283,7 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 	std::cout << "triangulation reproj error " << reproj_error << std::endl;
 
 	vector<uchar> trig_status;
-	if(!TestTriangulation(new_triangulated, P, trig_status) || !TestTriangulation(new_triangulated, P1, trig_status)) {
+	if(!(TestTriangulation(new_triangulated, P, trig_status) && TestTriangulation(new_triangulated, P1, trig_status))) {
 		cerr << "Triangulation did not succeed" << endl;
 		return false;
 	}
@@ -303,21 +304,15 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 	vector<CloudPoint> new_triangulated_filtered;
 	std::vector<cv::DMatch> new_matches;
 	for(int i=0;i<new_triangulated.size();i++) {
-		if(trig_status[i] == 0)
-			continue; //point was not in front of camera
-		if(new_triangulated[i].reprojection_error > 16.0) {
-			continue; //reject point
-		} 
-		if(new_triangulated[i].reprojection_error < 4.0 ||
-			new_triangulated[i].reprojection_error < reprj_err_cutoff) 
-		{
-			new_triangulated_filtered.push_back(new_triangulated[i]);
-			new_matches.push_back(matches[i]);
-		} 
-		else 
-		{
-			continue;
-		}
+		if(trig_status[i] == 0) continue; //point was not in front of camera
+		//if(new_triangulated[i].reprojection_error > 16.0) {
+		//	continue; //reject point
+		//}
+		if(/*new_triangulated[i].reprojection_error < 4.0 ||*/
+			trig_status[i] == 0 || new_triangulated[i].reprojection_error > reprj_err_cutoff) continue;
+
+		new_triangulated_filtered.push_back(new_triangulated[i]);
+		new_matches.push_back(matches[i]);
 	}
 
 	cout << "filtered out " << (new_triangulated.size() - new_triangulated_filtered.size()) << " high-error points" << endl;
