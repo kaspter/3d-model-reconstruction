@@ -12,16 +12,19 @@
 #include "RichFeatureMatcher.h"
 
 #include "FindCameraMatrices.h"
+
+#include <boost/thread.hpp>
+
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include <iostream>
+#include <set>
+
 #include "imp_init.h"
 #include "imp_susan.h"
 #include "imp_extension.h"
-
-#include <iostream>
-#include <set>
 
 using namespace std;
 using namespace cv;
@@ -89,9 +92,16 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch> *mat
 	if (matches == NULL) matches = &_null_matches;
     matches->clear();
 
-	cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("FlannBased");
-	assert(!matcher.empty());
+	cv::Ptr<cv::DescriptorMatcher> matcher;
 	
+	// TODO: remove this block!
+	static boost::mutex block_mutex;  //Temporary workaround for non thread-safe Algorithm lazy initialization implementation 
+	{
+		boost::lock_guard<boost::mutex> block_guard(block_mutex);
+		matcher = cv::DescriptorMatcher::create("FlannBased");
+	}
+	
+	assert(!matcher.empty());
 	matcher->match(descriptors_1, descriptors_2, *matches);
 	assert(matches->size() > 0);
 	
