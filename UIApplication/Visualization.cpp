@@ -280,7 +280,8 @@ void RunVisualizationOnly() {
 			} 
 			linesToShow.clear();
 		}
-		viewer.spinOnce();
+		viewer.spinOnce(1000);
+		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
     }
 }	
 

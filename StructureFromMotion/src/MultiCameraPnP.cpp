@@ -331,7 +331,7 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 	int num_views = imgs.size();
 
 	//scan new triangulated points, if they were already triangulated before - strengthen cloud
-	//#pragma omp parallel for num_threads(1)
+#pragma omp parallel for
 	for (int j = 0; j<new_triangulated.size(); j++) {
 		new_triangulated[j].imgpt_for_img = std::vector<int>(imgs.size(),-1);
 
