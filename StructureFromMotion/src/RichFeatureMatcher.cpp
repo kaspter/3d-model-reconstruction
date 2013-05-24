@@ -41,10 +41,10 @@ RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, std::vector<
 
 	imp::SUSAN* susan = static_cast<imp::SUSAN*>(pyramid->detector.obj);
 	susan->set("radius",	7);
-	susan->set("tparam",	17.50);
+	susan->set("tparam",	29.33);
 	//susan->set("gparam",	120.00);
-	//susan->set("prefilter", true);
-	//susan->set("subpixel",	true);
+	susan->set("prefilter", true);
+	susan->set("subpixel",	true);
 
 	for (unsigned i = 0, imax = imgs.size(); i < imax; ++i)
 	{
