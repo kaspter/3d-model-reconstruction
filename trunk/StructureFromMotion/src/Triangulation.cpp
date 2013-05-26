@@ -132,11 +132,13 @@ double TriangulatePoints(const vector<KeyPoint>& pt_set1,
 				0.0,	0.0,	0.0,	1.0);
 	Matx44d P1inv(P1_.inv());
 	
-	vector<double> reproj_error;
 	unsigned int pts_size = pt_set1.size();
+	if (pts_size == 0) return -1.0;
 	
 	Mat pt_set1_pt; vector<Point2f> _pt_set1_pt; KeyPointsToPoints(pt_set1,_pt_set1_pt); cv::undistortPoints(_pt_set1_pt, pt_set1_pt, K, distcoeff);
 	Mat pt_set2_pt; vector<Point2f> _pt_set2_pt; KeyPointsToPoints(pt_set2,_pt_set2_pt); cv::undistortPoints(_pt_set2_pt, pt_set2_pt, K, distcoeff);
+
+	vector<double> reproj_error;
 
 //#if 0
 //	//Using OpenCV's triangulation	
@@ -165,7 +167,7 @@ double TriangulatePoints(const vector<KeyPoint>& pt_set1,
 	correspImg1Pt.clear();
 
 	Mat_<double> KP1 = K * Mat(P1);
-#pragma omp parallel for num_threads(1)
+//#pragma omp parallel for
 	for (int i=0; i<pts_size; i++) {
 		Point2f kp = pt_set1[i].pt; 
 		Point3d u(kp.x,kp.y,1.0);
@@ -188,7 +190,7 @@ double TriangulatePoints(const vector<KeyPoint>& pt_set1,
 //		cout <<	"Point * K: " << xPt_img << endl;
 		Point2f xPt_img_(xPt_img(0)/xPt_img(2),xPt_img(1)/xPt_img(2));
 				
-#pragma omp critical
+//#pragma omp critical
 		{
 			double reprj_err = norm(xPt_img_-kp1);
 			reproj_error.push_back(reprj_err);

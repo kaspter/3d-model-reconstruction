@@ -54,16 +54,6 @@ void GetAlignedPointsFromMatch(const std::vector<cv::KeyPoint>& imgpts1,
 	}	
 }
 
-void KeyPointsToPoints(const vector<KeyPoint>& kps, vector<Point2f>& ps) {
-	ps.clear();
-	for (unsigned int i=0; i<kps.size(); i++) ps.push_back(kps[i].pt);
-}
-
-void PointsToKeyPoints(const vector<Point2f>& ps, vector<KeyPoint>& kps) {
-	kps.clear();
-	for (unsigned int i=0; i<ps.size(); i++) kps.push_back(KeyPoint(ps[i],1.0f));
-}
-
 #define intrpmnmx(val,min,max) (max==min ? 0.0 : ((val)-min)/(max-min))
 
 void drawArrows(Mat& frame, const vector<Point2f>& prevPts, const vector<Point2f>& nextPts, const vector<uchar>& status, const vector<float>& verror, const Scalar& _line_color)

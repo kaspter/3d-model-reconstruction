@@ -84,11 +84,11 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 	if(features_matched) return;
 	
 	if (use_rich_features) {
-		if (use_gpu) {
-			feature_matcher = new GPUSURFFeatureMatcher(imgs,imgpts);
-		} else {
+		//if (use_gpu) {
+		//	feature_matcher = new GPUSURFFeatureMatcher(imgs,imgpts);
+		//} else {
 			feature_matcher = new RichFeatureMatcher(imgs,imgpts);
-		}
+		//}
 	} else {
 		feature_matcher = new OFFeatureMatcher(use_gpu,imgs,imgpts);
 	}
@@ -123,24 +123,13 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 			std::cout << "------------ Match " << imgs_names[frame_num_i] << ","<<imgs_names[frame_num_j]<<" ------------\n";
 			std::vector<cv::DMatch> matches_tmp;
 			feature_matcher->MatchFeatures(frame_num_i,frame_num_j,&matches_tmp);
-			if (matches_tmp.size() == 0) continue; // No matches. Do not add to matches matrix
+			if (matches_tmp.size() == 0) continue; // No matches found. Do not add to matches matrix
 
 			std::vector<cv::DMatch> matches_tmp_flip = FlipMatches(matches_tmp);
 			matches_matrix[std::make_pair(frame_num_j,frame_num_i)] = matches_tmp_flip;
 			matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
 		}
 	}
-	//}
-
-	//for (unsigned i = 0, imax = imgpts.size(); i < imax; ++i)
-	//{
-	//	std::vector<cv::KeyPoint> &_keypoints = imgpts[i];
-	//	if (_keypoints.size() == 0) continue;
-	//	
-	//	std::vector<cv::Point2f> _2d_points;
-	//	KeyPointsToPoints(_keypoints, _2d_points);
-	//	cv::undistortPoints(_2d_points, _2d_points, K, distortion_coeff);
-	//	for (unsigned j = 0, jmax = _keypoints.size(); j < jmax; ++j) _keypoints[j].pt = _2d_points[j];
 	//}
 
 	features_matched = true;
