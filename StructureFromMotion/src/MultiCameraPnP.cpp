@@ -283,7 +283,7 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 	std::cout << "triangulation reproj error " << reproj_error << std::endl;
 
 	vector<uchar> trig_status;
-	if(!(TestTriangulation(new_triangulated, P, trig_status) && TestTriangulation(new_triangulated, P1, trig_status))) {
+	if(reproj_error < 0.0 || !(TestTriangulation(new_triangulated, P, trig_status) && TestTriangulation(new_triangulated, P1, trig_status))) {
 		cerr << "Triangulation did not succeed" << endl;
 		return false;
 	}
@@ -403,7 +403,7 @@ void MultiCameraPnP::AdjustCurrentBundle() {
 
 void MultiCameraPnP::PruneMatchesBasedOnF() {
 	//prune the match between <_i> and all views using the Fundamental matrix to prune
-//#pragma omp parallel for
+#pragma omp parallel for
 	for (int _i=0; _i < imgs.size() - 1; _i++)
 	{
 		for (unsigned int _j=_i+1; _j < imgs.size(); _j++) {
@@ -476,9 +476,7 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 		std::cout << "-------------------------- " << imgs_names[i] << " --------------------------\n";
 		done_views.insert(i); // don't repeat it for now
 
-		bool pose_estimated = FindPoseEstimation(i,rvec,t,R,max_3d,max_2d);
-		if(!pose_estimated)
-			continue;
+		if(!FindPoseEstimation(i,rvec,t,R,max_3d,max_2d)) continue;
 
 		//store estimated pose	
 		Pmats[i] = cv::Matx34d	(R(0,0),R(0,1),R(0,2),t(0),
@@ -495,8 +493,8 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 			
 			vector<CloudPoint> new_triangulated;
 			vector<int> add_to_cloud;
-			bool good_triangulation = TriangulatePointsBetweenViews(i,view,new_triangulated,add_to_cloud);
-			if(!good_triangulation) continue;
+
+			if(!TriangulatePointsBetweenViews(i,view,new_triangulated,add_to_cloud)) continue;
 
 			std::cout << "before triangulation: " << pcloud.size();
 			for (int j=0; j<add_to_cloud.size(); j++) {

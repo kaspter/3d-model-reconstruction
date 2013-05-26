@@ -95,8 +95,8 @@ void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch> *mat
 	cv::Ptr<cv::DescriptorMatcher> matcher;
 	
 	// TODO: remove this block!
-	static boost::mutex block_mutex;  //Temporary workaround for non thread-safe Algorithm lazy initialization implementation 
-	{
+	static boost::mutex block_mutex;   
+	{	// Temporary workaround for non thread-safe lazy initialization implementation of cv::Algorithm based classes 
 		boost::lock_guard<boost::mutex> block_guard(block_mutex);
 		matcher = cv::DescriptorMatcher::create("FlannBased");
 	}

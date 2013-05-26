@@ -24,7 +24,10 @@
     <ClInclude Include="include\Common.h" />
     <ClInclude Include="include\Distance.h" />
     <ClInclude Include="include\FindCameraMatrices.h" />
-    <ClInclude Include="include\GPUSURFFeatureMatcher.h" />
+    <ClInclude Include="include\GPUSURFFeatureMatcher.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="include\IDistance.h" />
     <ClInclude Include="include\IFeatureMatcher.h" />
     <ClInclude Include="include\MultiCameraDistance.h" />
@@ -50,7 +53,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\FindCameraMatrices.cpp" />
-    <ClCompile Include="src\GPUSURFFeatureMatcher.cpp" />
+    <ClCompile Include="src\GPUSURFFeatureMatcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\MultiCameraDistance.cpp" />
     <ClCompile Include="src\MultiCameraPnP.cpp" />
     <ClCompile Include="src\OFFeatureMatcher.cpp" />

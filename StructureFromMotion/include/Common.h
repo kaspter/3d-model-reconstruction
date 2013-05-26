@@ -25,8 +25,15 @@ struct CloudPoint {
 };
 
 std::vector<cv::DMatch> FlipMatches(const std::vector<cv::DMatch>& matches);
-void KeyPointsToPoints(const std::vector<cv::KeyPoint>& kps, std::vector<cv::Point2f>& ps);
-void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPoint>& kps);
+inline void KeyPointsToPoints(const std::vector<cv::KeyPoint>& kps, std::vector<cv::Point2f>& ps) {
+	ps.clear();
+	for (unsigned int i=0; i<kps.size(); i++) ps.push_back(kps[i].pt);
+}
+
+inline void PointsToKeyPoints(const std::vector<cv::Point2f>& ps, std::vector<cv::KeyPoint>& kps) {
+	kps.clear();
+	for (unsigned int i=0; i<ps.size(); i++) kps.push_back(cv::KeyPoint(ps[i],1.0f));
+}
 
 std::vector<cv::Point3d> CloudPointsToPoints(const std::vector<CloudPoint> cpts);
 
