@@ -79,7 +79,7 @@ imgs_names(imgs_names_),features_matched(false),use_rich_features(true),use_gpu(
 	K.convertTo(K_32f,CV_32FC1);
 }
 
-void MultiCameraDistance::OnlyMatchFeatures(int strategy) 
+void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 {
 	if(features_matched) return;
 	
@@ -135,7 +135,7 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 	features_matched = true;
 }
 
-void MultiCameraDistance::GetRGBForPointCloud(const std::vector<struct CloudPoint>& _pcloud, std::vector<cv::Vec3b>& RGBforCloud) 
+void MultiCameraDistance::GetRGBForPointCloud(const std::vector<struct CloudPoint>& _pcloud, std::vector<cv::Vec3b>& RGBforCloud)
 {
 	RGBforCloud.resize(_pcloud.size());
 	for (unsigned i=0; i<_pcloud.size(); ++i) 

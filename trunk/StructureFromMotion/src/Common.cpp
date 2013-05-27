@@ -33,17 +33,12 @@ std::vector<cv::DMatch> FlipMatches(const std::vector<cv::DMatch>& matches) {
 
 std::vector<cv::Point3d> CloudPointsToPoints(const std::vector<CloudPoint> cpts) {
 	std::vector<cv::Point3d> out;
-	for (unsigned int i=0; i<cpts.size(); i++) {
-		out.push_back(cpts[i].pt);
-	}
+	for (unsigned int i=0; i<cpts.size(); i++) out.push_back(cpts[i].pt);
 	return out;
 }
 
-void GetAlignedPointsFromMatch(const std::vector<cv::KeyPoint>& imgpts1,
-							   const std::vector<cv::KeyPoint>& imgpts2,
-							   const std::vector<cv::DMatch>& matches,
-							   std::vector<cv::KeyPoint>& pt_set1,
-							   std::vector<cv::KeyPoint>& pt_set2) 
+void GetAlignedPointsFromMatch(const std::vector<cv::KeyPoint>& imgpts1, const std::vector<cv::KeyPoint>& imgpts2, 
+							   const std::vector<cv::DMatch>& matches, std::vector<cv::KeyPoint>& pt_set1, std::vector<cv::KeyPoint>& pt_set2) 
 {
 	for (unsigned int i=0; i<matches.size(); i++) {
 //		cout << "matches[i].queryIdx " << matches[i].queryIdx << " matches[i].trainIdx " << matches[i].trainIdx << endl;
@@ -55,8 +50,8 @@ void GetAlignedPointsFromMatch(const std::vector<cv::KeyPoint>& imgpts1,
 }
 
 #define intrpmnmx(val,min,max) (max==min ? 0.0 : ((val)-min)/(max-min))
-
-void drawArrows(Mat& frame, const vector<Point2f>& prevPts, const vector<Point2f>& nextPts, const vector<uchar>& status, const vector<float>& verror, const Scalar& _line_color)
+void drawArrows(Mat& frame, const vector<Point2f>& prevPts, const vector<Point2f>& nextPts, 
+				const vector<uchar>& status, const vector<float>& verror, const Scalar& _line_color)
 {
 	double minVal,maxVal; minMaxIdx(verror,&minVal,&maxVal,0,0,status);
 	int line_thickness = 1;
