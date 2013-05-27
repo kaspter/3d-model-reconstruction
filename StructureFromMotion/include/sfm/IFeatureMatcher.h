@@ -11,15 +11,18 @@
 
 #pragma once
 
-#define STRATEGY_USE_OPTICAL_FLOW		1
-#define STRATEGY_USE_DENSE_OF			2
-#define STRATEGY_USE_FEATURE_MATCH		4
-#define STRATEGY_USE_HORIZ_DISPARITY	8
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <vector>
 
-class IDistance {
+#include "IDistance.h"
+
+#include "Common.h"
+
+
+// Feature Matching Interface
+class IFeatureMatcher {
 public:
-	virtual void OnlyMatchFeatures(int strategy = STRATEGY_USE_OPTICAL_FLOW + STRATEGY_USE_DENSE_OF + STRATEGY_USE_FEATURE_MATCH) = 0;
-	virtual void RecoverDepthFromImages() = 0;
-	virtual std::vector<cv::Point3d> getPointCloud() = 0;
-	virtual const std::vector<cv::Vec3b>& getPointCloudRGB() = 0;
+	virtual void MatchFeatures(int idx_i, int idx_j, std::vector<cv::DMatch>* matches) = 0;
+	virtual std::vector<cv::KeyPoint> GetImagePoints(int idx) = 0;
 };

@@ -27,47 +27,44 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Common.h">
+    <ClInclude Include="include\sfm\MultiCameraPnP.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sfm\BundleAdjuster.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sfm\Distance.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sfm\IDistance.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sfm\MultiCameraDistance.h">
+      <Filter>Header Files\Structure extraction</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sfm\Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\OFFeatureMatcher.h">
-      <Filter>Header Files\Feature matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\RichFeatureMatcher.h">
-      <Filter>Header Files\Feature matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\GPUSURFFeatureMatcher.h">
-      <Filter>Header Files\Feature matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\AbstractFeatureMatcher.h">
-      <Filter>Header Files\Feature matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\IFeatureMatcher.h">
-      <Filter>Header Files\Feature matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Triangulation.h">
+    <ClInclude Include="include\sfm\FindCameraMatrices.h">
       <Filter>Header Files\Structure extraction\low-level math</Filter>
     </ClInclude>
-    <ClInclude Include="include\FindCameraMatrices.h">
+    <ClInclude Include="include\sfm\Triangulation.h">
       <Filter>Header Files\Structure extraction\low-level math</Filter>
     </ClInclude>
-    <ClInclude Include="include\Distance.h">
-      <Filter>Header Files\Structure extraction</Filter>
+    <ClInclude Include="include\sfm\AbstractFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
-    <ClInclude Include="include\IDistance.h">
-      <Filter>Header Files\Structure extraction</Filter>
+    <ClInclude Include="include\sfm\GPUSURFFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
-    <ClInclude Include="include\MultiCameraDistance.h">
-      <Filter>Header Files\Structure extraction</Filter>
+    <ClInclude Include="include\sfm\OFFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
-    <ClInclude Include="include\MultiCameraPnP.h">
-      <Filter>Header Files\Structure extraction</Filter>
+    <ClInclude Include="include\sfm\RichFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
-    <ClInclude Include="include\SfMUpdateListener.h">
-      <Filter>Header Files\Structure extraction</Filter>
-    </ClInclude>
-    <ClInclude Include="include\BundleAdjuster.h">
-      <Filter>Header Files\Structure extraction</Filter>
+    <ClInclude Include="include\sfm\IFeatureMatcher.h">
+      <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -102,9 +99,6 @@
       <Filter>Source Files\Structure extraction</Filter>
     </ClCompile>
     <ClCompile Include="src\MultiCameraPnP.cpp">
-      <Filter>Source Files\Structure extraction</Filter>
-    </ClCompile>
-    <ClCompile Include="src\SfMUpdateListener.cpp">
       <Filter>Source Files\Structure extraction</Filter>
     </ClCompile>
   </ItemGroup>

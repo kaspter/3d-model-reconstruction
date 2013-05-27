@@ -11,24 +11,49 @@
 
 #pragma once
 
+#include <boost/thread.hpp>
+
 #include <opencv2/core/core.hpp>
-#include <opencv2/features2d/features2d.hpp>
-#include <vector>
 
-void RunVisualizationThread();
-void WaitForVisualizationThread();
-void RunVisualizationOnly();
-void RunVisualization(const std::vector<cv::Point3d>& pointcloud,
-					  const std::vector<cv::Vec3b>& pointcloud_RGB = std::vector<cv::Vec3b>(),
-					  const std::vector<cv::Point3d>& pointcloud1 = std::vector<cv::Point3d>(),
-					  const std::vector<cv::Vec3b>& pointcloud1_RGB = std::vector<cv::Vec3b>());
-void ShowClouds(const std::vector<cv::Point3d>& pointcloud,
-				const std::vector<cv::Vec3b>& pointcloud_RGB = std::vector<cv::Vec3b>(),
-				const std::vector<cv::Point3d>& pointcloud1 = std::vector<cv::Point3d>(),
-				const std::vector<cv::Vec3b>& pointcloud1_RGB = std::vector<cv::Vec3b>());
-void ShowCloud(const std::vector<cv::Point3d>& pointcloud,
-				const std::vector<cv::Vec3b>& pointcloud_RGB, 
-				const std::string& name);
+#include <pcl/common/common.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
-void visualizerShowCamera(const float R[9], const float t[3], float r, float g, float b);
-void visualizerShowCamera(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name = "");
+class CloudVisualizer {
+	typedef pcl::PointCloud<pcl::PointXYZRGB> pclColoredPointCloud;
+
+	std::deque<pclColoredPointCloud::Ptr>	cloud_registry; boost::recursive_mutex _cloud_registry_mutex;
+	pclColoredPointCloud::Ptr				cloud_to_show;	boost::recursive_mutex _cloud_to_show_mutex;
+
+	static void populatePointCloud(const std::vector<cv::Point3d>& pointcloud, const std::vector<cv::Vec3b>& pointcloud_RGB, pclColoredPointCloud::Ptr& mycloud);
+
+	boost::scoped_ptr<boost::thread> visualizer_thread;
+	static void visualizerCallback(CloudVisualizer* me, void* dummy);
+
+protected:
+	static void KeyboardEventCallback (const pcl::visualization::KeyboardEvent& event_, void *void_this);
+
+public:
+	enum CLOUD_SELECTION_DIRECTION {
+		CSD_BACKWARD	= -1,
+		CSD_INDIFFERENT =  0,
+		CSD_FORWARD		=  1
+	};
+
+	typedef std::pair<const std::vector<cv::Point3d>&, const std::vector<cv::Vec3b>&> RawCloudData;
+	typedef std::vector<RawCloudData> RawCloudDataCollection;
+
+	void LoadClouds(const RawCloudDataCollection &cloud_data);
+	void SelectCloudToShow(CLOUD_SELECTION_DIRECTION csd = CSD_INDIFFERENT);
+
+	void RunVisualizationThread()		{ if (visualizer_thread.get() != NULL) return; visualizer_thread.reset(new boost::thread(visualizerCallback, this, (void*)NULL)); }
+	void WaitForVisualizationThread()	{ if (visualizer_thread.get() == NULL) return; visualizer_thread->join(); visualizer_thread.reset(); }
+};
+
+#include <sfm/MultiCameraPnP.h>
+
+class VisualizerListener : public CloudVisualizer, public MultiCameraPnP::UpdateListener {
+public:
+	void update(const std::vector<cv::Point3d> &pcld_a, const std::vector<cv::Vec3b> &pcld_a_rgb, 
+				const std::vector<cv::Point3d> &pcld_b, const std::vector<cv::Vec3b> &pcld_b_rgb, 
+				const std::vector<cv::Matx34d> &cameras);
+};

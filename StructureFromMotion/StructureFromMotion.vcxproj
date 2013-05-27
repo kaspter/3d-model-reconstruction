@@ -19,23 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\AbstractFeatureMatcher.h" />
-    <ClInclude Include="include\BundleAdjuster.h" />
-    <ClInclude Include="include\Common.h" />
-    <ClInclude Include="include\Distance.h" />
-    <ClInclude Include="include\FindCameraMatrices.h" />
-    <ClInclude Include="include\GPUSURFFeatureMatcher.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="include\IDistance.h" />
-    <ClInclude Include="include\IFeatureMatcher.h" />
-    <ClInclude Include="include\MultiCameraDistance.h" />
-    <ClInclude Include="include\MultiCameraPnP.h" />
-    <ClInclude Include="include\OFFeatureMatcher.h" />
-    <ClInclude Include="include\RichFeatureMatcher.h" />
-    <ClInclude Include="include\SfMUpdateListener.h" />
-    <ClInclude Include="include\Triangulation.h" />
+    <ClInclude Include="include\sfm\AbstractFeatureMatcher.h" />
+    <ClInclude Include="include\sfm\BundleAdjuster.h" />
+    <ClInclude Include="include\sfm\Common.h" />
+    <ClInclude Include="include\sfm\Distance.h" />
+    <ClInclude Include="include\sfm\FindCameraMatrices.h" />
+    <ClInclude Include="include\sfm\GPUSURFFeatureMatcher.h" />
+    <ClInclude Include="include\sfm\IDistance.h" />
+    <ClInclude Include="include\sfm\IFeatureMatcher.h" />
+    <ClInclude Include="include\sfm\MultiCameraDistance.h" />
+    <ClInclude Include="include\sfm\MultiCameraPnP.h" />
+    <ClInclude Include="include\sfm\OFFeatureMatcher.h" />
+    <ClInclude Include="include\sfm\RichFeatureMatcher.h" />
+    <ClInclude Include="include\sfm\Triangulation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AbstractFeatureMatcher.cpp">
@@ -61,12 +57,6 @@
     <ClCompile Include="src\MultiCameraPnP.cpp" />
     <ClCompile Include="src\OFFeatureMatcher.cpp" />
     <ClCompile Include="src\RichFeatureMatcher.cpp" />
-    <ClCompile Include="src\SfMUpdateListener.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\Triangulation.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -146,7 +136,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\sfm;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <CompileAs>Default</CompileAs>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -243,7 +233,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\sfm;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>Default</CompileAs>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>Sync</ExceptionHandling>
