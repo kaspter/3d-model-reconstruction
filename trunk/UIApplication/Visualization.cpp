@@ -31,27 +31,6 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
 
-
-
-
-
-#define pclp3(eigenv3f) pcl::PointXYZ(eigenv3f.x(),eigenv3f.y(),eigenv3f.z())
-
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, cloud1, cloud_no_floor, orig_cloud;
-std::string cloud_to_show_name = "";
-volatile bool show_cloud = false;
-volatile bool sor_applied = false;
-volatile bool show_cloud_A = true;
-
-////////////////////////////////// Show Camera ////////////////////////////////////
-std::deque<std::pair<std::string,pcl::PolygonMesh>>				  cam_meshes;
-std::deque<std::pair<std::string,std::vector<Eigen::Matrix<float,6,1>>>> linesToShow;
-//TODO define mutex
-bool bShowCam;
-int	 iCamCounter = 0;
-int	 iLineCounter = 0;
-int	 ipolygon[18] = {0,1,2,  0,3,1,  0,4,3,  0,2,4,  3,1,4,   2,4,1};
-
 inline pcl::PointXYZ Eigen2PointXYZ(Eigen::Vector3f v) { return pcl::PointXYZ(v[0],v[1],v[2]); }
 inline pcl::PointXYZRGB Eigen2PointXYZRGB(Eigen::Vector3f v, Eigen::Vector3f rgb) { pcl::PointXYZRGB p(rgb[0],rgb[1],rgb[2]); p.x = v[0]; p.y = v[1]; p.z = v[2]; return p; }
 inline pcl::PointNormal Eigen2PointNormal(Eigen::Vector3f v, Eigen::Vector3f n) { pcl::PointNormal p; p.x=v[0];p.y=v[1];p.z=v[2];p.normal_x=n[0];p.normal_y=n[1];p.normal_z=n[2]; return p;}
@@ -59,75 +38,25 @@ inline float* Eigen2float6(Eigen::Vector3f v, Eigen::Vector3f rgb) { static floa
 inline Eigen::Matrix<float,6,1> Eigen2Eigen(Eigen::Vector3f v, Eigen::Vector3f rgb) { return (Eigen::Matrix<float,6,1>() << v[0],v[1],v[2],rgb[0],rgb[1],rgb[2]).finished(); }
 inline std::vector<Eigen::Matrix<float,6,1> > AsVector(const Eigen::Matrix<float,6,1>& p1, const Eigen::Matrix<float,6,1>& p2) { std::vector<Eigen::Matrix<float,6,1> > v(2); v[0] = p1; v[1] = p2; return v; }
 
-void visualizerShowCamera(const Eigen::Matrix3f& R, const Eigen::Vector3f& _t, float r, float g, float b, double s = 0.01, const std::string& name = "") {
-	std::string name_ = name,line_name = name + "line";
-	if (name.length() <= 0) {
-		stringstream ss; ss<<"camera"<<iCamCounter++;
-		name_ = ss.str();
-		ss << "line";
-		line_name = ss.str();
-	}
-	
-	Eigen::Vector3f t = -R.transpose() * _t;
-
-	Eigen::Vector3f vright = R.row(0).normalized() * s;
-	Eigen::Vector3f vup = -R.row(1).normalized() * s;
-	Eigen::Vector3f vforward = R.row(2).normalized() * s;
-
-	Eigen::Vector3f rgb(r,g,b);
-
-	pcl::PointCloud<pcl::PointXYZRGB> mesh_cld;
-	mesh_cld.push_back(Eigen2PointXYZRGB(t,rgb));
-	mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward + vright/2.0 + vup/2.0,rgb));
-	mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward + vright/2.0 - vup/2.0,rgb));
-	mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward - vright/2.0 + vup/2.0,rgb));
-	mesh_cld.push_back(Eigen2PointXYZRGB(t + vforward - vright/2.0 - vup/2.0,rgb));
-
-	//TODO Mutex acquire
-	pcl::PolygonMesh pm;
-	pm.polygons.resize(6); 
-	for(int i=0;i<6;i++)
-		for(int _v=0;_v<3;_v++)
-			pm.polygons[i].vertices.push_back(ipolygon[i*3 + _v]);
-	pcl::toROSMsg(mesh_cld,pm.cloud);
-	bShowCam = true;
-	cam_meshes.push_back(std::make_pair(name_,pm));
-	//TODO mutex release
-
-	linesToShow.push_back(std::make_pair(line_name,
-		AsVector(Eigen2Eigen(t,rgb),Eigen2Eigen(t + vforward*3.0,rgb))
-		));
-}
-void visualizerShowCamera(const float R[9], const float t[3], float r, float g, float b) {
-	visualizerShowCamera(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b);
-}
-void visualizerShowCamera(const float R[9], const float t[3], float r, float g, float b, double s) {
-	visualizerShowCamera(Eigen::Matrix3f(R).transpose(),Eigen::Vector3f(t),r,g,b,s);
-}
-void visualizerShowCamera(const cv::Matx33f& R, const cv::Vec3f& t, float r, float g, float b, double s, const std::string& name) {
-	visualizerShowCamera(Eigen::Matrix<float,3,3,Eigen::RowMajor>(R.val),Eigen::Vector3f(t.val),r,g,b,s,name);
-}
-/////////////////////////////////////////////////////////////////////////////////
-
-void SORFilter() 
-{
-	
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
-	
-	std::cout << "Cloud before SOR filtering: " << cloud->width * cloud->height << " data points" << std::endl;
-	
-	// Create the filtering object
-	pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
-	sor.setInputCloud (cloud);
-	sor.setMeanK (50);
-	sor.setStddevMulThresh (1.0);
-	sor.filter (*cloud_filtered);
-	
-	copyPointCloud(*cloud_filtered,*cloud);
-	copyPointCloud(*cloud,*orig_cloud);
-
-	std::cout << "Cloud after SOR filtering: " << cloud->width * cloud->height << " data points " << std::endl;
-}	
+//void SORFilter() 
+//{
+//	
+//	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
+//	
+//	std::cout << "Cloud before SOR filtering: " << cloud->width * cloud->height << " data points" << std::endl;
+//	
+//	// Create the filtering object
+//	pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
+//	sor.setInputCloud (cloud);
+//	sor.setMeanK (50);
+//	sor.setStddevMulThresh (1.0);
+//	sor.filter (*cloud_filtered);
+//	
+//	copyPointCloud(*cloud_filtered,*cloud);
+//	copyPointCloud(*cloud,*orig_cloud);
+//
+//	std::cout << "Cloud after SOR filtering: " << cloud->width * cloud->height << " data points " << std::endl;
+//}	
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CloudVisualizer
@@ -169,13 +98,12 @@ void CloudVisualizer::populatePointCloud(const std::vector<cv::Point3d>& pointcl
 		mycloud->push_back(pclp);
 	}
 	
-	mycloud->width  = static_cast<uint32_t>(mycloud->points.size());	// number of points
-	mycloud->height = static_cast<uint32_t>(mycloud->width != 0);		// a list, one row of data
+	mycloud->width  = static_cast<uint32_t>(mycloud->points.size());
+	mycloud->height = static_cast<uint32_t>(mycloud->width != 0);
 }
 
 void CloudVisualizer::visualizerCallback(CloudVisualizer* me, void* dummy)
 {
-
 	pcl::visualization::PCLVisualizer viewer("3D Model Space");   
 
 	void *objects_essential[] = {me, &viewer};
@@ -192,35 +120,35 @@ void CloudVisualizer::visualizerCallback(CloudVisualizer* me, void* dummy)
 		}
 		me->_cloud_to_show_mutex.unlock();
 
-		if(cam_meshes.size() > 0) {
-			int num_cams = cam_meshes.size();
-			cout << "showing " << num_cams << " cameras" << endl;
-			while(cam_meshes.size()>0) {
-				viewer.removeShape(cam_meshes.front().first);
-				viewer.addPolygonMesh(cam_meshes.front().second,cam_meshes.front().first);
-				cam_meshes.pop_front();
+		if (me->show_cameras)
+		{
+			me->show_cameras = false;
+
+			me->_camera_data_mutex.lock();
+
+			for (unsigned i = 0, imax = me->camera_meshes.size(); i < imax; ++i)
+			{
+				viewer.removeShape(me->camera_meshes[i].first);
+				viewer.addPolygonMesh(me->camera_meshes[i].second, me->camera_meshes[i].first);
+
+				std::vector<Eigen::Matrix<float,6,1> > oneline = me->camera_los[i].second;
+				pcl::PointXYZRGB A(oneline[0][3],oneline[0][4],oneline[0][5]),
+								 B(oneline[1][3],oneline[1][4],oneline[1][5]);
+				for(int j = 0; j < 3; ++j) { A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j]; }
+				viewer.removeShape(me->camera_los[i].first);
+				viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A, B, me->camera_los[i].first);
 			}
+
+			me->_camera_data_mutex.unlock();
 		}
-		if(linesToShow.size() > 0) {
-			cout << "showing " << linesToShow.size() << " lines" << endl;
-			while(linesToShow.size()>0) {
-				std::vector<Eigen::Matrix<float,6,1> > oneline = linesToShow.front().second;
-				pcl::PointXYZRGB	A(oneline[0][3],oneline[0][4],oneline[0][5]),
-									B(oneline[1][3],oneline[1][4],oneline[1][5]);
-				for(int j=0;j<3;j++) {A.data[j] = oneline[0][j]; B.data[j] = oneline[1][j];}
-				viewer.removeShape(linesToShow.front().first);
-				viewer.addLine<pcl::PointXYZRGB,pcl::PointXYZRGB>(A,B,linesToShow.front().first);
-				linesToShow.pop_front();
-			} 
-			linesToShow.clear();
-		}
+
 		viewer.spinOnce(50);
     }
 }
 
 void CloudVisualizer::KeyboardEventCallback (const pcl::visualization::KeyboardEvent& event_, void *void_this)
 {
-	_ASSERT(void_this != NULL, L"It seems to be parameters vector is corrupted");
+	_ASSERT_EXPR(void_this != NULL, L"It seems to be parameters vector is corrupted");
 	CloudVisualizer *me = reinterpret_cast<CloudVisualizer*>(*(uintptr_t*)void_this);
 
 	if ((event_.getKeyCode() == '.' || event_.getKeyCode() == '>') && event_.keyDown()) me->SelectCloudToShow(CSD_FORWARD);
@@ -243,6 +171,67 @@ void CloudVisualizer::LoadClouds(const RawCloudDataCollection &cloud_data)
 	SelectCloudToShow(CSD_BACKWARD);
 
 	_cloud_registry_mutex.unlock();
+}
+
+#define POLYGON_GROUP_SIZE 3
+void CloudVisualizer::LoadCameras(const std::vector<std::pair<double, cv::Matx34d>> cam_data, const Eigen::Vector3f &color, double s)
+{
+	static const int polygon_idx[][POLYGON_GROUP_SIZE] = { {0,1,2}, {0,3,1}, {0,4,3}, {0,2,4}, {3,1,4}, {2,4,1} };
+
+	_camera_data_mutex.lock();
+
+	camera_meshes.clear(); camera_los.clear();
+	for(unsigned i = 0, imax = cam_data.size(); i < imax; ++i) 
+	{
+		cv::Matx34d P(cam_data[i].second);
+		if (cv::countNonZero(P) == 0) continue;
+
+		Eigen::Matrix<float,3,3,Eigen::RowMajor> R(cv::Matx33f(
+				P(0,0), P(0,1), P(0,2),
+				P(1,0), P(1,1), P(1,2),
+				P(2,0), P(2,1), P(2,2)
+			).val);
+		Eigen::Vector3f t(P(0,3), P(1,3), P(2,3)); t = -R.transpose() * t;
+		Eigen::Vector3f vforward =  R.row(2).normalized() * s;
+
+		pcl::PointCloud<pcl::PointXYZRGB> mesh_cld;
+		{
+			Eigen::Vector3f apex = t;
+			Eigen::Vector3f vright	 =  R.row(0).normalized() * s / 2.0;
+			Eigen::Vector3f vup		 = -R.row(1).normalized() * s / 2.0;
+
+			double aspect = cam_data[i].first;
+			if (aspect > 1.0) vright *= aspect; else vup /= aspect;
+
+			mesh_cld.push_back(Eigen2PointXYZRGB(apex, color)); apex += vforward;
+			mesh_cld.push_back(Eigen2PointXYZRGB(apex + vright + vup, color));
+			mesh_cld.push_back(Eigen2PointXYZRGB(apex + vright - vup, color));
+			mesh_cld.push_back(Eigen2PointXYZRGB(apex - vright + vup, color));
+			mesh_cld.push_back(Eigen2PointXYZRGB(apex - vright - vup, color));
+		}
+
+		pcl::PolygonMesh pm; pm.polygons.resize(6); 
+		for(int j = 0; j < _countof(polygon_idx); ++j)
+		{
+			for(int v = 0; v < POLYGON_GROUP_SIZE; ++v)
+				pm.polygons[j].vertices.push_back(polygon_idx[j][v]);
+		}
+		pcl::toROSMsg(mesh_cld,pm.cloud);
+
+		std::stringstream ss; ss << "camera #" << i;
+		camera_meshes.push_back(std::make_pair(ss.str(),pm));
+
+		ss << " line";
+		camera_los.push_back(std::make_pair(ss.str(),
+			AsVector(Eigen2Eigen(t, color),Eigen2Eigen(t + vforward * 3.0, color))
+			));
+	}
+
+	_ASSERT_EXPR(camera_meshes.size() == camera_los.size(), L"Camera meshes vector is unaligned with camera lines one.");
+
+	_camera_data_mutex.unlock();
+	
+	show_cameras = !cam_data.empty();
 }
 
 void CloudVisualizer::SelectCloudToShow(CLOUD_SELECTION_DIRECTION csd)
@@ -288,24 +277,15 @@ void CloudVisualizer::SelectCloudToShow(CLOUD_SELECTION_DIRECTION csd)
 
 void VisualizerListener::update(const std::vector<cv::Point3d> &pcld_a, const std::vector<cv::Vec3b> &pcld_a_rgb, 
 								const std::vector<cv::Point3d> &pcld_b, const std::vector<cv::Vec3b> &pcld_b_rgb, 
-								const std::vector<cv::Matx34d> &cameras
+								const std::vector<std::pair<double, cv::Matx34d>> &cameras
 ) {
 	RawCloudDataCollection cloud_data;
 	cloud_data.push_back(RawCloudData(pcld_a, pcld_a_rgb));
 	cloud_data.push_back(RawCloudData(pcld_b, pcld_b_rgb));
 
 	LoadClouds(cloud_data);
-		
-	for(unsigned i = 0, imax = cameras.size(); i < imax; ++i) {
-		cv::Matx34d c = cameras[i];
-		std::stringstream ss; ss << "camera #" << i;
-		visualizerShowCamera(cv::Matx33f(c(0,0), c(0,1), c(0,2),
-											c(1,0), c(1,1), c(1,2),
-											c(2,0), c(2,1), c(2,2)),
-								cv::Vec3f(  c(0,3), c(1,3), c(2,3)),
-								255,0,0,0.2,ss.str()
-						);
-	}
+	LoadCameras(cameras, Eigen::Vector3f(255, 0, 0), 0.2);	
+
 }
 
 

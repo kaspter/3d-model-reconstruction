@@ -20,8 +20,8 @@ public:
 	class UpdateListener
 	{
 	public:
-		virtual void update(const std::vector<cv::Point3d> &pcld, const std::vector<cv::Vec3b> &pcldrgb, 
-			const std::vector<cv::Point3d> &pcld_alternate, const std::vector<cv::Vec3b> &pcldrgb_alternate, const std::vector<cv::Matx34d> &cameras) = 0;
+		virtual void update(const std::vector<cv::Point3d> &pcld_a, const std::vector<cv::Vec3b> &pcld_a_rgb, 
+			const std::vector<cv::Point3d> &pcld_b, const std::vector<cv::Vec3b> &pcld_b_rgb, const std::vector<std::pair<double, cv::Matx34d>> &cameras) = 0;
 	};
 
 private:
@@ -47,9 +47,18 @@ private:
 
     void update()
     {
+		std::vector<std::pair<double, cv::Matx34d>> cam_data;
+
+		std::vector<std::pair<int, cv::Matx34d>> cameras = getCameras();
+		for (std::vector<std::pair<int, cv::Matx34d>>::iterator i = cameras.begin(), iend = cameras.end(); i != iend; ++i)
+		{
+			cv::Size img_size = imgs[i->first].size();
+			cam_data.push_back(std::make_pair(double(img_size.width) / double(img_size.height), i->second));
+		}
+
         for (int i = 0; i < listeners.size(); i++)
 			listeners[i]->update(getPointCloud(), _pointCloudRGBInit(), 
-				getPointCloud(false), pointCloudRGB_beforeBA, getCameras());
+				getPointCloud(false), pointCloudRGB_beforeBA, cam_data);
     }
 
 public:
