@@ -66,9 +66,19 @@ public:
 
 	std::vector<cv::Point3d>	getPointCloud()		{ return CloudPointsToPoints(pcloud); }
 	std::vector<cv::Vec3b>		getPointCloudRGB()	{ return _pointCloudRGBInit(); } 
-	std::vector<cv::Matx34d>	getCameras()		{ 
-		std::vector<cv::Matx34d> v; 
-		for(std::map<int ,cv::Matx34d>::const_iterator it = Pmats.begin(); it != Pmats.end(); ++it ) v.push_back( it->second );
+	
+	std::vector<std::pair<int, cv::Matx34d>> getCameras(bool intrinsic = false)		
+	{ 
+		std::vector<std::pair<int, cv::Matx34d>> v; 
+		for(std::map<int ,cv::Matx34d>::const_iterator it = Pmats.begin(); it != Pmats.end(); ++it)
+		{
+			if (it->second != cv::Matx34d::zeros())
+			{
+				cv::Mat P(it->second); if (intrinsic)  P = K * P;
+				v.push_back(std::make_pair(it->first, P));
+			}
+		}
+
 		return v;
     }
 };
