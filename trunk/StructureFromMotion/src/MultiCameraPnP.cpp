@@ -31,9 +31,7 @@ int MultiCameraPnP::FindHomographyInliers2Views(int vi, int vj)
 	return cv::countNonZero(status); //number of inliers
 }
 
-/**
- * Get an initial 3D point cloud from 2 views only
- */
+// Get an initial 3D point cloud from 2 views only
 void MultiCameraPnP::GetBaseLineTriangulation() {
 	std::cout << "=========================== Baseline triangulation ===========================\n";
 
@@ -510,6 +508,7 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 		update();
 	}
 
+	update(true);
 	cout << "======================================================================\n";
 	cout << "========================= Depth Recovery DONE ========================\n";
 	cout << "======================================================================\n";

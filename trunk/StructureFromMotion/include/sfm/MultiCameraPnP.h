@@ -13,18 +13,26 @@
 
 #include "Common.h"
 #include "MultiCameraDistance.h"
-#include "SfMUpdateListener.h"
 
 class MultiCameraPnP : public MultiCameraDistance {
 public:
 	class UpdateListener
 	{
 	public:
-		virtual void update(const std::vector<cv::Point3d> &pcld_a, const std::vector<cv::Vec3b> &pcld_a_rgb, 
-			const std::vector<cv::Point3d> &pcld_b, const std::vector<cv::Vec3b> &pcld_b_rgb, const std::vector<std::pair<double, cv::Matx34d>> &cameras) = 0;
+		/*const std::vector<cv::Point3d> &pcld_a, const std::vector<cv::Vec3b> &pcld_a_rgb, 
+			const std::vector<cv::Point3d> &pcld_b, const std::vector<cv::Vec3b> &pcld_b_rgb, const std::vector<std::pair<double, cv::Matx34d>> &cameras*/
+		virtual void update(const MultiCameraPnP &) = 0;
+		virtual void finish(const MultiCameraPnP &) = 0;
+	};
+
+	enum FEATURE_MATCHER_TYPE : unsigned {
+		FEATURE_MATCHER_FAST	= 0x00,
+		FEATURE_MATCHER_RICH	= 0x01,
+		FEATURE_MATCHER_CACHED	= 0x02
 	};
 
 private:
+
 	std::vector<CloudPoint> pointcloud_beforeBA;
 	std::vector<cv::Vec3b>	pointCloudRGB_beforeBA;
 	
@@ -43,36 +51,26 @@ private:
 
 	int FindHomographyInliers2Views(int vi, int vj);
 
-	std::vector <UpdateListener*> listeners;
+	std::vector<UpdateListener*> listeners;
 
-    void update()
-    {
-		std::vector<std::pair<double, cv::Matx34d>> cam_data;
-
-		std::vector<std::pair<int, cv::Matx34d>> cameras = getCameras();
-		for (std::vector<std::pair<int, cv::Matx34d>>::iterator i = cameras.begin(), iend = cameras.end(); i != iend; ++i)
-		{
-			cv::Size img_size = imgs[i->first].size();
-			cam_data.push_back(std::make_pair(double(img_size.width) / double(img_size.height), i->second));
-		}
-
-        for (int i = 0; i < listeners.size(); i++)
-			listeners[i]->update(getPointCloud(), _pointCloudRGBInit(), 
-				getPointCloud(false), pointCloudRGB_beforeBA, cam_data);
-    }
+    void update(bool finish = false) 
+	{ 
+		for (int i = 0; i < listeners.size(); i++) 
+			if (finish) listeners[i]->finish(*this); else listeners[i]->update(*this);
+	}
 
 public:
-	MultiCameraPnP(const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const std::string& imgs_path_)
-		: MultiCameraDistance(imgs_,imgs_names_,imgs_path_) { /* empty */ }
+	MultiCameraPnP(const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const cv::Mat &intrinsics, const cv::Mat distortion_vector)
+		: MultiCameraDistance(imgs_,imgs_names_,intrinsics, distortion_vector) { /* empty */ }
 
 	virtual void RecoverDepthFromImages();
 
-	std::vector<cv::Point3d> getPointCloud(bool adjusted = true)
+	std::vector<cv::Point3d> getPointCloud(bool adjusted = true) const
 	{ 
 		return adjusted ? MultiCameraDistance::getPointCloud() 
 			: CloudPointsToPoints(pointcloud_beforeBA); 
 	}
-	const std::vector<cv::Vec3b> getPointCloudRGB(bool adjusted = true)
+	const std::vector<cv::Vec3b> getPointCloudRGB(bool adjusted = true) const
 	{ 
 		return adjusted ? _pointCloudRGBInit() : pointCloudRGB_beforeBA; 
 	}

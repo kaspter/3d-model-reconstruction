@@ -14,12 +14,13 @@
 #include "OFFeatureMatcher.h"
 #include "GPUSURFFeatureMatcher.h"
 
-MultiCameraDistance::MultiCameraDistance(
-	const std::vector<cv::Mat>& imgs_, 
-	const std::vector<std::string>& imgs_names_, 
-	const std::string& imgs_path_):
-imgs_names(imgs_names_),features_matched(false),use_rich_features(true),use_gpu(true)
+MultiCameraDistance::MultiCameraDistance(const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, 
+										 const cv::Mat &intrinsics, const cv::Mat &distortion_vector)
+	: imgs_names(imgs_names_), features_matched(false), use_rich_features(true), use_gpu(false)
 {
+	CV_Assert(intrinsics.size() == cv::Size(3,3) && intrinsics.type() == CV_64FC1
+		&& (distortion_vector.size() >= cv::Size(1,5) || distortion_vector.size() <= cv::Size(1,7)) && distortion_vector.type() == CV_64FC1);
+
 	cv::Size min_size;
 	for (unsigned i = 0, imax = imgs_.size(); i < imax; ++i)
 		if (min_size.area() == 0 || imgs_[i].size() < min_size) min_size = imgs_[i].size();
@@ -52,21 +53,9 @@ imgs_names(imgs_names_),features_matched(false),use_rich_features(true),use_gpu(
 		imgpts_good.push_back(std::vector<cv::KeyPoint>());
 	}
 		
-	//load calibration matrix
-	cv::FileStorage fs;
-	double max_w_h = std::max(min_size.height,min_size.width);
-	if(fs.open(imgs_path_+ "\\out_camera_data.xml", cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8")) {
-		fs["camera_distortion"]>>distortion_coeff;
-		fs["camera_intrinsics"]>>cam_matrix;
-		fs.release();
-	} else {
-		//no calibration matrix file - mockup calibration	
-		distortion_coeff	= cv::Mat_<double>::zeros(1,4);
-		cam_matrix			= cv::Mat_<double>(3,3) <<	1.0,	0.0,	0.5, 
-														0.0,	1.0,	0.5, 
-														0.0,	0.0,	1.0;
-	}
-	
+	double max_w_h = std::max(min_size.height,min_size.width);	
+
+	cam_matrix					= intrinsics;
 	cam_matrix.at<double>(0,0) *= max_w_h;
 	cam_matrix.at<double>(1,1) *= max_w_h;
 	cam_matrix.at<double>(0,2) *= min_size.width;
@@ -75,6 +64,7 @@ imgs_names(imgs_names_),features_matched(false),use_rich_features(true),use_gpu(
 	K = cam_matrix;
 	invert(K, Kinv); //get inverse of camera matrix
 
+	distortion_coeff = distortion_vector;
 	distortion_coeff.convertTo(distcoeff_32f,CV_32FC1);
 	K.convertTo(K_32f,CV_32FC1);
 }
@@ -83,39 +73,18 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 {
 	if(features_matched) return;
 	
-	if (use_rich_features) {
-		//if (use_gpu) {
-		//	feature_matcher = new GPUSURFFeatureMatcher(imgs,imgpts);
-		//} else {
-			feature_matcher = new RichFeatureMatcher(imgs,imgpts);
-		//}
-	} else {
-		feature_matcher = new OFFeatureMatcher(use_gpu,imgs,imgpts);
-	}
+	if(strategy & STRATEGY_USE_OPTICAL_FLOW) use_rich_features = false;
 
-	if(strategy & STRATEGY_USE_OPTICAL_FLOW)
-		use_rich_features = false;
+	if (!!use_rich_features) {
+		// TODO: GPU is appliable here
+		feature_matcher = new RichFeatureMatcher(imgs, imgpts);
+	} else {
+		feature_matcher = new OFFeatureMatcher(!!use_gpu, imgs, imgpts);
+	}
 
 	int loop1_top = imgs.size() - 1, loop2_top = imgs.size();
 	int frame_num_i = 0;
-	//#pragma omp parallel for schedule(dynamic)
 	
-	//if (use_rich_features) {
-	//	for (frame_num_i = 0; frame_num_i < loop1_top; frame_num_i++) {
-	//		for (int frame_num_j = frame_num_i + 1; frame_num_j < loop2_top; frame_num_j++)
-	//		{
-	//			std::vector<cv::KeyPoint> fp,fp1;
-	//			std::cout << "------------ Match " << imgs_names[frame_num_i] << ","<<imgs_names[frame_num_j]<<" ------------\n";
-	//			std::vector<cv::DMatch> matches_tmp;
-	//			feature_matcher->MatchFeatures(frame_num_i,frame_num_j,&matches_tmp);
-	//			
-	//			//#pragma omp critical
-	//			{
-	//				matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
-	//			}
-	//		}
-	//	}
-	//} else {
 #pragma omp parallel for
 	for (frame_num_i = 0; frame_num_i < loop1_top; frame_num_i++) {
 		for (int frame_num_j = frame_num_i + 1; frame_num_j < loop2_top; frame_num_j++)
@@ -130,12 +99,11 @@ void MultiCameraDistance::OnlyMatchFeatures(int strategy)
 			matches_matrix[std::make_pair(frame_num_i,frame_num_j)] = matches_tmp;
 		}
 	}
-	//}
 
 	features_matched = true;
 }
 
-void MultiCameraDistance::GetRGBForPointCloud(const std::vector<struct CloudPoint>& _pcloud, std::vector<cv::Vec3b>& RGBforCloud)
+void MultiCameraDistance::GetRGBForPointCloud(const std::vector<struct CloudPoint>& _pcloud, std::vector<cv::Vec3b>& RGBforCloud) const
 {
 	RGBforCloud.resize(_pcloud.size());
 	for (unsigned i=0; i<_pcloud.size(); ++i) 
