@@ -13,11 +13,11 @@ _Derived *virtual_cast(_Base *ptr)
 	static uintptr_t	 _offset  = 0;
 	if (!_is_init)
 	{
+		_is_init = true;
+
 		_Derived _instance;
 		_offset = reinterpret_cast<uintptr_t>(&_instance)
 			- reinterpret_cast<uintptr_t>(static_cast<_Base*>(&_instance));
-
-		_is_init = true;
 	}
 
 	return ptr == NULL ? NULL 

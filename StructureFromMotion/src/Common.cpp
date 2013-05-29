@@ -117,12 +117,34 @@ void imshow_250x250(const string& name_, const Mat& patch) {
 	imshow(name_,bigpatch);
 }
 
-void open_imgs_dir(char* dir_name, std::vector<cv::Mat>& images, std::vector<std::string>& images_names, double downscale_factor) {
-	if (dir_name == NULL) {
-		return;
-	}
+void load_calibration_data(const std::string &file_name, cv::Mat &intrinsics_common, cv::Mat &distortion_vector)
+{
+	if (file_name.empty()) return;
 
-	string dir_name_ = string(dir_name);
+	intrinsics_common.release();
+	distortion_vector.release();
+
+	cv::FileStorage fs;
+	if(fs.open(file_name, cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8")) {
+		fs["camera_distortion"]>>distortion_vector;
+		fs["camera_intrinsics"]>>intrinsics_common;
+		fs.release();
+	} else {
+		//no calibration matrix file - mockup calibration	
+		distortion_vector	= cv::Mat_<double>::zeros(1,4);
+		intrinsics_common	= cv::Mat_<double>(3,3) <<	1.0,	0.0,	0.5, 
+														0.0,	1.0,	0.5, 
+														0.0,	0.0,	1.0;
+	}
+}
+
+void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::vector<std::string>& images_names, double downscale_factor) {
+	
+	images.clear();
+	images_names.clear();
+	if (dir_name.empty()) return;
+
+	string _dir_name = dir_name;
 	vector<string> files_;
 
 #ifndef WIN32
@@ -151,11 +173,9 @@ void open_imgs_dir(char* dir_name, std::vector<cv::Mat>& images, std::vector<std
 	HANDLE hFind = INVALID_HANDLE_VALUE;
 	WIN32_FIND_DATA fdata;
 
-	if(dir_name_[dir_name_.size()-1] == '\\' || dir_name_[dir_name_.size()-1] == '/') {
-		dir_name_ = dir_name_.substr(0,dir_name_.size()-1);
-	}
+	if(_dir_name.back() == '\\' || _dir_name.back() == '/') _dir_name.pop_back();
 
-	hFind = FindFirstFile(string(dir_name_).append("\\*").c_str(), &fdata);	
+	hFind = FindFirstFile(string(_dir_name).append("\\*").c_str(), &fdata);	
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 		do
@@ -194,7 +214,7 @@ void open_imgs_dir(char* dir_name, std::vector<cv::Mat>& images, std::vector<std
 		if (files_[i][0] == '.' || !(hasEndingLower(files_[i],"jpg")||hasEndingLower(files_[i],"png"))) {
 			continue;
 		}
-		cv::Mat m_ = cv::imread(string(dir_name_).append("/").append(files_[i]));
+		cv::Mat m_ = cv::imread(string(_dir_name).append("/").append(files_[i]));
 		if(downscale_factor != 1.0)
 			cv::resize(m_,m_,Size(),downscale_factor,downscale_factor);
 		images_names.push_back(files_[i]);
@@ -203,3 +223,5 @@ void open_imgs_dir(char* dir_name, std::vector<cv::Mat>& images, std::vector<std
 		
 
 }
+
+
