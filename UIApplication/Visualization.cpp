@@ -20,16 +20,6 @@
 #include <pcl/common/common.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
-//#include <pcl/io/io.h>
-//#include <pcl/io/file_io.h>
-//#include <pcl/io/pcd_io.h>
-//#include <pcl/ModelCoefficients.h>
-//#include <pcl/point_types.h>
-//#include <pcl/sample_consensus/ransac.h>
-//#include <pcl/sample_consensus/sac_model_plane.h>
-//#include <pcl/filters/extract_indices.h>
-
-//#include <pcl/filters/voxel_grid.h>
 
 inline pcl::PointXYZ Eigen2PointXYZ(Eigen::Vector3f v) { return pcl::PointXYZ(v[0],v[1],v[2]); }
 inline pcl::PointXYZRGB Eigen2PointXYZRGB(Eigen::Vector3f v, Eigen::Vector3f rgb) { pcl::PointXYZRGB p(rgb[0],rgb[1],rgb[2]); p.x = v[0]; p.y = v[1]; p.z = v[2]; return p; }

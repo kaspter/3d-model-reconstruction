@@ -21,12 +21,12 @@
 #include "Visualization.h"
 #include "DataExport.h"
 
-// Startup parameters: E:/in-out/scenes > bin\log.txt 2 > &1 
+// Startup parameters: E:/in-out/scenes >bin\log.txt 2>&1 
 int main(int argc, char** argv) 
 {
 	int retResult = 0;
 
-	std::string		images_dir, calib_file_path;
+	std::string	images_dir, calib_file_path;
 	unsigned	features_flag	 = 0x00;
 	double		downscale_factor = 0.0;
 
@@ -35,6 +35,8 @@ int main(int argc, char** argv)
 
 	// Blockwise code structure prevents of the 'C2362' compiler error
 	{ // Parameters parser block
+
+		// TODO: extend parameter list by exported model file path/name
 		cv::CommandLineParser arguments(argc, argv, "{1|||images dir}{2||out_camera_data.xml|calibration file}{f|features|of|features type}{ds|downscale|1.0|downscale factor}{?|help|false|show help}");
 
 		bool showHelp;
@@ -90,7 +92,7 @@ int main(int argc, char** argv)
 		cv::Mat intrinsics, distortion;
 		load_calibration_data(calib_file_path, intrinsics, distortion);
 
-		boost::scoped_ptr<SceneMesh> sceneMeshBuilder(new SceneMesh);
+		boost::scoped_ptr<SceneData> sceneMeshBuilder(new SceneData);
 		boost::scoped_ptr<VisualizerListener> visualizerListener(new VisualizerListener(sceneMeshBuilder.get()));
 		visualizerListener->RunVisualizationThread();
 
@@ -99,7 +101,7 @@ int main(int argc, char** argv)
 		sfm->attach(visualizerListener.get());
 		sfm->RecoverDepthFromImages();
 
-		// TODO: Export/Save model to COLLADA3D
+		sceneMeshBuilder->save(*sfm, "test.dae");
 
 		visualizerListener->WaitForVisualizationThread();
 		goto QUIT;

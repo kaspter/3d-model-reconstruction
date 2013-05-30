@@ -29,7 +29,7 @@ class CloudVisualizer {
 	pclColoredPointCloud::Ptr				cloud_to_show;	boost::recursive_mutex _cloud_to_show_mutex;
 
 	std::deque<pclCameraRepresntation>		camera_meshes;	boost::recursive_mutex _camera_data_mutex;
-	std::deque<pclColoredLine>				camera_los;
+	std::deque<pclColoredLine>				camera_los;		// Lines Of Sight
 	volatile bool							show_cameras;
 
 	pcl::PolygonMesh scene_mesh; boost::recursive_mutex _scene_mesh_mutex;
@@ -64,7 +64,7 @@ public:
 
 	void LoadClouds(const RawCloudDataCollection &cloud_data);
 	void LoadCameras(const std::vector<std::pair<double, cv::Matx34d>> cam_data, const Eigen::Vector3f &color, double s = 0.01);
-	void LoadSceneMesh(const pcl::PolygonMesh scene_polygons) 
+	void LoadSceneMesh(const pcl::PolygonMesh &scene_polygons) 
 	{ 
 		_scene_mesh_mutex.lock();
 		scene_mesh = scene_polygons; 
@@ -93,12 +93,12 @@ public:
 
 class VisualizerListener : public CloudVisualizer, public MultiCameraPnP::UpdateListener {
 
-	SceneMesh *mesh_builder;
+	SceneData *mesh_builder;
 
 public:
-	VisualizerListener(SceneMesh *builder = NULL) : mesh_builder(builder) { /* empty */ }
-	void		setBuilder(SceneMesh *builder)	{ mesh_builder = builder; }
-	SceneMesh*	getBuilder()					{ return mesh_builder; }
+	VisualizerListener(SceneData *builder = NULL) : mesh_builder(builder) { /* empty */ }
+	void		setBuilder(SceneData *builder)	{ mesh_builder = builder; }
+	SceneData*	getBuilder()					{ return mesh_builder; }
 
 	void update(const MultiCameraPnP &whos_updated);
 	void finish(const MultiCameraPnP &whos_finished);

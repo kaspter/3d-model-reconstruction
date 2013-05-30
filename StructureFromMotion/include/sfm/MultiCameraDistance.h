@@ -67,6 +67,7 @@ public:
 	std::vector<cv::Point3d>	getPointCloud()		const { return CloudPointsToPoints(pcloud); }
 	std::vector<cv::Vec3b>		getPointCloudRGB()	const { return _pointCloudRGBInit(); } 
 	
+	cv::Matx33d	getCameraMatrix() const { return cv::Mat(K); }
 	std::vector<std::pair<int, cv::Matx34d>> getCameras(bool intrinsic = false)	const	
 	{ 
 		std::vector<std::pair<int, cv::Matx34d>> v; 

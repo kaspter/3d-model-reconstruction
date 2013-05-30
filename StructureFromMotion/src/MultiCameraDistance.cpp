@@ -55,7 +55,7 @@ MultiCameraDistance::MultiCameraDistance(const std::vector<cv::Mat>& imgs_, cons
 		
 	double max_w_h = std::max(min_size.height,min_size.width);	
 
-	cam_matrix					= intrinsics;
+	intrinsics.copyTo(cam_matrix);
 	cam_matrix.at<double>(0,0) *= max_w_h;
 	cam_matrix.at<double>(1,1) *= max_w_h;
 	cam_matrix.at<double>(0,2) *= min_size.width;
@@ -64,7 +64,7 @@ MultiCameraDistance::MultiCameraDistance(const std::vector<cv::Mat>& imgs_, cons
 	K = cam_matrix;
 	invert(K, Kinv); //get inverse of camera matrix
 
-	distortion_coeff = distortion_vector;
+	distortion_vector.copyTo(distortion_coeff);
 	distortion_coeff.convertTo(distcoeff_32f,CV_32FC1);
 	K.convertTo(K_32f,CV_32FC1);
 }
