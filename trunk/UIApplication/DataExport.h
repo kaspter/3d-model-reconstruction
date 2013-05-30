@@ -8,13 +8,28 @@
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-class SceneMesh {
+#include <sfm/MultiCameraPnP.h>
+
+class SceneData {
+public:
+	typedef struct tagCamera {
+		std::string _name;
+		cv::Matx33d	_internal;
+		cv::Matx34d	_external;
+	} Camera;
+
+private:
 	pcl::PolygonMesh _mesh;
 
 public:
-	static void export(const std::string &path);
+	static SceneData Export(const MultiCameraPnP &sfm, const std::string &path);
+
+	void save(const std::vector<Camera> &cameras, const std::string &path);
+	void save(const MultiCameraPnP &sfm, const std::string &path);
 
 	void build(const std::vector<cv::Point3d> &cloudPoints, bool SORFilter = true);
-	pcl::PolygonMesh  get() const	{ return _mesh; }
-	pcl::PolygonMesh &get()			{ return _mesh; }
+	void build(const MultiCameraPnP &sfm, bool SORFilter = true) { build(sfm.getPointCloud(), SORFilter); };
+
+	pcl::PolygonMesh  get() const { return _mesh; }
+	pcl::PolygonMesh& get()		  { return _mesh; }
 };

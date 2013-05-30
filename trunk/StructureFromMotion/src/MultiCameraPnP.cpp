@@ -388,10 +388,8 @@ void MultiCameraPnP::AdjustCurrentBundle() {
 	pointcloud_beforeBA = pcloud;
 	GetRGBForPointCloud(pointcloud_beforeBA,pointCloudRGB_beforeBA);
 	
-	cv::Mat _cam_matrix = K;
 	BundleAdjuster BA;
-	BA.adjustBundle(pcloud,_cam_matrix,imgpts,Pmats);
-	K = cam_matrix;
+	BA.adjustBundle(pcloud,K,imgpts,Pmats);
 	Kinv = K.inv();
 	
 	cout << "use new K " << endl << K << endl;

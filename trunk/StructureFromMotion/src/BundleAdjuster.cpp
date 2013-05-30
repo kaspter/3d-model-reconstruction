@@ -255,8 +255,6 @@ void BundleAdjuster::adjustBundle(vector<CloudPoint>& pointcloud,
 			Pmats[i] = P;
 		}
 		
-
-		//TODO: extract camera intrinsics
 		cam_matrix.at<double>(0,0) = Knew[0][0];
 		cam_matrix.at<double>(0,1) = Knew[0][1];
 		cam_matrix.at<double>(0,2) = Knew[0][2];
