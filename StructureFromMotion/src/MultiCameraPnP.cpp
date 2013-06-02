@@ -183,7 +183,7 @@ bool MultiCameraPnP::FindPoseEstimation(
 	}
 
 	vector<int> inliers;
-	if(!use_gpu) {
+	if(!use_gpu()) {
 		//use CPU
 		double minVal,maxVal; cv::minMaxIdx(imgPoints,&minVal,&maxVal);
 		CV_PROFILE("solvePnPRansac",cv::solvePnPRansac(ppcloud, imgPoints, K, distortion_coeff, rvec, t, true, 1000, 0.006 * maxVal, 0.25 * (double)(imgPoints.size()), inliers, CV_EPNP);)
@@ -429,7 +429,7 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 	GetBaseLineTriangulation();
 	AdjustCurrentBundle();
 	update(); //notify listeners
-	
+
 	cv::Matx34d P1 = Pmats[m_second_view];
 	cv::Mat_<double> t = (cv::Mat_<double>(1,3) << P1(0,3), P1(1,3), P1(2,3));
 	cv::Mat_<double> R = (cv::Mat_<double>(3,3) << P1(0,0), P1(0,1), P1(0,2), 
@@ -475,9 +475,9 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 		if(!FindPoseEstimation(i,rvec,t,R,max_3d,max_2d)) continue;
 
 		//store estimated pose	
-		Pmats[i] = cv::Matx34d	(R(0,0),R(0,1),R(0,2),t(0),
-								 R(1,0),R(1,1),R(1,2),t(1),
-								 R(2,0),R(2,1),R(2,2),t(2));
+		Pmats[i] = cv::Matx34d( R(0,0), R(0,1), R(0,2), t(0),
+								R(1,0), R(1,1), R(1,2), t(1),
+								R(2,0), R(2,1), R(2,2), t(2));
 		
 		// start triangulating with previous GOOD views
 		for (set<int>::iterator done_view = good_views.begin(); done_view != good_views.end(); ++done_view) 

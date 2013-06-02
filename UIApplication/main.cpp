@@ -26,9 +26,10 @@ int main(int argc, char** argv)
 {
 	int retResult = 0;
 
-	std::string	images_dir, calib_file_path;
-	unsigned	features_flag	 = 0x00;
-	double		downscale_factor = 0.0;
+	std::string	images_dir, calib_file_path, out_file_path;
+	double downscale_factor = 0.0;
+
+	MultiCameraDistance::FEATURE_MATCHER_MODE features_flag	 = MultiCameraDistance::FEATURE_MATCHER_UNKNOWN;
 
 	std::vector<cv::Mat>	 images;
 	std::vector<std::string> image_names;
@@ -37,16 +38,15 @@ int main(int argc, char** argv)
 	{ // Parameters parser block
 
 		// TODO: extend parameter list by exported model file path/name
-		cv::CommandLineParser arguments(argc, argv, "{1|||images dir}{2||out_camera_data.xml|calibration file}{f|features|of|features type}{ds|downscale|1.0|downscale factor}{?|help|false|show help}");
+		cv::CommandLineParser arguments(argc, argv, "{1|||model output *.dae file}{-d|directory||images dir}{-c|calibration|out_camera_data.xml|calibration file}{f|features|of|features type}{ds|downscale|1.0|downscale factor}{?|help|false|show help}");
 
 		bool showHelp;
 		if (!(showHelp = arguments.get<bool>("help")))
 		{
-			if ((images_dir = arguments.get<std::string>("1")).empty()) 
+			if ((images_dir = arguments.get<std::string>("directory")).empty()) 
 				images_dir = boost::filesystem::current_path().string();
 
-			features_flag = -1;
-			std::string features	= arguments.get<std::string>("features");
+			std::string features = arguments.get<std::string>("features");
 			std::transform(features.begin(), features.end(), features.begin(), std::tolower);
 			if (features != "of" && features != "optical_flow") 
 			{
@@ -57,13 +57,13 @@ int main(int argc, char** argv)
 					if (!rich_behavior.empty())
 					{
 						rich_behavior.erase(rich_behavior.begin());
-						if (rich_behavior == "cache") features_flag = 
-							MultiCameraPnP::FEATURE_MATCHER_RICH | MultiCameraPnP::FEATURE_MATCHER_CACHED;
+						if (rich_behavior == "cache") features_flag = static_cast<MultiCameraDistance::FEATURE_MATCHER_MODE>(
+							MultiCameraDistance::FEATURE_MATCHER_RICH | MultiCameraDistance::FEATURE_MATCHER_CACHED);
 					} 
-					else features_flag = MultiCameraPnP::FEATURE_MATCHER_RICH;
+					else features_flag = MultiCameraDistance::FEATURE_MATCHER_RICH;
 				}
 			}
-			else features_flag = MultiCameraPnP::FEATURE_MATCHER_FAST;
+			else features_flag = MultiCameraDistance::FEATURE_MATCHER_FAST;
 
 			showHelp |= !boost::filesystem::exists(images_dir) || features_flag == -1;
 		}
@@ -76,12 +76,17 @@ int main(int argc, char** argv)
 			goto EXIT;
 		}
 
-		calib_file_path  = images_dir.append("/") + arguments.get<std::string>("2");
+		calib_file_path  = images_dir.append("/") + arguments.get<std::string>("calibration");
+		out_file_path	 = arguments.get<std::string>("1");
 		downscale_factor = arguments.get<double>("downscale");
 	}
 
 	{ // Main program block
-		open_imgs_dir(images_dir, images, image_names, downscale_factor);
+		boost::scoped_ptr<std::vector<cv::Mat>> cache_ptr;
+		bool precached = !!(features_flag & MultiCameraDistance::FEATURE_MATCHER_CACHED);
+		if (precached) cache_ptr.reset(new std::vector<cv::Mat>);
+
+		open_imgs_dir(images_dir, images, cache_ptr.get(), image_names, downscale_factor);
 		if(images.empty()) 
 		{ 
 			std::cerr << "Can't get image files at: \'" << images_dir << "\'" << endl;
@@ -91,19 +96,28 @@ int main(int argc, char** argv)
 
 		cv::Mat intrinsics, distortion;
 		load_calibration_data(calib_file_path, intrinsics, distortion);
+		if(intrinsics.empty() || distortion.empty()) 
+		{ 
+			std::cerr << "Can't get calibration data from: \'" << calib_file_path << "\'" << endl;
+			retResult = -1;
+			goto EXIT;
+		}
 
-		boost::scoped_ptr<SceneData> sceneMeshBuilder(new SceneData);
-		boost::scoped_ptr<VisualizerListener> visualizerListener(new VisualizerListener(sceneMeshBuilder.get()));
+		boost::scoped_ptr<SceneData>				sceneMeshBuilder	(new SceneData);
+		boost::scoped_ptr<VisualizerListener>		visualizerListener	(new VisualizerListener(sceneMeshBuilder.get()));
+		boost::scoped_ptr<MultiCameraPnP>			sfm					(new MultiCameraPnP(features_flag, images, image_names, intrinsics, distortion));
+
 		visualizerListener->RunVisualizationThread();
+		
+						sfm->attach(visualizerListener.get());		
+		if (precached)	sfm->LoadFeaturesCache(*cache_ptr.get());
+						sfm->RecoverDepthFromImages();
+		if (precached)	sfm->ObtainFeaturesCache(*cache_ptr.get());
 
-		boost::scoped_ptr<MultiCameraPnP> sfm(new MultiCameraPnP(images, image_names, intrinsics, distortion));
-		sfm->use_rich_features = features_flag;
-		sfm->attach(visualizerListener.get());
-		sfm->RecoverDepthFromImages();
-
-		sceneMeshBuilder->save(*sfm, "test.dae");
+		if (!out_file_path.empty()) sceneMeshBuilder->save(*sfm, out_file_path);
 
 		visualizerListener->WaitForVisualizationThread();
+
 		goto QUIT;
 	}
 

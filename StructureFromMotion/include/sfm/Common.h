@@ -18,10 +18,11 @@
 #include <list>
 #include <set>
 
-struct CloudPoint {
-	cv::Point3d pt;
-	std::vector<int> imgpt_for_img;
-	double reprojection_error;
+struct CloudPoint 
+{
+	cv::Point3d			pt;
+	std::vector<int>	imgpt_for_img;
+	double				reprojection_error;
 };
 
 std::vector<cv::DMatch> FlipMatches(const std::vector<cv::DMatch>& matches);
@@ -57,7 +58,7 @@ void drawArrows(cv::Mat& frame, const std::vector<cv::Point2f>& prevPts, const s
 #endif
 
 void load_calibration_data(const std::string &file_name, cv::Mat &intrinsics_common, cv::Mat &distortion_vector);
-void open_imgs_dir(const std::string &dir_name, std::vector<cv::Mat>& images, std::vector<std::string>& images_names, double downscale_factor);
+void open_imgs_dir(const std::string &dir_name, std::vector<cv::Mat> &images, std::vector<cv::Mat> *features_cache, std::vector<std::string> &images_names, double downscale_factor);
 void imshow_250x250(const std::string& name_, const cv::Mat& patch);
 
 inline bool operator == (const cv::Size &a, const cv::Size &b) { return a.area() == b.area(); }
@@ -66,4 +67,22 @@ inline bool operator <  (const cv::Size &a, const cv::Size &b) { return a.area()
 inline bool operator >  (const cv::Size &a, const cv::Size &b) { return a.area() >  b.area(); }
 inline bool operator <= (const cv::Size &a, const cv::Size &b) { return a.area() <= b.area(); }
 inline bool operator >= (const cv::Size &a, const cv::Size &b) { return a.area() >= b.area(); }
+
+class IDataProvider {
+protected:
+	std::vector<bool> _cache_status;
+
+public:
+	std::vector<std::string> image_file_names;
+
+	std::vector<cv::Mat> images_orig;
+	std::vector<cv::Mat> images_gray;
+
+	std::vector<std::vector<cv::KeyPoint>> image_features;
+
+	cv::Mat	camera_internal_params, camera_distortion_params;
+
+	virtual bool Read(const std::string &images_dir, const std::string &calib_file_name, double downscale_factor) = 0;
+	virtual void Dump(const std::string &features_dir) = 0;
+};
 

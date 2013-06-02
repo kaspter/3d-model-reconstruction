@@ -12,13 +12,12 @@
 #include "AbstractFeatureMatcher.h"
 
 class OFFeatureMatcher : public AbstractFeatureMatcher {
-	std::vector<cv::Mat>& imgs; 
-	std::vector<std::vector<cv::KeyPoint> >& imgpts;
+
+	const std::vector<cv::Mat>				&_imgs; 
+	std::vector<std::vector<cv::KeyPoint>>	&_imgpts;
 	
 public:
-	OFFeatureMatcher(bool _use_gpu,
-					std::vector<cv::Mat>& imgs_, 
-					 std::vector<std::vector<cv::KeyPoint> >& imgpts_);
+	OFFeatureMatcher(const std::vector<cv::Mat> &imgs, std::vector<std::vector<cv::KeyPoint>> &imgpts, bool precached = false, bool use_gpu = false);
 	void MatchFeatures(int idx_i, int idx_j, std::vector<cv::DMatch> *matches = NULL);
-	std::vector<cv::KeyPoint> GetImagePoints(int idx) { return imgpts[idx]; }
+	std::vector<cv::KeyPoint> GetImagePoints(int idx) { return _imgpts[idx]; }
 };

@@ -277,7 +277,9 @@ void VisualizerListener::finish(const MultiCameraPnP &whos_updated)
 	if (mesh_builder != NULL)
 	{
 		mesh_builder->build(whos_updated.getPointCloud());
-		LoadSceneMesh(mesh_builder->get());
+
+		std::vector<pcl::PolygonMesh> &mesh_segments = mesh_builder->get();
+		for (std::vector<pcl::PolygonMesh>::iterator it = mesh_segments.begin(), it_end = mesh_segments.end(); it != it_end; ++it) LoadSceneMesh(*it);
 	}
 }
 

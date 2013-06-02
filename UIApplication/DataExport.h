@@ -19,7 +19,7 @@ public:
 	} Camera;
 
 private:
-	pcl::PolygonMesh _mesh;
+	std::vector<pcl::PolygonMesh> _mesh;
 
 public:
 	static SceneData Export(const MultiCameraPnP &sfm, const std::string &path);
@@ -30,6 +30,11 @@ public:
 	void build(const std::vector<cv::Point3d> &cloudPoints, bool SORFilter = true);
 	void build(const MultiCameraPnP &sfm, bool SORFilter = true) { build(sfm.getPointCloud(), SORFilter); };
 
-	pcl::PolygonMesh  get() const { return _mesh; }
-	pcl::PolygonMesh& get()		  { return _mesh; }
+	size_t meshCount() const { return _mesh.size(); }
+
+	std::vector<pcl::PolygonMesh>  get() const { return _mesh; }
+	std::vector<pcl::PolygonMesh> &get()	   { return _mesh; }
+
+	pcl::PolygonMesh  getSegment(size_t at) const { return at < _mesh.size() ? _mesh[at] : pcl::PolygonMesh(); }
+	pcl::PolygonMesh &getSegment(size_t at)	      { return _mesh.at(at); }
 };

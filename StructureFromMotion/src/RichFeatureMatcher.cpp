@@ -30,13 +30,13 @@ using namespace std;
 using namespace cv;
 
 //#define LN_2 0.69314718055994530941723212145818
-RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, std::vector<std::vector<cv::KeyPoint> >& imgpts_) 
-	: imgpts(imgpts_), imgs(imgs_)
+RichFeatureMatcher::RichFeatureMatcher(const std::vector<cv::Mat>& imgs, std::vector<std::vector<cv::KeyPoint> >& imgpts, bool precached) 
+	: _imgpts(imgpts), _imgs(imgs)
 {
-	assert(imgpts_.size() == imgs_.size() && imgs_.size() > 0);
+	assert(imgpts.size() == imgs.size());
 
 	imp::initModule();
-	detector = FeatureDetector::create("PyramidSUSAN");
+	cv::Ptr<cv::FeatureDetector> detector = FeatureDetector::create("PyramidSUSAN");
 	imp::PyramidAdapterHack* pyramid = static_cast<imp::PyramidAdapterHack*>(
 			dynamic_cast<PyramidAdaptedFeatureDetector*>(detector.obj));
 
@@ -49,27 +49,29 @@ RichFeatureMatcher::RichFeatureMatcher(std::vector<cv::Mat>& imgs_, std::vector<
 	susan->set("prefilter", true);
 	susan->set("subpixel",	true);
 
-	for (unsigned i = 0, imax = imgs.size(); i < imax; ++i)
+	for (unsigned i = 0, imax = _imgs.size(); i < imax; ++i)
 	{
-		double levelCoeff = std::log(std::min(imgs[i].cols, imgs[i].rows) / (2.0 * susan->get<int>("radius") + 1));
+		if (precached && !_imgpts[i].empty()) continue;
+
+		double levelCoeff = std::log(std::min(_imgs[i].cols, _imgs[i].rows) / (2.0 * susan->get<int>("radius") + 1));
 		pyramid->maxLevel = std::max(static_cast<int>(levelCoeff), 2);
-		pyramid->detect(imgs[i], imgpts[i]);
+		pyramid->detect(_imgs[i], _imgpts[i]);
 		susan->reset_pass_counter();
 	}
 
 	initModule_nonfree();
-	extractor = DescriptorExtractor::create("SIFT");
-	extractor->compute(imgs, imgpts, descriptors);
+	cv::Ptr<cv::DescriptorExtractor> extractor = DescriptorExtractor::create("SIFT");
+	extractor->compute(_imgs, _imgpts, descriptors);
 }	
 
 void RichFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch> *matches) {
     
 #ifdef __SFM__DEBUG__
-    const Mat& img_1 = imgs[idx_i];
-    const Mat& img_2 = imgs[idx_j];
+    const Mat& img_1 = _imgs[idx_i];
+    const Mat& img_2 = _imgs[idx_j];
 #endif
-    const vector<KeyPoint>& imgpts1 = imgpts[idx_i];
-    const vector<KeyPoint>& imgpts2 = imgpts[idx_j];
+    const vector<KeyPoint>& imgpts1 = _imgpts[idx_i];
+    const vector<KeyPoint>& imgpts2 = _imgpts[idx_j];
     const Mat& descriptors_1 = descriptors[idx_i];
     const Mat& descriptors_2 = descriptors[idx_j];
     

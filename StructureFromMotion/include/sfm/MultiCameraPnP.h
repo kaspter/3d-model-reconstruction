@@ -25,12 +25,6 @@ public:
 		virtual void finish(const MultiCameraPnP &) = 0;
 	};
 
-	enum FEATURE_MATCHER_TYPE : unsigned {
-		FEATURE_MATCHER_FAST	= 0x00,
-		FEATURE_MATCHER_RICH	= 0x01,
-		FEATURE_MATCHER_CACHED	= 0x02
-	};
-
 private:
 
 	std::vector<CloudPoint> pointcloud_beforeBA;
@@ -60,8 +54,8 @@ private:
 	}
 
 public:
-	MultiCameraPnP(const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const cv::Mat &intrinsics, const cv::Mat distortion_vector)
-		: MultiCameraDistance(imgs_,imgs_names_,intrinsics, distortion_vector) { /* empty */ }
+	MultiCameraPnP(FEATURE_MATCHER_MODE mode, const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const cv::Mat &intrinsics, const cv::Mat distortion_vector)
+		: MultiCameraDistance(mode, imgs_,imgs_names_,intrinsics, distortion_vector) { /* empty */ }
 
 	virtual void RecoverDepthFromImages();
 
