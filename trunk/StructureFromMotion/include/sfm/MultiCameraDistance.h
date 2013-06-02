@@ -24,7 +24,7 @@
 class MultiCameraDistance  : public IDistance {	
 protected:
 	std::vector<std::vector<cv::KeyPoint>> imgpts;
-	std::vector<std::vector<cv::KeyPoint>> fullpts;
+	//std::vector<std::vector<cv::KeyPoint>> fullpts;
 	std::vector<std::vector<cv::KeyPoint>> imgpts_good;
 
 	std::map<std::pair<int,int> ,std::vector<cv::DMatch>> matches_matrix;
@@ -45,21 +45,31 @@ protected:
 	std::vector<CloudPoint>			pcloud;
 	mutable std::vector<cv::Vec3b>	pointCloudRGB;
 	std::vector<cv::KeyPoint>		correspImg1Pt;
-	
-	cv::Ptr<IFeatureMatcher>	feature_matcher;
-	
+		
 	mutable bool features_matched;
 
 	void GetRGBForPointCloud(const std::vector<struct CloudPoint>& pcloud, std::vector<cv::Vec3b>& RGBforCloud) const;
 	std::vector<cv::Vec3b>& _pointCloudRGBInit() const { if (pointCloudRGB.empty()) GetRGBForPointCloud(pcloud,pointCloudRGB); return pointCloudRGB; }
 
+	bool use_gpu() { return !!(matcher_mode & FEATURE_MATCHER_USE_GPU); };
+
 public:
-	unsigned use_rich_features;
-	unsigned use_gpu;
+
+	enum FEATURE_MATCHER_MODE : unsigned {
+		FEATURE_MATCHER_UNKNOWN = 0x00,
+		FEATURE_MATCHER_FAST	= 0x02,
+		FEATURE_MATCHER_RICH	= 0x04,
+		FEATURE_MATCHER_CACHED	= 0x01,
+		FEATURE_MATCHER_USE_GPU	= 0x10
+	} matcher_mode;
 	
-	MultiCameraDistance(const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const cv::Mat &intrinsics, const cv::Mat &distortion_vector);	
+	//MultiCameraDistance(IDataProvider &input_data)
+	MultiCameraDistance(FEATURE_MATCHER_MODE mode, const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const cv::Mat &intrinsics, const cv::Mat &distortion_vector);	
 	
-	virtual void OnlyMatchFeatures(int strategy = STRATEGY_USE_FEATURE_MATCH);	
+	virtual void OnlyMatchFeatures();	
+
+	void LoadFeaturesCache(const std::vector<cv::Mat> &features_cache);
+	void ObtainFeaturesCache(std::vector<cv::Mat> &features_cache);
 
 	const cv::Mat& get_im_orig(int frame_num)			const { return imgs_orig[frame_num]; }
 	const std::vector<cv::KeyPoint>& getcorrespImg1Pt()	const { return correspImg1Pt; }
@@ -67,7 +77,7 @@ public:
 	std::vector<cv::Point3d>	getPointCloud()		const { return CloudPointsToPoints(pcloud); }
 	std::vector<cv::Vec3b>		getPointCloudRGB()	const { return _pointCloudRGBInit(); } 
 	
-	cv::Matx33d	getCameraMatrix() const { return cv::Mat(K); }
+	cv::Matx33d	getCameraMatrix() const { return cam_matrix; }
 	std::vector<std::pair<int, cv::Matx34d>> getCameras(bool intrinsic = false)	const	
 	{ 
 		std::vector<std::pair<int, cv::Matx34d>> v; 

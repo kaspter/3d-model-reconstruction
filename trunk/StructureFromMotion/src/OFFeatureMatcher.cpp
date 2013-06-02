@@ -27,32 +27,34 @@ using namespace std;
 using namespace cv;
 
 //c'tor
-OFFeatureMatcher::OFFeatureMatcher(
-	bool _use_gpu,
-	std::vector<cv::Mat>& imgs_, 
-	std::vector<std::vector<cv::KeyPoint> >& imgpts_) :
-AbstractFeatureMatcher(_use_gpu),imgpts(imgpts_), imgs(imgs_)
+OFFeatureMatcher::OFFeatureMatcher(const std::vector<cv::Mat>& imgs, std::vector<std::vector<cv::KeyPoint> >& imgpts, bool precached, bool use_gpu)
+	: AbstractFeatureMatcher(use_gpu), _imgpts(imgpts), _imgs(imgs)
 {
-	//detect keypoints for all images
-	FastFeatureDetector ffd;
-//	DenseFeatureDetector ffd;
-	ffd.detect(imgs, imgpts);
+	assert(imgpts.size() == imgs.size());
+
+	FastFeatureDetector ffd; 
+
+	for (unsigned i = 0, imax = _imgs.size(); i < imax; ++i)
+	{
+		if (precached && !_imgpts[i].empty()) continue;
+		ffd.detect(_imgs[i], _imgpts[i]);
+	}
 }
 
 void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* matches) {	
 	vector<Point2f> i_pts; 
-	KeyPointsToPoints(imgpts[idx_i],i_pts);
+	KeyPointsToPoints(_imgpts[idx_i],i_pts);
 	
 	vector<Point2f> j_pts(i_pts.size());
 	
 	// making sure images are grayscale
 	Mat prevgray,gray;
-	if (imgs[idx_i].channels() == 3) {
-		cvtColor(imgs[idx_i],prevgray,CV_RGB2GRAY);
-		cvtColor(imgs[idx_j],gray,CV_RGB2GRAY);
+	if (_imgs[idx_i].channels() == 3) {
+		cvtColor(_imgs[idx_i],prevgray,CV_RGB2GRAY);
+		cvtColor(_imgs[idx_j],gray,CV_RGB2GRAY);
 	} else {
-		prevgray = imgs[idx_i];
-		gray = imgs[idx_j];
+		prevgray	= _imgs[idx_i];
+		gray		= _imgs[idx_j];
 	}
 
 	vector<uchar> vstatus(i_pts.size()); vector<float> verror(i_pts.size());
@@ -95,7 +97,7 @@ void OFFeatureMatcher::MatchFeatures(int idx_i, int idx_j, vector<DMatch>* match
 	Mat to_find_flat = Mat(to_find).reshape(1,to_find.size());
 	
 	vector<Point2f> j_pts_to_find;
-	KeyPointsToPoints(imgpts[idx_j],j_pts_to_find);
+	KeyPointsToPoints(_imgpts[idx_j],j_pts_to_find);
 	Mat j_pts_flat = Mat(j_pts_to_find).reshape(1,j_pts_to_find.size());
 
 	vector<vector<DMatch> > knn_matches;

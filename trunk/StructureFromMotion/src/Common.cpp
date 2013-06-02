@@ -126,8 +126,8 @@ void load_calibration_data(const std::string &file_name, cv::Mat &intrinsics_com
 
 	cv::FileStorage fs;
 	if(fs.open(file_name, cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8")) {
-		fs["camera_distortion"]>>distortion_vector;
-		fs["camera_intrinsics"]>>intrinsics_common;
+		fs["camera_distortion"] >> distortion_vector;
+		fs["camera_intrinsics"] >> intrinsics_common;
 		fs.release();
 	} else {
 		//no calibration matrix file - mockup calibration	
@@ -138,10 +138,11 @@ void load_calibration_data(const std::string &file_name, cv::Mat &intrinsics_com
 	}
 }
 
-void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::vector<std::string>& images_names, double downscale_factor) {
-	
+void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::vector<cv::Mat> *features_cache, std::vector<std::string>& images_names, double downscale_factor) 
+{
 	images.clear();
 	images_names.clear();
+
 	if (dir_name.empty()) return;
 
 	string _dir_name = dir_name;
@@ -211,14 +212,31 @@ void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::ve
 #endif
 	
 	for (unsigned int i=0; i<files_.size(); i++) {
-		if (files_[i][0] == '.' || !(hasEndingLower(files_[i],"jpg")||hasEndingLower(files_[i],"png"))) {
-			continue;
-		}
+		if (files_[i][0] == '.' || !(hasEndingLower(files_[i],"jpg")||hasEndingLower(files_[i],"png"))) continue;
+
 		cv::Mat m_ = cv::imread(string(_dir_name).append("/").append(files_[i]));
 		if(downscale_factor != 1.0)
 			cv::resize(m_,m_,Size(),downscale_factor,downscale_factor);
 		images_names.push_back(files_[i]);
 		images.push_back(m_);
+	}
+
+	if (features_cache != NULL)
+	{
+		cv::FileStorage fs;
+
+		features_cache->clear(); features_cache->resize(images.size());
+		for (size_t i = 0, imax = images.size(); i < imax; ++i)
+		{
+			std::string file_name = images_names[i]; file_name = file_name.substr(0, file_name.find_last_of('.')) + "xml";
+			fs.open(string(_dir_name).append("/").append(file_name), cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8");
+			if (fs.isOpened())
+			{
+				// TODO: read features cache
+				fs["features_cache"] >> features_cache[i];
+				fs.release();
+			}
+		}
 	}
 		
 
