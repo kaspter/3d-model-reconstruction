@@ -18,6 +18,7 @@ using namespace cv;
 
 #undef __SFM__DEBUG__
 
+#include <opencv2/imgproc/imgproc.hpp>
 
 /**
  From "Triangulation", Hartley, R.I. and Sturm, P., Computer vision and image understanding, 1997

@@ -10,46 +10,52 @@
     <Filter Include="Header Files\Feature matching">
       <UniqueIdentifier>{1292b45c-859e-4b0f-b739-70161af4f7d0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Structure extraction">
-      <UniqueIdentifier>{c340968d-0881-47ea-ade1-ced7386a22d1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\Structure extraction\low-level math">
-      <UniqueIdentifier>{5b4227f9-5883-4ba0-a5e8-0b2f18e20823}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Feature matching">
       <UniqueIdentifier>{2d160336-bfca-4481-bdbc-8aebfa9b68a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Structure extraction">
+    <Filter Include="Header Files\Point cloud extraction">
+      <UniqueIdentifier>{c340968d-0881-47ea-ade1-ced7386a22d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Point cloud extraction\low-level math">
+      <UniqueIdentifier>{5b4227f9-5883-4ba0-a5e8-0b2f18e20823}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Point cloud extraction">
       <UniqueIdentifier>{bb79f07b-8ae7-425c-a7b6-494b083248ee}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Structure extraction\low-level math">
+    <Filter Include="Source Files\Point cloud extraction\low-level math">
       <UniqueIdentifier>{de5f96d8-f74a-44bd-b349-b82fe05d44f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Mesh estimation">
+      <UniqueIdentifier>{dc1b1df3-4b2c-4294-bdf5-d14dcf7d03ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Mesh estimation">
+      <UniqueIdentifier>{9d86eb3d-9ff7-4346-98ad-287069d93193}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\sfm\MultiCameraPnP.h">
-      <Filter>Header Files\Structure extraction</Filter>
+      <Filter>Header Files\Point cloud extraction</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\BundleAdjuster.h">
-      <Filter>Header Files\Structure extraction</Filter>
+      <Filter>Header Files\Point cloud extraction</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\Distance.h">
-      <Filter>Header Files\Structure extraction</Filter>
+      <Filter>Header Files\Point cloud extraction</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\IDistance.h">
-      <Filter>Header Files\Structure extraction</Filter>
+      <Filter>Header Files\Point cloud extraction</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\MultiCameraDistance.h">
-      <Filter>Header Files\Structure extraction</Filter>
+      <Filter>Header Files\Point cloud extraction</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\FindCameraMatrices.h">
-      <Filter>Header Files\Structure extraction\low-level math</Filter>
+      <Filter>Header Files\Point cloud extraction\low-level math</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\Triangulation.h">
-      <Filter>Header Files\Structure extraction\low-level math</Filter>
+      <Filter>Header Files\Point cloud extraction\low-level math</Filter>
     </ClInclude>
     <ClInclude Include="include\sfm\AbstractFeatureMatcher.h">
       <Filter>Header Files\Feature matching</Filter>
@@ -66,6 +72,9 @@
     <ClInclude Include="include\sfm\IFeatureMatcher.h">
       <Filter>Header Files\Feature matching</Filter>
     </ClInclude>
+    <ClInclude Include="include\sfm\MeshBuilder.h">
+      <Filter>Header Files\Mesh estimation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Common.cpp">
@@ -81,25 +90,28 @@
       <Filter>Source Files\Feature matching</Filter>
     </ClCompile>
     <ClCompile Include="src\Triangulation.cpp">
-      <Filter>Source Files\Structure extraction\low-level math</Filter>
+      <Filter>Source Files\Point cloud extraction\low-level math</Filter>
     </ClCompile>
     <ClCompile Include="src\FindCameraMatrices.cpp">
-      <Filter>Source Files\Structure extraction\low-level math</Filter>
+      <Filter>Source Files\Point cloud extraction\low-level math</Filter>
     </ClCompile>
     <ClCompile Include="src\BundleAdjuster.cpp">
-      <Filter>Source Files\Structure extraction</Filter>
+      <Filter>Source Files\Point cloud extraction</Filter>
     </ClCompile>
     <ClCompile Include="src\AbstractFeatureMatcher.cpp">
-      <Filter>Source Files\Structure extraction</Filter>
+      <Filter>Source Files\Point cloud extraction</Filter>
     </ClCompile>
     <ClCompile Include="src\Distance.cpp">
-      <Filter>Source Files\Structure extraction</Filter>
+      <Filter>Source Files\Point cloud extraction</Filter>
     </ClCompile>
     <ClCompile Include="src\MultiCameraDistance.cpp">
-      <Filter>Source Files\Structure extraction</Filter>
+      <Filter>Source Files\Point cloud extraction</Filter>
     </ClCompile>
     <ClCompile Include="src\MultiCameraPnP.cpp">
-      <Filter>Source Files\Structure extraction</Filter>
+      <Filter>Source Files\Point cloud extraction</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MeshBuilder.cpp">
+      <Filter>Source Files\Mesh estimation</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

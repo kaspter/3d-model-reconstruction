@@ -112,10 +112,20 @@ bool hasEndingLower (string const &fullString_, string const &_ending)
 	return hasEnding(fullstring,ending);
 }
 
-void imshow_250x250(const string& name_, const Mat& patch) {
-	Mat bigpatch; cv::resize(patch,bigpatch,Size(250,250));
-	imshow(name_,bigpatch);
+inline std::string changeFileExtension(const std::string &file_path, const std::string &new_ext)
+{
+	assert(!(new_ext.empty() || new_ext.front() == '.'));
+	return file_path + '.' + new_ext;
+	//size_t slash_pos = file_path.find_last_of("/\\");
+	//return file_path.substr(0, std::min(
+	//		file_path.length(),	file_path.find_last_of('.', slash_pos == std::string::npos ? 0 : slash_pos)
+	//	)) + '.' + new_ext;
 }
+
+//void imshow_250x250(const string& name_, const Mat& patch) {
+//	Mat bigpatch; cv::resize(patch,bigpatch,Size(250,250));
+//	imshow(name_,bigpatch);
+//}
 
 void load_calibration_data(const std::string &file_name, cv::Mat &intrinsics_common, cv::Mat &distortion_vector)
 {
@@ -138,12 +148,17 @@ void load_calibration_data(const std::string &file_name, cv::Mat &intrinsics_com
 	}
 }
 
-void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::vector<cv::Mat> *features_cache, std::vector<std::string>& images_names, double downscale_factor) 
+#include <boost/filesystem.hpp>
+#include <boost/crc.hpp>
+
+#define CACHE_FILE_EXT "xml"
+
+bool load_images_data(const string &dir_name, std::vector<cv::Mat>& images, std::vector<std::string>& images_names, std::vector<std::vector<cv::KeyPoint>> *features_cache, double downscale_factor) 
 {
 	images.clear();
 	images_names.clear();
 
-	if (dir_name.empty()) return;
+	if (dir_name.empty()) return false;
 
 	string _dir_name = dir_name;
 	vector<string> files_;
@@ -164,10 +179,7 @@ void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::ve
 		
 		(void) closedir (dp);
 	}
-	else {
-		cerr << ("Couldn't open the directory");
-		return;
-	}
+	else return false;
 
 #else
 //open a directory the WIN32 way
@@ -195,16 +207,12 @@ void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::ve
 			}
 		}
 		while (FindNextFile(hFind, &fdata) != 0);
-	} else {
-		cerr << "can't open directory\n";
-		return;
-	}
+	} else return false;
 
 	if (GetLastError() != ERROR_NO_MORE_FILES)
 	{
 		FindClose(hFind);
-		cerr << "some other error with opening directory: " << GetLastError() << endl;
-		return;
+		return false;
 	}
 
 	FindClose(hFind);
@@ -215,31 +223,72 @@ void open_imgs_dir(const string &dir_name, std::vector<cv::Mat>& images, std::ve
 		if (files_[i][0] == '.' || !(hasEndingLower(files_[i],"jpg")||hasEndingLower(files_[i],"png"))) continue;
 
 		cv::Mat m_ = cv::imread(string(_dir_name).append("/").append(files_[i]));
-		if(downscale_factor != 1.0)
-			cv::resize(m_,m_,Size(),downscale_factor,downscale_factor);
-		images_names.push_back(files_[i]);
-		images.push_back(m_);
+		if (!m_.empty())
+		{
+			if(downscale_factor != 1.0)	cv::resize(m_,m_,Size(),downscale_factor,downscale_factor);
+			images_names.push_back(files_[i]);
+			images.push_back(m_);
+		}
 	}
 
 	if (features_cache != NULL)
 	{
-		cv::FileStorage fs;
+		cv::FileStorage		fs;
+		boost::crc_32_type	crc;
 
 		features_cache->clear(); features_cache->resize(images.size());
 		for (size_t i = 0, imax = images.size(); i < imax; ++i)
 		{
-			std::string file_name = images_names[i]; file_name = file_name.substr(0, file_name.find_last_of('.')) + "xml";
-			fs.open(string(_dir_name).append("/").append(file_name), cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8");
-			if (fs.isOpened())
-			{
-				// TODO: read features cache
-				fs["features_cache"] >> features_cache[i];
-				fs.release();
-			}
+			std::string file_name = _dir_name + '/' + images_names[i];
+			fs.open(changeFileExtension(file_name, CACHE_FILE_EXT), cv::FileStorage::READ | cv::FileStorage::FORMAT_XML, "utf8");
+			if (!fs.isOpened()) continue;
+
+			int		chk_sum;	fs["image_crc"]		>> chk_sum;
+			double	dwn_scale;	fs["image_scale"]	>> dwn_scale;
+
+			cv::Mat m_ = images[i];
+			crc.reset(); crc.process_block(m_.datastart, m_.dataend); 
+
+			if (unsigned(chk_sum) == crc.checksum() && dwn_scale == downscale_factor)
+				cv::read(fs["features_cache"], (*features_cache)[i]);
+
+			fs.release();
 		}
 	}
 		
+	return !images.empty();
+}
 
+bool save_features_cache(const std::string &dir_name, const std::vector<std::string>& image_names, const std::vector<cv::Mat> &images, const std::vector<std::vector<cv::KeyPoint>> &features_cache, double downscale_factor)
+{
+	assert(image_names.size() == images.size() && images.size() == features_cache.size());
+
+	std::string _dir_name = dir_name;
+	if(_dir_name.back() == '\\' || _dir_name.back() == '/') _dir_name.pop_back();
+
+	if (!boost::filesystem::exists(_dir_name)) return false;
+
+	cv::FileStorage fs;
+
+	boost::crc_32_type crc;
+	for (int i = 0, imax = images.size(); i < imax; ++i)
+	{
+		std::string file_path = _dir_name + '/' + image_names[i];
+		if (!boost::filesystem::exists(file_path)) return false;
+
+		fs.open(changeFileExtension(file_path, CACHE_FILE_EXT), cv::FileStorage::WRITE | cv::FileStorage::FORMAT_XML, "utf8");
+		if (!fs.isOpened() || features_cache[i].empty()) continue;
+
+		cv::Mat m_ = images[i];
+		crc.reset(); crc.process_block(m_.datastart, m_.dataend); 
+		fs << "image_crc"		<< int(crc.checksum());
+		fs << "image_scale"		<< downscale_factor;
+		cv::write(fs, "features_cache", features_cache[i]);
+
+		fs.release();
+	}
+
+	return true;
 }
 
 

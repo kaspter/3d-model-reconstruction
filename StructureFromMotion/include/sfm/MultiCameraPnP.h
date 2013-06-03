@@ -25,8 +25,14 @@ public:
 		virtual void finish(const MultiCameraPnP &) = 0;
 	};
 
-private:
+	enum INTERNAL_STATE
+	{
+		STATE_OK,
+		STATE_NO_BASELINE_PAIR
+	};
 
+private:
+	
 	std::vector<CloudPoint> pointcloud_beforeBA;
 	std::vector<cv::Vec3b>	pointCloudRGB_beforeBA;
 	
@@ -45,19 +51,22 @@ private:
 
 	int FindHomographyInliers2Views(int vi, int vj);
 
-	std::vector<UpdateListener*> listeners;
+	typedef std::list<UpdateListener*> Listeners;
+	Listeners listeners;
 
-    void update(bool finish = false) 
-	{ 
-		for (int i = 0; i < listeners.size(); i++) 
-			if (finish) listeners[i]->finish(*this); else listeners[i]->update(*this);
+    void notify(bool finish = false) 
+	{
+		for (Listeners::iterator l = listeners.begin(), lend = listeners.end(); l != lend; ++l)
+			if (finish) (*l)->finish(*this); else (*l)->update(*this);
 	}
+
+	INTERNAL_STATE _state;
 
 public:
 	MultiCameraPnP(FEATURE_MATCHER_MODE mode, const std::vector<cv::Mat>& imgs_, const std::vector<std::string>& imgs_names_, const cv::Mat &intrinsics, const cv::Mat distortion_vector)
-		: MultiCameraDistance(mode, imgs_,imgs_names_,intrinsics, distortion_vector) { /* empty */ }
+		: MultiCameraDistance(mode, imgs_,imgs_names_,intrinsics, distortion_vector) { resetState(); }
 
-	virtual void RecoverDepthFromImages();
+	virtual bool RecoverDepthFromImages();
 
 	std::vector<cv::Point3d> getPointCloud(bool adjusted = true) const
 	{ 
@@ -69,5 +78,15 @@ public:
 		return adjusted ? _pointCloudRGBInit() : pointCloudRGB_beforeBA; 
 	}
 
-	void attach(UpdateListener *sul) { listeners.push_back(sul); }
+	void attach(UpdateListener *sul) { assert(sul); listeners.push_back(sul); }
+	void detach(UpdateListener *sul) 
+	{ 
+		assert(sul);
+
+		Listeners::iterator finder = std::find(listeners.begin(), listeners.end(), sul);
+		if (finder != listeners.end()) listeners.erase(finder); 
+	}
+
+	INTERNAL_STATE getState() { return _state; }
+	void resetState() { features_matched = false; _state = STATE_OK; }
 };

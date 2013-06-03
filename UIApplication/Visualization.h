@@ -62,8 +62,8 @@ public:
 
 	CloudVisualizer() : show_cameras(false), show_scene(SCENE_HIDDEN) { /* empty */  }
 
-	void LoadClouds(const RawCloudDataCollection &cloud_data);
-	void LoadCameras(const std::vector<std::pair<double, cv::Matx34d>> cam_data, const Eigen::Vector3f &color, double s = 0.01);
+	void LoadClouds (const RawCloudDataCollection &cloud_data);
+	void LoadCameras(const std::vector<std::pair<double, cv::Matx34d>> cam_data, const Eigen::Vector3f &color, double s = -1.0);
 	void LoadSceneMesh(const pcl::PolygonMesh &scene_polygons) 
 	{ 
 		_scene_mesh_mutex.lock();
@@ -88,17 +88,18 @@ public:
 };
 
 #include <sfm/MultiCameraPnP.h>
-
-#include "DataExport.h"
+#include <sfm/MeshBuilder.h>
 
 class VisualizerListener : public CloudVisualizer, public MultiCameraPnP::UpdateListener {
 
-	SceneData *mesh_builder;
+	MeshBuilder *mesh_builder;
 
 public:
-	VisualizerListener(SceneData *builder = NULL) : mesh_builder(builder) { /* empty */ }
-	void		setBuilder(SceneData *builder)	{ mesh_builder = builder; }
-	SceneData*	getBuilder()					{ return mesh_builder; }
+	VisualizerListener(MeshBuilder *builder = NULL) : mesh_builder(builder) { /* empty */ }
+	void setBuilder(MeshBuilder *builder) { mesh_builder = builder; }
+
+		  MeshBuilder*	getBuilder() 		{ return mesh_builder; }
+	const MeshBuilder*	getBuilder() const	{ return mesh_builder; }
 
 	void update(const MultiCameraPnP &whos_updated);
 	void finish(const MultiCameraPnP &whos_finished);

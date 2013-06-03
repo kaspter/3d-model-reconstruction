@@ -19,7 +19,7 @@
 class IDistance {
 public:
 	virtual void OnlyMatchFeatures() = 0;
-	virtual void RecoverDepthFromImages() = 0;
+	virtual bool RecoverDepthFromImages() = 0;
 	virtual std::vector<cv::Point3d> getPointCloud()	const = 0;
 	virtual std::vector<cv::Vec3b>	 getPointCloudRGB() const = 0;
 };
