@@ -27,6 +27,7 @@
     <ClInclude Include="include\sfm\GPUSURFFeatureMatcher.h" />
     <ClInclude Include="include\sfm\IDistance.h" />
     <ClInclude Include="include\sfm\IFeatureMatcher.h" />
+    <ClInclude Include="include\sfm\MeshBuilder.h" />
     <ClInclude Include="include\sfm\MultiCameraDistance.h" />
     <ClInclude Include="include\sfm\MultiCameraPnP.h" />
     <ClInclude Include="include\sfm\OFFeatureMatcher.h" />
@@ -42,6 +43,7 @@
     </ClCompile>
     <ClCompile Include="src\BundleAdjuster.cpp" />
     <ClCompile Include="src\Common.cpp" />
+    <ClCompile Include="src\MeshBuilder.cpp" />
     <ClCompile Include="src\Distance.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -147,7 +149,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;__SFM__DEBUG__;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>

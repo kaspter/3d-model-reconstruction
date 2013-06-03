@@ -68,8 +68,8 @@ public:
 	
 	virtual void OnlyMatchFeatures();	
 
-	void LoadFeaturesCache(const std::vector<cv::Mat> &features_cache);
-	void ObtainFeaturesCache(std::vector<cv::Mat> &features_cache);
+	void LoadFeaturesCache(const std::vector<std::vector<cv::KeyPoint>> &features_cache);
+	void ObtainFeaturesCache(std::vector<std::vector<cv::KeyPoint>> &features_cache);
 
 	const cv::Mat& get_im_orig(int frame_num)			const { return imgs_orig[frame_num]; }
 	const std::vector<cv::KeyPoint>& getcorrespImg1Pt()	const { return correspImg1Pt; }

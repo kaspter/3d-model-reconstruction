@@ -18,6 +18,7 @@
 #include <Eigen/Eigen>
 
 #include <pcl/common/common.h>
+#include <pcl/common/pca.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
@@ -68,7 +69,7 @@ void CloudVisualizer::visualizerCallback(CloudVisualizer* me, void* dummy)
 	viewer.registerKeyboardCallback(KeyboardEventCallback, objects_essential);
 	
     while (!viewer.wasStopped())
-    {
+	{
 		me->_cloud_to_show_mutex.lock();
 		if (me->cloud_to_show.get() != NULL) 
 		{
@@ -155,6 +156,15 @@ void CloudVisualizer::LoadCameras(const std::vector<std::pair<double, cv::Matx34
 
 	_camera_data_mutex.lock();
 
+	if (s == -1.0)
+	{	
+		pcl::PCA<pcl::PointXYZRGB> pca(*cloud_registry.front(), true);
+		Eigen::Vector3f eigen_vals = pca.getEigenValues();
+		s = std::abs(eigen_vals(2) / eigen_vals(0));
+	}
+
+	assert(s > 0.0);
+
 	camera_meshes.clear(); camera_los.clear();
 	for(unsigned i = 0, imax = cam_data.size(); i < imax; ++i) 
 	{
@@ -167,6 +177,7 @@ void CloudVisualizer::LoadCameras(const std::vector<std::pair<double, cv::Matx34
 				P(2,0), P(2,1), P(2,2)
 			).val);
 		Eigen::Vector3f t(P(0,3), P(1,3), P(2,3)); t = -R.transpose() * t;
+
 		Eigen::Vector3f vforward =  R.row(2).normalized() * s;
 
 		pcl::PointCloud<pcl::PointXYZRGB> mesh_cld;
@@ -263,13 +274,14 @@ void VisualizerListener::update(const MultiCameraPnP &whos_updated)
 	LoadClouds(cloud_data);
 
 	std::vector<std::pair<double, cv::Matx34d>> cam_data;
-	std::vector<std::pair<int, cv::Matx34d>> cameras = whos_updated.getCameras();
+	std::vector<std::pair<int, cv::Matx34d>>	cameras		= whos_updated.getCameras();
 	for (std::vector<std::pair<int, cv::Matx34d>>::iterator i = cameras.begin(), iend = cameras.end(); i != iend; ++i)
 	{
 		cv::Size img_size = whos_updated.get_im_orig(i->first).size();
 		cam_data.push_back(std::make_pair(double(img_size.width) / double(img_size.height), i->second));
 	}
-	LoadCameras(cam_data, Eigen::Vector3f(255, 0, 0), 0.2);	
+
+	LoadCameras(cam_data, Eigen::Vector3f(255, 0, 0));	
 }
 
 void VisualizerListener::finish(const MultiCameraPnP &whos_updated)

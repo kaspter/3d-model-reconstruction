@@ -17,6 +17,7 @@
 #include <opencv2/gpu/gpu.hpp>
 
 #include <sfm/MultiCameraPnP.h>
+#include <sfm/MeshBuilder.h>
 
 #include "Visualization.h"
 #include "DataExport.h"
@@ -65,7 +66,7 @@ int main(int argc, char** argv)
 			}
 			else features_flag = MultiCameraDistance::FEATURE_MATCHER_FAST;
 
-			showHelp |= !boost::filesystem::exists(images_dir) || features_flag == -1;
+			showHelp |= !boost::filesystem::exists(images_dir) || features_flag == MultiCameraDistance::FEATURE_MATCHER_UNKNOWN;
 		}
 
 		if (showHelp)
@@ -82,12 +83,11 @@ int main(int argc, char** argv)
 	}
 
 	{ // Main program block
-		boost::scoped_ptr<std::vector<cv::Mat>> cache_ptr;
+		boost::scoped_ptr<std::vector<std::vector<cv::KeyPoint>>> cache_ptr;
 		bool precached = !!(features_flag & MultiCameraDistance::FEATURE_MATCHER_CACHED);
-		if (precached) cache_ptr.reset(new std::vector<cv::Mat>);
+		if (precached) cache_ptr.reset(new std::vector<std::vector<cv::KeyPoint>>);
 
-		open_imgs_dir(images_dir, images, cache_ptr.get(), image_names, downscale_factor);
-		if(images.empty()) 
+		if(!load_images_data(images_dir, images, image_names, cache_ptr.get(), downscale_factor)) 
 		{ 
 			std::cerr << "Can't get image files at: \'" << images_dir << "\'" << endl;
 			retResult = -1;
@@ -103,18 +103,24 @@ int main(int argc, char** argv)
 			goto EXIT;
 		}
 
-		boost::scoped_ptr<SceneData>				sceneMeshBuilder	(new SceneData);
+		boost::scoped_ptr<ConvexMeshBuilder>		sceneMeshBuilder	(new ConvexMeshBuilder);
 		boost::scoped_ptr<VisualizerListener>		visualizerListener	(new VisualizerListener(sceneMeshBuilder.get()));
 		boost::scoped_ptr<MultiCameraPnP>			sfm					(new MultiCameraPnP(features_flag, images, image_names, intrinsics, distortion));
 
 		visualizerListener->RunVisualizationThread();
 		
 						sfm->attach(visualizerListener.get());		
-		if (precached)	sfm->LoadFeaturesCache(*cache_ptr.get());
-						sfm->RecoverDepthFromImages();
-		if (precached)	sfm->ObtainFeaturesCache(*cache_ptr.get());
+		if (precached)	sfm->LoadFeaturesCache(*cache_ptr);
 
-		if (!out_file_path.empty()) sceneMeshBuilder->save(*sfm, out_file_path);
+		if (!sfm->RecoverDepthFromImages() && !!(retResult = sfm->getState())) { std::cerr << "Structure recovering process failed."; exit(retResult); };
+
+		if (precached)	
+		{
+			sfm->ObtainFeaturesCache(*cache_ptr.get());
+			save_features_cache(images_dir, image_names, images, *cache_ptr, downscale_factor);
+		}
+
+		if (!out_file_path.empty()) DataExport::Collada(*sceneMeshBuilder, out_file_path);
 
 		visualizerListener->WaitForVisualizationThread();
 

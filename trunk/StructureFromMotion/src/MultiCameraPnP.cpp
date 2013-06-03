@@ -40,7 +40,7 @@ void MultiCameraPnP::GetBaseLineTriangulation() {
 	std::vector<CloudPoint> tmp_pcloud;
 
 	//sort pairwise matches to find the lowest Homography inliers [Snavely07 4.2]
-	cout << "Find highest match..." << endl;
+	std::cout << "Find highest match..." << endl;
 	list<pair<int,pair<int,int> > > matches_sizes;
 	//TODO: parallelize!
 	for(std::map<std::pair<int,int> ,std::vector<cv::DMatch>>::iterator i = matches_matrix.begin(); i != matches_matrix.end(); ++i) {
@@ -50,7 +50,7 @@ void MultiCameraPnP::GetBaseLineTriangulation() {
 			int Hinliers = FindHomographyInliers2Views((*i).first.first,(*i).first.second);
 			int percent = (int)(((double)Hinliers) / ((double)(*i).second.size()) * 100.0);
 			matches_sizes.push_back(make_pair((int)percent,(*i).first));
-			cout << "Pair [" << (*i).first.first << "," << (*i).first.second << "] yields " << percent << "% inliers." << endl;
+			std::cout << "Pair [" << (*i).first.first << "," << (*i).first.second << "] yields " << percent << "% inliers." << endl;
 		}
 	}
 	matches_sizes.sort(sort_by_first);
@@ -98,10 +98,11 @@ void MultiCameraPnP::GetBaseLineTriangulation() {
 		
 	if (!success) {
 		cerr << "Cannot find a good pair of images to obtain a baseline triangulation" << endl;
-		exit(0);
+		_state = STATE_NO_BASELINE_PAIR;
+		return;
 	}
 	
-	cout << "Taking baseline from " << imgs_names[m_first_view] << " and " << imgs_names[m_second_view] << endl;
+	std::cout << "Taking baseline from " << imgs_names[m_first_view] << " and " << imgs_names[m_second_view] << endl;
 	
 //	double reproj_error;
 //	{
@@ -164,7 +165,7 @@ void MultiCameraPnP::Find2D3DCorrespondences(int working_view,
 			}
 		}
 	}
-	cout << "found " << ppcloud.size() << " 3d-2d point correspondences"<<endl;
+	std::cout << "found " << ppcloud.size() << " 3d-2d point correspondences"<<endl;
 }
 
 bool MultiCameraPnP::FindPoseEstimation(
@@ -265,7 +266,7 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 	vector<int>& add_to_cloud
 	) 
 {
-	cout << " Triangulate " << imgs_names[working_view] << " and " << imgs_names[older_view] << endl;
+	std::cout << " Triangulate " << imgs_names[working_view] << " and " << imgs_names[older_view] << endl;
 	//get the left camera matrix
 	//TODO: potential bug - the P mat for <view> may not exist? or does it...
 	cv::Matx34d P = Pmats[older_view];
@@ -313,7 +314,7 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 		new_matches.push_back(matches[i]);
 	}
 
-	cout << "filtered out " << (new_triangulated.size() - new_triangulated_filtered.size()) << " high-error points" << endl;
+	std::cout << "filtered out " << (new_triangulated.size() - new_triangulated_filtered.size()) << " high-error points" << endl;
 
 	//all points filtered?
 	if(new_triangulated_filtered.size() <= 0) return false;
@@ -349,13 +350,13 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 					{
 						//Point was already found in <view_> - strengthen it in the known cloud, if it exists there
 
-						//cout << "2d pt " << submatches[ii].queryIdx << " in img " << view_ << " matched 2d pt " << submatches[ii].trainIdx << " in img " << i << endl;
+						//std::cout << "2d pt " << submatches[ii].queryIdx << " in img " << view_ << " matched 2d pt " << submatches[ii].trainIdx << " in img " << i << endl;
 						for (unsigned int pt3d=0; pt3d<pcloud.size(); pt3d++) {
 							if (pcloud[pt3d].imgpt_for_img[view_] == submatches[ii].queryIdx) 
 							{
 								//pcloud[pt3d] - a point that has 2d reference in <view_>
 
-								//cout << "3d point "<<pt3d<<" in cloud, referenced 2d pt " << submatches[ii].queryIdx << " in view " << view_ << endl;
+								//std::cout << "3d point "<<pt3d<<" in cloud, referenced 2d pt " << submatches[ii].queryIdx << " in view " << view_ << endl;
 #pragma omp critical 
 								{
 									pcloud[pt3d].imgpt_for_img[working_view] = matches[j].trainIdx;
@@ -383,7 +384,7 @@ bool MultiCameraPnP::TriangulatePointsBetweenViews(
 }
 
 void MultiCameraPnP::AdjustCurrentBundle() {
-	cout << "======================== Bundle Adjustment ==========================\n";
+	std::cout << "======================== Bundle Adjustment ==========================\n";
 
 	pointcloud_beforeBA = pcloud;
 	GetRGBForPointCloud(pointcloud_beforeBA,pointCloudRGB_beforeBA);
@@ -392,7 +393,7 @@ void MultiCameraPnP::AdjustCurrentBundle() {
 	BA.adjustBundle(pcloud,K,imgpts,Pmats);
 	Kinv = K.inv();
 	
-	cout << "use new K " << endl << K << endl;
+	std::cout << "use new K " << endl << K << endl;
 	
 	GetRGBForPointCloud(pcloud,pointCloudRGB);
 }	
@@ -421,14 +422,17 @@ void MultiCameraPnP::PruneMatchesBasedOnF() {
 	}
 }
 
-void MultiCameraPnP::RecoverDepthFromImages() {
+bool MultiCameraPnP::RecoverDepthFromImages() {
+	_state = STATE_OK;
+
 	if(!features_matched) 
 		OnlyMatchFeatures();
 	
-	PruneMatchesBasedOnF();
-	GetBaseLineTriangulation();
-	AdjustCurrentBundle();
-	update(); //notify listeners
+	PruneMatchesBasedOnF();		
+	GetBaseLineTriangulation(); if (_state != STATE_OK) return false;
+	AdjustCurrentBundle(); 
+	
+	notify(); //notify listeners
 
 	cv::Matx34d P1 = Pmats[m_second_view];
 	cv::Mat_<double> t = (cv::Mat_<double>(1,3) << P1(0,3), P1(1,3), P1(2,3));
@@ -453,7 +457,7 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 			if(done_views.find(_i) != done_views.end()) continue; //already done with this view
 
 			vector<cv::Point3f> tmp3d; vector<cv::Point2f> tmp2d;
-			cout << imgs_names[_i] << ": ";
+			std::cout << imgs_names[_i] << ": ";
 			Find2D3DCorrespondences(_i,tmp3d,tmp2d);
 			if(tmp3d.size() > max_2d3d_count) {
 				max_2d3d_view = _i;
@@ -485,7 +489,7 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 			int view = *done_view;
 			if( view == i ) continue; //skip current...
 
-			cout << " -> " << imgs_names[view] << endl;
+			std::cout << " -> " << imgs_names[view] << endl;
 			
 			vector<CloudPoint> new_triangulated;
 			vector<int> add_to_cloud;
@@ -503,11 +507,14 @@ void MultiCameraPnP::RecoverDepthFromImages() {
 		good_views.insert(i);
 		
 		AdjustCurrentBundle();
-		update();
+		notify();
 	}
 
-	update(true);
-	cout << "======================================================================\n";
-	cout << "========================= Depth Recovery DONE ========================\n";
-	cout << "======================================================================\n";
+	notify(true);
+
+	std::cout << "======================================================================\n";
+	std::cout << "========================= Depth Recovery DONE ========================\n";
+	std::cout << "======================================================================\n";
+
+	return _state == STATE_OK;
 }
