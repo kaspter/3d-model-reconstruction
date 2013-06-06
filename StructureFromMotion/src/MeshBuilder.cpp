@@ -41,7 +41,7 @@ void validateNormalPointsCloud(pcl::PointCloud<pcl::PointNormal> &normal_cloud)
 
 void ConvexMeshBuilder::_buildImpl(const std::vector<cv::Point3d> &cloudPoints, bool filter)
 {
-	Eigen::Vector3f	eigen_vals, eigen_mean;
+	Eigen::Vector3f	eigen_mean, eigen_vals;
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr			cloud	(new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr		tree	(new pcl::search::KdTree<pcl::PointXYZ>);
@@ -60,8 +60,11 @@ void ConvexMeshBuilder::_buildImpl(const std::vector<cv::Point3d> &cloudPoints, 
 		_cloud->height = static_cast<uint32_t>(_cloud->width != 0);
 		
 		pcl::PCA<pcl::PointXYZ> pca(*_cloud, true);
-		eigen_vals = pca.getEigenValues();
-		eigen_mean = pca.getMean().head(3) / (std::max(pca.getMean()(3), 1.0F));
+		
+		double w = pca.getMean()(3); if (std::abs(w) 
+			< std::numeric_limits<float>::epsilon()) w = 1.0;
+		eigen_mean = pca.getMean().head(3) / w;
+		eigen_vals = pca.getEigenValues();	
 
 		if (filter)
 		{
@@ -131,9 +134,9 @@ void ConvexMeshBuilder::_buildImpl(const std::vector<cv::Point3d> &cloudPoints, 
 	normal_tree->setInputCloud(normal_cloud);
 
 	// Initialize objects
-	pcl::ConcaveHull<pcl::PointNormal> chull;
+	pcl::ConvexHull<pcl::PointNormal> chull;
 
-	chull.setAlpha			(0.215);
+	//chull.setAlpha			(0.215);
 	chull.setInputCloud		(normal_cloud);
 	chull.setSearchMethod	(normal_tree);
 
