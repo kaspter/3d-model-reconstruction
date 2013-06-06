@@ -106,15 +106,15 @@ int main(int argc, char** argv)
 		boost::scoped_ptr<ConvexMeshBuilder>		sceneMeshBuilder	(new ConvexMeshBuilder);
 		boost::scoped_ptr<VisualizerListener>		visualizerListener	(new VisualizerListener(sceneMeshBuilder.get()));
 		boost::scoped_ptr<MultiCameraPnP>			sfm					(new MultiCameraPnP(features_flag, images, image_names, intrinsics, distortion));
-
+	
 		visualizerListener->RunVisualizationThread();
-		
+
 						sfm->attach(visualizerListener.get());		
 		if (precached)	sfm->LoadFeaturesCache(*cache_ptr);
 
 		if (!sfm->RecoverDepthFromImages() && !!(retResult = sfm->getState())) { std::cerr << "Structure recovering process failed."; exit(retResult); };
 
-		if (precached)	
+		if (precached)
 		{
 			sfm->ObtainFeaturesCache(*cache_ptr.get());
 			save_features_cache(images_dir, image_names, images, *cache_ptr, downscale_factor);
