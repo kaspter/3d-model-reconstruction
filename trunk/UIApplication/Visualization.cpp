@@ -213,7 +213,8 @@ void CloudVisualizer::LoadCameras(const std::vector<std::pair<double, cv::Matx34
 			));
 	}
 
-	_ASSERT_EXPR(camera_meshes.size() == camera_los.size(), L"Camera meshes vector is unaligned with camera lines one.");
+	_ASSERT_EXPR(camera_meshes.size() == camera_los.size(), 
+		L"Camera meshes vector is unaligned with camera lines one.");
 
 	_camera_data_mutex.unlock();
 	
@@ -294,6 +295,3 @@ void VisualizerListener::finish(const MultiCameraPnP &whos_updated)
 		for (std::vector<pcl::PolygonMesh>::iterator it = mesh_segments.begin(), it_end = mesh_segments.end(); it != it_end; ++it) LoadSceneMesh(*it);
 	}
 }
-
-
-

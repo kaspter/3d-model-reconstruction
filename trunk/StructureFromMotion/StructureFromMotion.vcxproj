@@ -138,7 +138,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\sfm;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\sfm;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(QHULL_ROOT)\qhull-6.2.0.1385 ($(PlatformTarget))\include;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <CompileAs>Default</CompileAs>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -149,7 +149,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
@@ -235,7 +235,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalOptions> /Zm1000 /openmp %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include\sfm;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\sfm;$(SolutionDir)\ImageProcessor\include;$(BOOST_ROOT)\boost_1_50_0;$(OPENCV_DIR)\opencv-2.4.4\build\include;$(OPENCV_DIR)\opencv-2.4.4\build\include\opencv;$(EIGEN_ROOT)\include;$(VTK_DIR)\include\vtk-5.8;$(QHULL_ROOT)\qhull-6.2.0.1385 ($(PlatformTarget))\include;$(FLANN_ROOT)\flann-1.7.1 ($(PlatformTarget))\include;$(OPEN_NI_INCLUDE);$(PCL_ROOT)\PCL 1.6.0 ($(PlatformTarget))\include\pcl-1.6;$(SSBA_ROOT)\SSBA-3.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>Default</CompileAs>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -244,7 +244,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DISABLE_QHULL;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;USE_EIGEN;EIGEN_USE_NEW_STDVECTOR;EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET;BOOST_ALL_NO_LIB;FLANN_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
