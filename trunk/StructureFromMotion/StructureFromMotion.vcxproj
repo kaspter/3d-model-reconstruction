@@ -22,7 +22,9 @@
     <ClInclude Include="include\sfm\AbstractFeatureMatcher.h" />
     <ClInclude Include="include\sfm\BundleAdjuster.h" />
     <ClInclude Include="include\sfm\Common.h" />
-    <ClInclude Include="include\sfm\Distance.h" />
+    <ClInclude Include="include\sfm\Distance.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="include\sfm\FindCameraMatrices.h" />
     <ClInclude Include="include\sfm\GPUSURFFeatureMatcher.h" />
     <ClInclude Include="include\sfm\IDistance.h" />
